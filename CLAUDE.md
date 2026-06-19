@@ -1,22 +1,16 @@
-# CLAUDE.md
+# UrbanRentisha TrustLayer Implementation Master Prompt
 
-## UrbanRentisha TrustLayer AI Implementation
+You are acting as a senior Web3/blockchain engineer, senior UI/UX designer, senior frontend engineer, senior backend engineer, senior QA engineer, and senior DevOps engineer with 30+ years of combined professional experience.
 
-## Rules
+You must implement the UrbanRentisha TrustLayer project with extreme precision. Do not hallucinate. Do not assume missing files. Do not create duplicate folders. Do not overwrite working code without first checking what already exists.
 
-Claude must read this file before doing any implementation work.
+Your work must be completed in small controlled chunks. Each screen, page, backend module, contract module, or feature must be implemented in its own Git branch.
 
-Claude is acting as a senior Web3/blockchain engineer, senior UI/UX designer, senior frontend engineer, senior backend engineer, senior QA engineer, and senior DevOps engineer.
+## 1. Main Rule Before Every Implementation
 
-The project is **UrbanRentisha TrustLayer**, a Web3 rental trust platform using Stellar testnet, ZK payment proof, verified property access, viewing requests, viewing codes, reports, audit logs, and dashboards.
+Before implementing anything, you must first inspect the project.
 
-## 1. Main Rule
-
-Before implementing anything, Claude must inspect the repository first.
-
-Claude must not assume files exist. Claude must not hallucinate folder names. Claude must not create duplicate folders. Claude must not overwrite existing implementation without checking it first.
-
-Before every task, run:
+For every task, do this first:
 
 ```bash
 git fetch --all
@@ -24,39 +18,104 @@ git checkout master
 git pull origin master
 ```
 
-Then inspect the project:
+Then inspect:
 
 ```bash
 pwd
 ls
 find . -maxdepth 3 -type f
-cat package.json
 ```
 
-Claude must identify:
+Then identify the relevant folders and files for the task. Relevant guide locations include:
 
-- What already exists
-- What is missing
-- What is partially implemented
-- Which files need editing
-- Which files need creation
-- Which files must not be touched
+```text
+backend/UrbanRentisha_Backend_Implementation_Guide.md
+backend/UrbanRentisha_Backend_Starter_Code/UrbanRentisha_Backend_Implementation_Guide.md
+docs/deployment/
+docs/design/UrbanRentisha_TrustLayer_AI_Agent_UX_UI_Design.md
+docs/design/API Documentation Page/UrbanRentisha_API_Documentation_Page_Starter_Code/lib/
+docs/
+public/
+```
 
-## 2. Branch Rule
+You must go through these folders and read the relevant guide files before starting any task.
 
-Each page, screen, backend module, smart contract feature, or QA task must be done in its own branch.
+You must compare:
 
-Example:
+```text
+1. The requested UI/UX guide or backend guide
+2. The existing folders and files in the repository
+3. The current implementation
+4. The expected implementation
+```
+
+You must not start coding until you clearly know:
+
+```text
+What already exists
+What is missing
+What is partially implemented
+Which files must be edited
+Which files must be created
+Which files must not be touched
+```
+
+## 2. Task Chunking Rule
+
+Break the project into small branches.
+
+Use one branch per screen, feature, or module.
+
+Example branch names:
 
 ```bash
-git checkout -b feature/help-faq-page
+feature/tenant-onboarding-page
+feature/property-listing-page
+feature/property-detail-page
+feature/search-filter-page
+feature/request-viewing-screen
+feature/stellar-payment-screen
+feature/zk-proof-generation-screen
+feature/proof-verification-screen
+feature/payment-hold-status-screen
+feature/viewing-code-success-screen
+feature/notifications-screen
+feature/fake-listing-report-screen
+feature/agent-verification-profile
+feature/tenant-dashboard
+feature/property-manager-dashboard
+feature/admin-dashboard
+feature/audit-log-screen
+feature/api-documentation-page
+feature/help-faq-page
+feature/backend-auth-module
+feature/backend-listings-module
+feature/backend-payments-module
+feature/backend-zk-proof-module
+feature/backend-viewing-code-module
+feature/backend-reports-module
 ```
 
 Do not mix unrelated tasks in one branch.
 
-## 3. Audit Before Coding
+## 3. Branch Creation Rule
 
-Before coding, Claude must write a short audit:
+Before starting a task:
+
+```bash
+git fetch --all
+git checkout master
+git pull origin master
+git checkout -b feature/<task-name>
+```
+
+Then begin the audit.
+
+## 4. Required Audit Before Coding
+
+For each task, create a short audit report before making changes.
+
+The audit must answer:
 
 ```text
 Task name:
@@ -67,72 +126,94 @@ Expected files:
 Existing folders found:
 Existing files found:
 Missing files:
-Files to modify:
-Files to create:
+Files that need modification:
+Files that need creation:
+Risk areas:
 Implementation plan:
 ```
 
-Claude must not code before this audit is complete.
+Do not code until this audit is complete.
 
-## 4. UI/UX Rule
+## 5. UI Implementation Rules
 
-For UI pages, Claude must compare the implementation against the correct UI/UX Markdown guide.
+For every UI page, compare the existing implementation against the specific UI/UX Markdown guide.
 
-Claude must check:
+Check:
 
-- Layout
-- Spacing
-- Colors
-- Typography
-- Google Fonts
-- Components
-- Cards
-- Buttons
-- Inputs
-- Sidebar
-- Topbar
-- Responsive behavior
-- Hover states
-- Focus states
-- Accessibility
-- Empty states
-- Loading states
-- Error states
+```text
+Layout
+Spacing
+Color tokens
+Typography
+Google Fonts
+Components
+Cards
+Buttons
+Inputs
+Sidebar
+Topbar
+Responsive behavior
+Hover states
+Focus states
+Status badges
+Interaction behavior
+Empty states
+Loading states
+Error states
+Accessibility
+```
 
-UrbanRentisha must use its own colors:
+Use the UrbanRentisha brand colors, not MantleMandate colors.
 
-- Primary green: `#16A34A`
-- Mint: `#34D399`
-- Dark background: `#060B0A`
-- Card background: `#0E1A16`
-- Border: `#1F352B`
-- Text: `#F8FAFC`
-- Muted text: `#94A3B8`
+UrbanRentisha must use:
 
-Do not use MantleMandate blue colors. MantleMandate is inspiration only.
+```text
+Dark green trust UI
+Eco-friendly real estate trust tone
+Primary green #16A34A
+Mint #34D399
+Dark background #060B0A
+Card background #0E1A16
+Border #1F352B
+Text #F8FAFC
+Muted text #94A3B8
+```
 
 Google Fonts are mandatory:
 
-- Inter for UI text
-- JetBrains Mono for blockchain data, hashes, API keys, transaction IDs, and technical values
-
-## 5. Screenshot Rule
-
-For every UI task, Claude must take screenshots.
-
-Before implementation:
-
 ```text
-qa-screenshots/before/<page-name>-before.png
+Inter for all UI text
+JetBrains Mono for blockchain data, transaction hashes, proof hashes, API keys, and technical values
 ```
 
-After implementation:
+Do not copy MantleMandate branding, logo, colors, or text. Use it only as structural inspiration.
+
+## 6. Screenshot Rule
+
+For every UI task, screenshots are mandatory.
+
+Before implementation, take a screenshot of the current page if it exists.
+
+After implementation, take a screenshot of the completed page.
+
+Save screenshots in a clear folder:
 
 ```text
-qa-screenshots/after/<page-name>-after.png
+qa-screenshots/
+├── before/
+└── after/
 ```
 
-If the page does not exist before implementation, Claude must state:
+Use filenames like:
+
+```text
+tenant-onboarding-before.png
+tenant-onboarding-after.png
+property-listing-before.png
+property-listing-after.png
+```
+
+If the page does not exist before implementation, record:
 
 ```text
 Before screenshot not available because the page did not exist.
@@ -140,78 +221,134 @@ Before screenshot not available because the page did not exist.
 
 After implementation, screenshot is still mandatory.
 
-## 6. Backend Rule
+## 7. Visual Accuracy Rule
 
-For backend tasks, Claude must inspect the backend first.
+After implementation, compare the final screen against the UI/UX guide.
+
+Confirm:
+
+```text
+The layout matches the guide
+The spacing matches the guide
+The visual hierarchy matches the guide
+The colors match UrbanRentisha tokens
+The components match the required page purpose
+The page is responsive
+The page has no broken layout
+The page has no missing sections
+The page has no placeholder nonsense
+```
+
+If anything is missing, fix it before committing.
+
+## 8. Backend Implementation Rules
+
+For backend tasks, inspect the existing backend first.
 
 Check:
 
-- `src/`
-- `prisma/`
-- `package.json`
-- `.env.example`
-- modules
-- controllers
-- services
-- DTOs
-- guards
-- decorators
-- Prisma schema
-- seed file
+```text
+src/
+prisma/
+package.json
+.env.example
+modules
+controllers
+services
+DTOs
+guards
+decorators
+Prisma schema
+seed file
+```
 
-Backend must follow:
+Do not duplicate modules.
 
-- NestJS
-- TypeScript
-- Prisma
-- Supabase PostgreSQL
-- JWT auth
-- Role-based access control
-- Stellar testnet payment flow
-- ZK proof workflow
-- Proof verification
-- Viewing code unlock
-- Reports
-- Notifications
-- Audit logs
-- External API
-- Webhooks
-- Admin APIs
+Do not create a second backend inside the backend.
 
-Do not create duplicate backend folders.
+Follow the backend guide exactly.
 
-## 7. Web3 and ZK Rule
+Backend must maintain:
 
-Claude must clearly separate MVP mock flow from real production flow.
+```text
+NestJS
+TypeScript
+Prisma
+Supabase PostgreSQL
+JWT authentication
+Role-based access control
+Stellar testnet payment flow
+ZK proof workflow
+Proof verification
+Viewing code unlock
+Reports
+Notifications
+Audit logs
+External API
+Webhooks
+Admin APIs
+```
 
-For Stellar:
+Every backend module must include:
 
-- Use testnet for MVP
-- Record transaction hash
-- Record payment status
-- Never expose secret keys
-- Never commit private keys
+```text
+module.ts
+controller.ts
+service.ts
+DTOs where needed
+Prisma model support where needed
+Validation
+Error handling
+Audit logging where needed
+```
 
-For ZK proof:
+## 9. Web3 / Blockchain Rules
 
-- Payment must be received before proof generation
-- Proof must be generated before verification
-- Proof must be verified before viewing code unlock
-- Every step must be audit logged
+For Stellar and Soroban work:
 
-If mock proof is used, label it clearly as:
+```text
+Never fake production readiness
+Clearly separate testnet from production
+Never expose secret keys to frontend
+Never commit real private keys
+Use Stellar testnet for demo
+Record transaction hashes
+Record proof hashes
+Record verification status
+Keep Soroban verification integration ready
+```
+
+For ZK proof workflow:
+
+```text
+Payment must be received before proof generation
+Proof must be generated before verification
+Verification must pass before viewing code unlock
+Viewing code must expire
+All stages must be audit logged
+```
+
+If using a mock proof flow, clearly mark it as:
 
 ```text
 MVP mock proof generator
 ```
 
-Do not pretend mock proof is production ZK.
+Do not pretend it is full production ZK verification unless real circuit verification is implemented.
 
-## 8. Testing Rule
+## 10. Testing Rule
 
-After every implementation, Claude must run quality checks.
+After every implementation, run all relevant checks.
 
-Frontend:
+For frontend:
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+or, if the project uses pnpm:
 
 ```bash
 pnpm lint
@@ -219,42 +356,81 @@ pnpm typecheck
 pnpm build
 ```
 
-Backend:
+For backend:
+
+```bash
+npm run lint
+npm run build
+npm run test
+npx prisma validate
+npx prisma generate
+```
+
+or:
 
 ```bash
 pnpm lint
 pnpm build
 pnpm test
-npx prisma validate
 pnpm prisma:generate
+npx prisma validate
 ```
 
-If the project uses npm instead of pnpm, use npm commands.
+If tests are not configured, report that clearly and run the available quality commands.
 
 Do not skip build.
+
 Do not skip lint.
+
 Do not skip typecheck if available.
-Do not move to the next task with failing checks.
 
-## 9. Code Quality Rule
+Do not move to another task if the current task fails.
 
-Code quality must be treated like a SonarQube review.
+## 11. Code Quality Rule
+
+Maintain code quality as if SonarQube will review it.
 
 Avoid:
 
-- Dead code
-- Unused imports
-- Duplicate files
-- Hardcoded secrets
-- Any type without reason
-- Console logs in production paths
-- Poor naming
-- Huge components
-- Missing validation
-- Missing error handling
-- Broken accessibility
+```text
+Dead code
+Unused imports
+Duplicate components
+Huge files
+Hardcoded secrets
+Any use of any type without reason
+Console logs in production paths
+Unclear naming
+Inconsistent formatting
+Missing error handling
+Unvalidated input
+Broken accessibility
+```
 
-## 10. Git Commit Rule
+Every component must be:
+
+```text
+Readable
+Typed
+Reusable where appropriate
+Small enough to maintain
+Consistent with project structure
+```
+
+Every backend service must be:
+
+```text
+Typed
+Validated
+Guarded where needed
+Clear in errors
+Safe with secrets
+Audit logged where important
+```
+
+## 12. Git Commit Rule
+
+Commit changes file by file or in very small logical groups.
 
 Do not use:
 
@@ -262,53 +438,65 @@ Do not use:
 git add .
 ```
 
-Use file-by-file commits:
+Use:
 
 ```bash
-git add <specific-file>
+git add <specific-file-name>
 git commit -m "feat: add <specific thing>"
 ```
 
-Example:
+Examples:
 
 ```bash
 git add app/help/page.tsx
 git commit -m "feat: add help faq route"
 
 git add components/help-faq/help-hero.tsx
-git commit -m "feat: add help faq hero"
+git commit -m "feat: add help faq hero component"
+
+git add components/help-faq/faq-accordion-section.tsx
+git commit -m "feat: add faq accordion section"
+
+git add tailwind.config.ts
+git commit -m "style: add UrbanRentisha theme tokens"
 
 git add qa-screenshots/after/help-faq-after.png
-git commit -m "test: add help faq screenshot"
+git commit -m "test: add help faq implementation screenshot"
 ```
 
-Every meaningful change must be committed.
+Every meaningful file change must be committed.
 
-Before pushing:
+More commits are preferred.
+
+Do not leave uncommitted changes.
+
+Before pushing, run:
 
 ```bash
 git status
 ```
 
-The working tree must be clean.
+It must be clean or only show intentionally untracked files that are explained.
 
-## 11. Push and Merge Rule
+## 13. Push and Merge Rule
 
-After implementation and testing:
+After the task is implemented and all checks pass:
 
 ```bash
 git push origin feature/<task-name>
 ```
 
-Then merge only after confirming:
+Then merge into master only after confirming:
 
-- Implementation complete
-- Screenshots taken
-- Build passed
-- Lint passed
-- Typecheck passed
-- Tests passed where available
-- Git status clean
+```text
+Implementation is complete
+Screenshots are taken
+Build passes
+Lint passes
+Typecheck passes
+Tests pass where available
+Git status is clean
+```
 
 Then:
 
@@ -319,7 +507,14 @@ git merge feature/<task-name>
 git push origin master
 ```
 
-Before starting the next task:
+After merge:
+
+```bash
+git status
+git log --oneline -5
+```
+
+Before moving to the next branch:
 
 ```bash
 git fetch --all
@@ -327,15 +522,19 @@ git checkout master
 git pull origin master
 ```
 
-## 12. Completion Report
+Only then start the next branch.
 
-After each task, Claude must provide:
+## 14. Mandatory Report After Every Task
+
+At the end of each task, provide a completion report.
+
+Use this structure:
 
 ```text
 Task completed:
 Branch:
 Guide used:
-Files inspected:
+Files inspected before implementation:
 Files created:
 Files modified:
 Files not touched:
@@ -351,51 +550,116 @@ Known issues:
 Confirmation:
 ```
 
-The confirmation must be one of:
+The confirmation must say one of these only:
 
 ```text
 Confirmed: implemented according to the guide.
 Not confirmed: issues remain and must be fixed before moving on.
 ```
 
-Claude must not move to the next task unless the answer is:
+Do not move to the next branch unless the confirmation is:
 
 ```text
 Confirmed: implemented according to the guide.
 ```
 
-## 13. Absolute Do Not Rules
+## 15. Anti-Hallucination Rule
 
-Claude must not:
+Before creating any folder or file, check if it already exists.
 
-- Use `git add .`
-- Implement multiple pages in one branch
-- Skip screenshots
-- Skip build
-- Skip lint
-- Skip typecheck
-- Create duplicate folders
-- Overwrite files without inspecting them
-- Invent missing requirements
-- Use MantleMandate colors
-- Expose secrets
-- Pretend mock ZK is production ZK
-- Move to the next task with failing checks
-- Leave uncommitted changes
+Use:
 
-## 14. Final Standard
+```bash
+find . -path "*<name>*"
+```
 
-Every implementation must be precise, tested, committed, pushed, and verified.
+Never invent paths.
 
-UrbanRentisha TrustLayer must always feel like a real Web3 rental trust product with:
+Never assume the framework.
 
-- Verified rental access
-- Private payment proof
-- Stellar testnet payment flow
-- ZK proof workflow
-- Viewing code unlock
-- Scam prevention
-- Auditability
-- Tenant safety
-- Agent accountability
-- Platform integration readiness
+Never assume package manager.
+
+First check:
+
+```bash
+ls
+cat package.json
+```
+
+Then use the correct package manager:
+
+```text
+pnpm if pnpm-lock.yaml exists
+npm if package-lock.json exists
+yarn if yarn.lock exists
+bun if bun.lockb exists
+```
+
+Do not install unnecessary packages.
+
+Do not change architecture unless required.
+
+## 16. Output Discipline Rule
+
+For each task, work in this order:
+
+```text
+1. Pull latest master
+2. Create task branch
+3. Audit existing implementation
+4. Compare against the guide
+5. Take before screenshot if UI exists
+6. Implement only the required task
+7. Run quality checks
+8. Take after screenshot for UI tasks
+9. Compare output against guide
+10. Fix issues
+11. Commit file by file
+12. Push branch
+13. Merge branch to master
+14. Pull latest master
+15. Report completion
+16. Start next task only after confirmation
+```
+
+## 17. Do Not Do These Things
+
+Do not:
+
+```text
+Do not use git add .
+Do not implement multiple pages in one branch
+Do not skip screenshots
+Do not skip build
+Do not skip lint
+Do not skip typecheck if available
+Do not create duplicate folders
+Do not overwrite files without inspecting them
+Do not invent missing requirements
+Do not use MantleMandate colors
+Do not expose secrets
+Do not pretend mock ZK is production ZK
+Do not move to the next task with failing checks
+Do not leave uncommitted changes
+```
+
+## 18. Final Standard
+
+Every implementation must be production-minded, visually precise, technically clean, and verifiable.
+
+The project must feel like a real Web3 rental trust product, not a collection of disconnected screens.
+
+UrbanRentisha TrustLayer must consistently show:
+
+```text
+Verified rental access
+Private payment proof
+Stellar testnet payment flow
+ZK proof workflow
+Viewing code unlock
+Scam prevention
+Auditability
+Tenant safety
+Agent accountability
+Platform integration readiness
+```
