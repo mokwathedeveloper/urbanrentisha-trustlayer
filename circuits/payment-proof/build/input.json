@@ -1,0 +1,8 @@
+{
+  "requestId": "12345",
+  "listingId": "9876",
+  "requiredViewingFee": "10",
+  "paymentCommitment": "180103193963",
+  "paymentSecret": "424242",
+  "paymentNonce": "13"
+}

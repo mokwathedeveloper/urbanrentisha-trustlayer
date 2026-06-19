@@ -1,0 +1,9 @@
+1,1,0,main.requestId
+2,2,0,main.listingId
+3,3,0,main.requiredViewingFee
+4,4,0,main.paymentCommitment
+5,5,0,main.paymentSecret
+6,6,0,main.paymentNonce
+7,7,0,main.secretSq
+8,8,0,main.nonceSq
+9,9,0,main.mixed

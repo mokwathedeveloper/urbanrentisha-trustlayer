@@ -1,7 +1,6 @@
 # Dependencies
 node_modules/
 dist/
-build/
 
 # Environment
 .env
@@ -26,3 +25,11 @@ backend/UrbanRentisha_Backend_Starter_Code/prisma/dev.db
 # Misc
 *.tsbuildinfo
 coverage/
+
+# Rust / Soroban contract build artifacts
+contracts/*/target/
+contracts/*/test_snapshots/
+
+# Circuit node dependencies (build/ artifacts are intentionally committed
+# for reproducibility - the circuit is tiny and artifacts are all <2MB)
+circuits/*/node_modules/

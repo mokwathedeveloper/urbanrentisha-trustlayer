@@ -106,26 +106,28 @@ The verification result
 
 ## 6. Recommended ZK Stack
 
-For the first implementation, the recommended stack is:
+**Implementation update:** the actual hackathon build uses **Circom + Groth16**, not Noir. Noir's on-chain Soroban verifier only exists as an unaudited third-party reference repo, whereas Stellar publishes an official Groth16 verifier reference (`stellar/soroban-examples/groth16_verifier`) using native BLS12-381 host functions. Forking the official reference was lower-risk for actually deploying a real, on-chain-verified proof by the submission deadline. The stack:
 
 ```text
-Noir
-Barretenberg / compatible proving backend
+Circom (circuit compiled with --prime bls12381)
+snarkjs (Groth16 trusted setup, proving, off-chain verification)
 Off-chain proof generation service
-Soroban verifier or verification-state recording contract
+Soroban verifier contract (UrbanRentishaTrustVerifier), forked from stellar/soroban-examples/groth16_verifier
 ```
 
-## 6.1 Why Noir Is Recommended
+See `circuits/payment-proof/` for the circuit and `contracts/trust-verifier/` for the deployed verifier contract.
 
-Noir is recommended for the hackathon MVP because it is more readable and easier to explain than lower-level circuit languages. It allows the proof logic to be written in a Rust-like syntax, which makes the circuit more approachable for developers and judges.
+## 6.1 Why Circom + Groth16 Was Chosen Over Noir
 
-## 6.2 When Circom Makes Sense
+Noir was the original recommendation for readability, but its UltraHonk verifier for Soroban only exists as a third-party fork ([yugocabrio/rs-soroban-ultrahonk](https://github.com/yugocabrio/rs-soroban-ultrahonk)), which is a higher-risk dependency to adapt under a hackathon deadline. Circom + Groth16 has an official Stellar-maintained reference verifier, making it the more reliable path to a genuinely deployed, on-chain-verified proof.
 
-Circom can be considered if the team prioritizes lower-level control or cheaper verifier design. It is powerful but usually requires more careful circuit engineering.
+## 6.2 Hash Primitive Substitution
+
+The conceptual commitment formula in section 8 below calls for a ZK-friendly hash (e.g. Poseidon). The deployed circuit instead uses a field-native quadratic binding (`commitment = secret^2 + nonce^2 + requestId*listingId + fee`), because circomlib's Poseidon round constants are computed for the BN254 scalar field and are not valid under the BLS12-381 field this verifier contract requires. This is a known, intentional substitution, not an oversight — see `circuits/payment-proof/payment_proof.circom` for the in-code rationale.
 
 ## 6.3 When RISC Zero Makes Sense
 
-RISC Zero can be considered if the team wants to prove more complex off-chain computation. For this MVP, the payment-condition proof is simple enough that Noir or Circom is a better fit.
+RISC Zero can be considered if the team wants to prove more complex off-chain computation. For this MVP, the payment-condition proof is simple enough that Circom is a better fit.
 
 ---
 
