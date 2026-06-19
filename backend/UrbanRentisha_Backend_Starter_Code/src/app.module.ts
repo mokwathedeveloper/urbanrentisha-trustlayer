@@ -35,7 +35,7 @@ import { AdminModule } from "./admin/admin.module";
     AuditLogsModule,
     ExternalApiModule,
     WebhooksModule,
-    AdminModule
-  ]
+    AdminModule,
+  ],
 })
 export class AppModule {}

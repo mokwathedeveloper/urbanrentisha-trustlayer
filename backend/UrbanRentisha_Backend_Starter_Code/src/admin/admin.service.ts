@@ -12,14 +12,14 @@ export class AdminService {
       viewingRequests,
       reports,
       proofVerifications,
-      auditLogs
+      auditLogs,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.listing.count(),
       this.prisma.viewingRequest.count(),
       this.prisma.report.count(),
       this.prisma.proofVerification.count(),
-      this.prisma.auditLog.count()
+      this.prisma.auditLog.count(),
     ]);
 
     return {
@@ -28,7 +28,7 @@ export class AdminService {
       viewingRequests,
       reports,
       proofVerifications,
-      auditLogs
+      auditLogs,
     };
   }
 }

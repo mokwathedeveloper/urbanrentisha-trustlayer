@@ -8,6 +8,6 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
   imports: [StellarModule, AuditLogsModule],
   controllers: [PaymentsController],
   providers: [PaymentsService],
-  exports: [PaymentsService]
+  exports: [PaymentsService],
 })
 export class PaymentsModule {}

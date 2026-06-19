@@ -17,8 +17,8 @@ export class UsersService {
         status: true,
         tenantProfile: true,
         agentProfile: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
 
     if (!user) throw new NotFoundException("User not found.");

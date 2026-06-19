@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PaymentStatus, ViewingRequestStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { StellarService } from "../stellar/stellar.service";
@@ -11,13 +15,13 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stellar: StellarService,
-    private readonly auditLogs: AuditLogsService
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   async createIntent(actorId: string, dto: CreatePaymentIntentDto) {
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
-      include: { listing: true, payment: true }
+      include: { listing: true, payment: true },
     });
 
     if (!request) throw new NotFoundException("Viewing request not found.");
@@ -31,8 +35,8 @@ export class PaymentsService {
         destinationWallet: this.stellar.getDestinationWallet(),
         payerWallet: dto.payerWallet,
         stellarMemo: this.stellar.createMemoForRequest(request.id),
-        status: PaymentStatus.AWAITING_PAYMENT
-      }
+        status: PaymentStatus.AWAITING_PAYMENT,
+      },
     });
 
     await this.auditLogs.create({
@@ -44,8 +48,8 @@ export class PaymentsService {
       metadata: {
         viewingRequestId: request.id,
         amount: payment.amount,
-        stellarMemo: payment.stellarMemo
-      }
+        stellarMemo: payment.stellarMemo,
+      },
     });
 
     return payment;
@@ -54,14 +58,14 @@ export class PaymentsService {
   async confirm(actorId: string, dto: ConfirmPaymentDto) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: dto.paymentId },
-      include: { viewingRequest: true }
+      include: { viewingRequest: true },
     });
 
     if (!payment) throw new NotFoundException("Payment not found.");
 
     const verification = await this.stellar.verifyPaymentReference({
       txHash: dto.txHash,
-      expectedMemo: payment.stellarMemo
+      expectedMemo: payment.stellarMemo,
     });
 
     if (!verification.ok) {
@@ -73,13 +77,13 @@ export class PaymentsService {
       data: {
         txHash: dto.txHash,
         status: PaymentStatus.RECEIVED,
-        paidAt: new Date()
-      }
+        paidAt: new Date(),
+      },
     });
 
     await this.prisma.viewingRequest.update({
       where: { id: payment.viewingRequestId },
-      data: { status: ViewingRequestStatus.PAYMENT_RECEIVED }
+      data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
     });
 
     await this.auditLogs.create({
@@ -90,8 +94,8 @@ export class PaymentsService {
       severity: "SUCCESS",
       metadata: {
         txHash: dto.txHash,
-        viewingRequestId: payment.viewingRequestId
-      }
+        viewingRequestId: payment.viewingRequestId,
+      },
     });
 
     return updated;

@@ -1,5 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ProofStatus, ViewingCodeStatus, ViewingRequestStatus } from "@prisma/client";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  ProofStatus,
+  ViewingCodeStatus,
+  ViewingRequestStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { randomCode } from "../common/utils/hash.util";
@@ -9,18 +17,23 @@ import { GenerateViewingCodeDto } from "./dto/generate-viewing-code.dto";
 export class ViewingCodesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditLogs: AuditLogsService
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   async generate(actorId: string, dto: GenerateViewingCodeDto) {
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
-      include: { proofVerification: true, viewingCode: true }
+      include: { proofVerification: true, viewingCode: true },
     });
 
     if (!request) throw new NotFoundException("Viewing request not found.");
-    if (!request.proofVerification || request.proofVerification.status !== ProofStatus.VERIFIED) {
-      throw new BadRequestException("Proof must be verified before viewing code unlock.");
+    if (
+      !request.proofVerification ||
+      request.proofVerification.status !== ProofStatus.VERIFIED
+    ) {
+      throw new BadRequestException(
+        "Proof must be verified before viewing code unlock.",
+      );
     }
 
     if (request.viewingCode) return request.viewingCode;
@@ -30,13 +43,13 @@ export class ViewingCodesService {
         viewingRequestId: request.id,
         code: randomCode("UR", 6),
         status: ViewingCodeStatus.ACTIVE,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24)
-      }
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      },
     });
 
     await this.prisma.viewingRequest.update({
       where: { id: request.id },
-      data: { status: ViewingRequestStatus.ACCESS_UNLOCKED }
+      data: { status: ViewingRequestStatus.ACCESS_UNLOCKED },
     });
 
     await this.auditLogs.create({
@@ -45,7 +58,7 @@ export class ViewingCodesService {
       entityType: "viewing_code",
       entityId: code.id,
       severity: "SUCCESS",
-      metadata: { viewingRequestId: request.id }
+      metadata: { viewingRequestId: request.id },
     });
 
     return code;
@@ -54,7 +67,7 @@ export class ViewingCodesService {
   async verify(code: string) {
     const viewingCode = await this.prisma.viewingCode.findUnique({
       where: { code },
-      include: { viewingRequest: { include: { listing: true } } }
+      include: { viewingRequest: { include: { listing: true } } },
     });
 
     if (!viewingCode) throw new NotFoundException("Viewing code not found.");
@@ -64,7 +77,7 @@ export class ViewingCodesService {
     return {
       valid: viewingCode.status === ViewingCodeStatus.ACTIVE && !expired,
       status: expired ? "EXPIRED" : viewingCode.status,
-      viewingCode
+      viewingCode,
     };
   }
 }

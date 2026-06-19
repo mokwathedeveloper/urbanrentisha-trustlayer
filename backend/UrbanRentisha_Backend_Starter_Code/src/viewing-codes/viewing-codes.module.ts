@@ -7,6 +7,6 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
   imports: [AuditLogsModule],
   controllers: [ViewingCodesController],
   providers: [ViewingCodesService],
-  exports: [ViewingCodesService]
+  exports: [ViewingCodesService],
 })
 export class ViewingCodesModule {}

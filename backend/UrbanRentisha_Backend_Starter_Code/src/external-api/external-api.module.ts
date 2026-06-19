@@ -7,6 +7,6 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
   imports: [AuditLogsModule],
   controllers: [ExternalApiController],
   providers: [ExternalApiService],
-  exports: [ExternalApiService]
+  exports: [ExternalApiService],
 })
 export class ExternalApiModule {}

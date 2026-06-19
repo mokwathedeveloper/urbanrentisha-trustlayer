@@ -7,6 +7,6 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
   imports: [AuditLogsModule],
   controllers: [ZkProofsController],
   providers: [ZkProofsService],
-  exports: [ZkProofsService]
+  exports: [ZkProofsService],
 })
 export class ZkProofsModule {}

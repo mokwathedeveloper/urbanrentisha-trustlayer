@@ -7,6 +7,6 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
   imports: [AuditLogsModule],
   controllers: [ProofVerificationController],
   providers: [ProofVerificationService],
-  exports: [ProofVerificationService]
+  exports: [ProofVerificationService],
 })
 export class ProofVerificationModule {}

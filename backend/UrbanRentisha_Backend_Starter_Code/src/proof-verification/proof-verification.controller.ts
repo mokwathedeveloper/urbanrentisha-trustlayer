@@ -11,7 +11,10 @@ export class ProofVerificationController {
   constructor(private readonly proofVerification: ProofVerificationService) {}
 
   @Post("submit")
-  submit(@CurrentUser() user: AuthUser, @Body() dto: SubmitProofVerificationDto) {
+  submit(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SubmitProofVerificationDto,
+  ) {
     return this.proofVerification.submit(user.sub, dto);
   }
 

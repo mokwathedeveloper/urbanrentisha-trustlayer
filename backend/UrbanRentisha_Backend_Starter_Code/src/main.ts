@@ -11,8 +11,10 @@ async function bootstrap() {
   app.use(helmet());
 
   app.enableCors({
-    origin: config.get<string>("CORS_ORIGIN")?.split(",") ?? ["http://localhost:3000"],
-    credentials: true
+    origin: config.get<string>("CORS_ORIGIN")?.split(",") ?? [
+      "http://localhost:3000",
+    ],
+    credentials: true,
   });
 
   app.setGlobalPrefix(config.get<string>("API_PREFIX") ?? "api/v1");
@@ -21,8 +23,8 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: true
-    })
+      forbidNonWhitelisted: true,
+    }),
   );
 
   const port = config.get<number>("PORT") ?? 4000;

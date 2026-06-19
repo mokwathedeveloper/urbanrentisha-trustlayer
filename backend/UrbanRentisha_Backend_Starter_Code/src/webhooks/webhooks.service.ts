@@ -13,15 +13,15 @@ export class WebhooksService {
         apiClientId: dto.apiClientId,
         event: dto.event,
         targetUrl: dto.targetUrl,
-        secretHash: sha256(dto.secret)
-      }
+        secretHash: sha256(dto.secret),
+      },
     });
   }
 
   list() {
     return this.prisma.webhookEvent.findMany({
       orderBy: { createdAt: "desc" },
-      include: { apiClient: true }
+      include: { apiClient: true },
     });
   }
 }

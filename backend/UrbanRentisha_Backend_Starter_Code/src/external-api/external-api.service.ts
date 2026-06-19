@@ -12,7 +12,7 @@ export class ExternalApiService {
     const apiKeyHash = sha256(apiKey);
 
     const client = await this.prisma.apiClient.findFirst({
-      where: { apiKeyHash, status: "active" }
+      where: { apiKeyHash, status: "active" },
     });
 
     if (!client) throw new UnauthorizedException("Invalid API key.");
@@ -24,7 +24,8 @@ export class ExternalApiService {
       message: "External viewing request accepted.",
       listingId: dto.listingId,
       tenantExternalId: dto.tenantExternalId,
-      nextStep: "Map external tenant to internal tenant profile, then create payment intent."
+      nextStep:
+        "Map external tenant to internal tenant profile, then create payment intent.",
     };
   }
 }

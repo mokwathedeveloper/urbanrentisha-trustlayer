@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { ProofStatus, ViewingRequestStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
@@ -9,18 +13,20 @@ import { SubmitProofVerificationDto } from "./dto/submit-proof-verification.dto"
 export class ProofVerificationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditLogs: AuditLogsService
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   async submit(actorId: string, dto: SubmitProofVerificationDto) {
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
-      include: { zkProof: true }
+      include: { zkProof: true },
     });
 
     if (!request) throw new NotFoundException("Viewing request not found.");
     if (!request.zkProof || request.zkProof.status !== ProofStatus.GENERATED) {
-      throw new BadRequestException("Generated proof is required before verification.");
+      throw new BadRequestException(
+        "Generated proof is required before verification.",
+      );
     }
 
     const sorobanTxHash = `mock_soroban_${sha256(`${request.id}:${request.zkProof.proofHash}`).slice(0, 32)}`;
@@ -32,7 +38,7 @@ export class ProofVerificationService {
         sorobanTxHash,
         verifierAddress: "UrbanRentishaTrustVerifier",
         status: ProofStatus.VERIFIED,
-        verifiedAt: new Date()
+        verifiedAt: new Date(),
       },
       create: {
         viewingRequestId: request.id,
@@ -40,18 +46,18 @@ export class ProofVerificationService {
         sorobanTxHash,
         verifierAddress: "UrbanRentishaTrustVerifier",
         status: ProofStatus.VERIFIED,
-        verifiedAt: new Date()
-      }
+        verifiedAt: new Date(),
+      },
     });
 
     await this.prisma.zkProof.update({
       where: { id: request.zkProof.id },
-      data: { status: ProofStatus.VERIFIED }
+      data: { status: ProofStatus.VERIFIED },
     });
 
     await this.prisma.viewingRequest.update({
       where: { id: request.id },
-      data: { status: ViewingRequestStatus.PROOF_VERIFIED }
+      data: { status: ViewingRequestStatus.PROOF_VERIFIED },
     });
 
     await this.auditLogs.create({
@@ -63,8 +69,8 @@ export class ProofVerificationService {
       metadata: {
         viewingRequestId: request.id,
         sorobanTxHash,
-        proofHash: request.zkProof.proofHash
-      }
+        proofHash: request.zkProof.proofHash,
+      },
     });
 
     return verification;

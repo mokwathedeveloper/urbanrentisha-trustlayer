@@ -12,7 +12,10 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Post("create")
-  createIntent(@CurrentUser() user: AuthUser, @Body() dto: CreatePaymentIntentDto) {
+  createIntent(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreatePaymentIntentDto,
+  ) {
     return this.payments.createIntent(user.sub, dto);
   }
 

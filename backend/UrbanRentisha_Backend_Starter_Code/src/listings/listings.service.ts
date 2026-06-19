@@ -8,15 +8,17 @@ import { CreateListingDto } from "./dto/create-listing.dto";
 export class ListingsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditLogs: AuditLogsService
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   findAll() {
     return this.prisma.listing.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        agent: { include: { user: { select: { id: true, name: true, email: true } } } }
-      }
+        agent: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
     });
   }
 
@@ -24,8 +26,10 @@ export class ListingsService {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
       include: {
-        agent: { include: { user: { select: { id: true, name: true, email: true } } } }
-      }
+        agent: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
     });
 
     if (!listing) throw new NotFoundException("Listing not found.");
@@ -35,7 +39,7 @@ export class ListingsService {
   async create(ownerId: string, dto: CreateListingDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: ownerId },
-      include: { agentProfile: true }
+      include: { agentProfile: true },
     });
 
     const listing = await this.prisma.listing.create({
@@ -44,8 +48,8 @@ export class ListingsService {
         currency: dto.currency ?? "KES",
         ownerId,
         agentId: user?.agentProfile?.id,
-        verificationStatus: ListingStatus.PENDING_REVIEW
-      }
+        verificationStatus: ListingStatus.PENDING_REVIEW,
+      },
     });
 
     await this.auditLogs.create({
@@ -54,7 +58,7 @@ export class ListingsService {
       entityType: "listing",
       entityId: listing.id,
       severity: "INFO",
-      metadata: { title: listing.title }
+      metadata: { title: listing.title },
     });
 
     return listing;
@@ -63,7 +67,7 @@ export class ListingsService {
   async markVerified(id: string, actorId: string) {
     const listing = await this.prisma.listing.update({
       where: { id },
-      data: { verificationStatus: ListingStatus.VERIFIED }
+      data: { verificationStatus: ListingStatus.VERIFIED },
     });
 
     await this.auditLogs.create({
@@ -71,7 +75,7 @@ export class ListingsService {
       action: "listing.verified",
       entityType: "listing",
       entityId: id,
-      severity: "SUCCESS"
+      severity: "SUCCESS",
     });
 
     return listing;

@@ -3,6 +3,6 @@ import { StellarService } from "./stellar.service";
 
 @Module({
   providers: [StellarService],
-  exports: [StellarService]
+  exports: [StellarService],
 })
 export class StellarModule {}

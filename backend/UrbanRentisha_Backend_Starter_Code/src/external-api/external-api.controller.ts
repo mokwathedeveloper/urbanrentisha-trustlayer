@@ -9,7 +9,7 @@ export class ExternalApiController {
   @Post("viewing-requests")
   async createViewingRequest(
     @Headers("x-api-key") apiKey: string,
-    @Body() dto: ExternalCreateViewingRequestDto
+    @Body() dto: ExternalCreateViewingRequestDto,
   ) {
     await this.externalApi.validateApiKey(apiKey);
     return this.externalApi.createExternalViewingRequest(dto);
