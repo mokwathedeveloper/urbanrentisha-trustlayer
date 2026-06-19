@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Horizon } from "stellar-sdk";
+import { Horizon } from "@stellar/stellar-sdk";
 
 @Injectable()
 export class StellarService {
@@ -8,12 +8,16 @@ export class StellarService {
 
   constructor(private readonly config: ConfigService) {
     this.server = new Horizon.Server(
-      this.config.get<string>("STELLAR_HORIZON_URL") ?? "https://horizon-testnet.stellar.org"
+      this.config.get<string>("STELLAR_HORIZON_URL") ??
+        "https://horizon-testnet.stellar.org",
     );
   }
 
   getDestinationWallet() {
-    return this.config.get<string>("STELLAR_PLATFORM_PUBLIC_KEY") ?? "GDESTINATION_TESTNET_PUBLIC_KEY";
+    return (
+      this.config.get<string>("STELLAR_PLATFORM_PUBLIC_KEY") ??
+      "GDESTINATION_TESTNET_PUBLIC_KEY"
+    );
   }
 
   createMemoForRequest(viewingRequestId: string) {
@@ -37,7 +41,7 @@ export class StellarService {
     if (!tx) {
       return {
         ok: false,
-        reason: "Transaction was not found on Stellar testnet."
+        reason: "Transaction was not found on Stellar testnet.",
       };
     }
 
@@ -45,7 +49,7 @@ export class StellarService {
       ok: true,
       reason: "Transaction exists on Stellar testnet.",
       txHash: input.txHash,
-      memo: tx.memo
+      memo: tx.memo,
     };
   }
 }
