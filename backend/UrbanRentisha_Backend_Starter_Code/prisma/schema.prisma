@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  TENANT
+  AGENT
+  MANAGER
+  ADMIN
+  PLATFORM
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum ViewingRequestStatus {
+  CREATED
+  AWAITING_PAYMENT
+  PAYMENT_RECEIVED
+  PROOF_GENERATING
+  PROOF_READY
+  PROOF_VERIFIED
+  ACCESS_UNLOCKED
+  EXPIRED
+  REVOKED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CREATED
+  AWAITING_PAYMENT
+  RECEIVED
+  FAILED
+  REFUNDED
+  EXPIRED
+}
+
+enum ProofStatus {
+  NOT_STARTED
+  GENERATING
+  GENERATED
+  SUBMITTED
+  VERIFIED
+  FAILED
+}
+
+enum ViewingCodeStatus {
+  LOCKED
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+  ESCALATED
+}
+
+enum ReportType {
+  FAKE_LISTING
+  UNSAFE_PAYMENT
+  AGENT_MISMATCH
+  WRONG_PROPERTY
+  SUSPICIOUS_BEHAVIOR
+  OTHER
+}
+
+enum NotificationType {
+  PAYMENT
+  PROOF
+  VIEWING_CODE
+  REPORT
+  SYSTEM
+}
+
+enum AuditSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         UserRole
+  status       UserStatus  @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tenantProfile TenantProfile?
+  agentProfile  AgentProfile?
+  listings      Listing[]      @relation("ListingOwner")
+  reports       Report[]       @relation("ReportReporter")
+  notifications Notification[]
+  auditLogs     AuditLog[]     @relation("AuditActor")
+}
+
+model TenantProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trustScore  Int      @default(70)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  viewingRequests ViewingRequest[]
+}
+
+model AgentProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyName         String?
+  licenseNumber      String?
+  verificationStatus String   @default("pending")
+  trustScore         Int      @default(70)
+  reportCount        Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  listings Listing[]
+}
+
+model Listing {
+  id                 String        @id @default(cuid())
+  externalListingId  String?
+  title              String
+  description        String
+  location           String
+  address            String?
+  rentAmount         Int
+  currency           String        @default("KES")
+  viewingFee         Int
+  bedrooms           Int?
+  bathrooms          Int?
+  propertyType       String
+  imageUrl           String?
+  verificationStatus ListingStatus @default(PENDING_REVIEW)
+  ownerId            String
+  owner              User          @relation("ListingOwner", fields: [ownerId], references: [id])
+  agentId            String?
+  agent              AgentProfile? @relation(fields: [agentId], references: [id])
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  viewingRequests ViewingRequest[]
+  reports         Report[]
+}
+
+model ViewingRequest {
+  id            String               @id @default(cuid())
+  listingId     String
+  listing       Listing              @relation(fields: [listingId], references: [id])
+  tenantId      String
+  tenant        TenantProfile        @relation(fields: [tenantId], references: [id])
+  preferredDate DateTime?
+  preferredTime String?
+  status        ViewingRequestStatus @default(CREATED)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  payment           Payment?
+  zkProof           ZkProof?
+  proofVerification ProofVerification?
+  viewingCode       ViewingCode?
+  reports           Report[]
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  viewingRequestId   String        @unique
+  viewingRequest     ViewingRequest @relation(fields: [viewingRequestId], references: [id])
+  amount             Int
+  currency           String        @default("KES")
+  stellarAsset       String        @default("XLM_TEST")
+  destinationWallet  String
+  payerWallet        String?
+  stellarMemo        String
+  txHash             String?
+  status             PaymentStatus @default(CREATED)
+  paidAt             DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model ZkProof {
+  id               String       @id @default(cuid())
+  viewingRequestId String       @unique
+  viewingRequest   ViewingRequest @relation(fields: [viewingRequestId], references: [id])
+  proofHash        String?
+  publicInputs     Json?
+  privateHintHash  String?
+  status           ProofStatus  @default(NOT_STARTED)
+  generatedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model ProofVerification {
+  id               String       @id @default(cuid())
+  viewingRequestId String       @unique
+  viewingRequest   ViewingRequest @relation(fields: [viewingRequestId], references: [id])
+  proofId          String?
+  sorobanTxHash    String?
+  verifierAddress  String?
+  status           ProofStatus  @default(SUBMITTED)
+  verifiedAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model ViewingCode {
+  id               String            @id @default(cuid())
+  viewingRequestId String            @unique
+  viewingRequest   ViewingRequest    @relation(fields: [viewingRequestId], references: [id])
+  code             String            @unique
+  status           ViewingCodeStatus @default(LOCKED)
+  expiresAt        DateTime
+  usedAt           DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model Report {
+  id               String       @id @default(cuid())
+  listingId        String?
+  listing          Listing?     @relation(fields: [listingId], references: [id])
+  viewingRequestId String?
+  viewingRequest   ViewingRequest? @relation(fields: [viewingRequestId], references: [id])
+  reporterId       String
+  reporter         User         @relation("ReportReporter", fields: [reporterId], references: [id])
+  reportType       ReportType
+  description      String
+  status           ReportStatus @default(OPEN)
+  severity         String       @default("medium")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+}
+
+model AuditLog {
+  id         String        @id @default(cuid())
+  actorId    String?
+  actor      User?         @relation("AuditActor", fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  severity   AuditSeverity @default(INFO)
+  metadata   Json?
+  createdAt  DateTime      @default(now())
+}
+
+model ApiClient {
+  id           String   @id @default(cuid())
+  name         String
+  apiKeyHash   String
+  status       String   @default("active")
+  allowedOrigin String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  webhookEvents WebhookEvent[]
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  apiClientId String
+  apiClient   ApiClient @relation(fields: [apiClientId], references: [id])
+  event       String
+  targetUrl   String
+  secretHash  String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

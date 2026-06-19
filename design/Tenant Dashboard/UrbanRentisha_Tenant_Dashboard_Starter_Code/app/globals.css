@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #060B0A;
+  color: #F8FAFC;
+  font-family: var(--font-inter);
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: rgba(22, 163, 74, 0.35);
+}
+
+@layer utilities {
+  .ur-container {
+    @apply mx-auto w-full max-w-[1440px] px-5 sm:px-6 lg:px-8;
+  }
+
+  .ur-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ur-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ur-bg;
+  }
+
+  .dashboard-grid-bg {
+    background-image:
+      linear-gradient(rgba(22, 163, 74, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 163, 74, 0.045) 1px, transparent 1px);
+    background-size: 38px 38px;
+  }
+
+  .dashboard-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(22, 163, 74, 0.45) rgba(255, 255, 255, 0.04);
+  }
+}

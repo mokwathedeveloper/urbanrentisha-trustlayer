@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-inter);
+  background: #F8FBF7;
+  color: #0F172A;
+}
+
+::selection {
+  background: rgba(22, 163, 74, 0.22);
+}
+
+@layer utilities {
+  .ur-container {
+    @apply mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .ur-section {
+    @apply py-16 lg:py-20;
+  }
+
+  .ur-card {
+    @apply rounded-2xl border border-ur-border bg-ur-card shadow-sm;
+  }
+
+  .ur-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ur-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ur-page;
+  }
+
+  .ur-muted-grid {
+    background-image:
+      linear-gradient(rgba(22, 101, 52, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 101, 52, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}

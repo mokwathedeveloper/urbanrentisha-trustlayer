@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+backend/UrbanRentisha_Backend_Starter_Code/prisma/dev.db
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Serena local tooling state
+.serena/
+
+# Misc
+*.tsbuildinfo
+coverage/
