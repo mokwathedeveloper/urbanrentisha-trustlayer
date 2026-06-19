@@ -15,7 +15,7 @@ Tenant requests viewing on a verified listing
     -> Audit log records the event
 ```
 
-The proof is load-bearing: access stays locked until verification succeeds. See [zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md](zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md) for the full proof design (statement, inputs, lifecycle, failure states).
+The proof is load-bearing: access stays locked until verification succeeds. See [docs/zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md](docs/zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md) for the full proof design (statement, inputs, lifecycle, failure states).
 
 ## Why ZK + Stellar
 
@@ -26,17 +26,21 @@ Recommended/used stack: **Noir** circuits, Soroban verifier contract, Stellar te
 ## Repository layout
 
 ```text
-backend/                  NestJS backend starter (API, Prisma, Stellar SDK, proof workflow)
-contracts/                Soroban smart contract design docs
-zkproof/                  ZK proof design: statement, inputs, lifecycle, security/privacy rules
-system-architecture/      System architecture documentation
-problem-statement/        Problem statement, PRD, mandatory features
-roadmap/                  Build roadmap
-user-journey/             User journey docs
-Features_and_Pages/       Feature and page specs
-api/                      API documentation
-design/, uxui/, mockup/   Design assets and UI mockups
-resources/                Supporting reference material
+backend/                       NestJS backend starter (API, Prisma, Stellar SDK, proof workflow)
+docs/contracts/                Soroban smart contract design docs
+docs/zkproof/                  ZK proof design: statement, inputs, lifecycle, security/privacy rules
+docs/system-architecture/      System architecture documentation
+docs/problem-statement/        Problem statement, PRD, mandatory features
+docs/roadmap/                  Build roadmap
+docs/user-journey/             User journey docs
+docs/Features_and_Pages/       Feature and page specs
+docs/api/                      API documentation
+docs/design/, docs/uxui/, docs/mockup/   Design assets and UI mockups
+docs/resources/                Supporting reference material
+docs/deployment/               Deployment docs
+docs/projectstructure/         Project structure notes
+CLAUDE.md                      AI implementation rules
+QA_TESTING_RULES.md            QA testing rules
 ```
 
 ## Backend quick start
