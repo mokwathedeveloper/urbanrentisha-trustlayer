@@ -7,7 +7,7 @@ import { CreateReportDto } from "./dto/create-report.dto";
 export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditLogs: AuditLogsService
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   async create(reporterId: string, dto: CreateReportDto) {
@@ -18,8 +18,8 @@ export class ReportsService {
         viewingRequestId: dto.viewingRequestId,
         reportType: dto.reportType,
         description: dto.description,
-        severity: dto.reportType === "UNSAFE_PAYMENT" ? "high" : "medium"
-      }
+        severity: dto.reportType === "UNSAFE_PAYMENT" ? "high" : "medium",
+      },
     });
 
     await this.auditLogs.create({
@@ -28,7 +28,7 @@ export class ReportsService {
       entityType: "report",
       entityId: report.id,
       severity: report.severity === "high" ? "CRITICAL" : "WARNING",
-      metadata: dto
+      metadata: { ...dto },
     });
 
     return report;
@@ -39,8 +39,8 @@ export class ReportsService {
       orderBy: { createdAt: "desc" },
       include: {
         listing: true,
-        reporter: { select: { id: true, email: true, name: true, role: true } }
-      }
+        reporter: { select: { id: true, email: true, name: true, role: true } },
+      },
     });
   }
 }

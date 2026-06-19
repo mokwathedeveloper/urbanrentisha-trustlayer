@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { AuditSeverity } from "@prisma/client";
+import { AuditSeverity, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 type AuditInput = {
@@ -8,7 +8,7 @@ type AuditInput = {
   entityType: string;
   entityId?: string;
   severity?: AuditSeverity;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
 };
 
 @Injectable()
@@ -23,8 +23,8 @@ export class AuditLogsService {
         entityType: input.entityType,
         entityId: input.entityId,
         severity: input.severity ?? "INFO",
-        metadata: input.metadata ?? {}
-      }
+        metadata: input.metadata ?? {},
+      },
     });
   }
 
@@ -32,7 +32,9 @@ export class AuditLogsService {
     return this.prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
-      include: { actor: { select: { id: true, email: true, name: true, role: true } } }
+      include: {
+        actor: { select: { id: true, email: true, name: true, role: true } },
+      },
     });
   }
 }
