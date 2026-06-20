@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowRight,
   Bell,
   ChevronUp,
@@ -35,6 +36,7 @@ const navItems = [
   { label: "Verifications", href: "/verifications", icon: ShieldCheck },
   { label: "Viewing Code", href: "/viewing-code", icon: Lock },
   { label: "Reports", href: "/reports", icon: Flag },
+  { label: "Report Fake Listing", href: "/reports/new", icon: AlertTriangle },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Profile", href: "/profile", icon: UserIcon },
   { label: "Settings", href: "/settings", icon: Settings },
