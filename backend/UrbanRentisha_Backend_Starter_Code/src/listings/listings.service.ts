@@ -16,7 +16,11 @@ export class ListingsService {
       orderBy: { createdAt: "desc" },
       include: {
         agent: {
-          include: { user: { select: { id: true, name: true, email: true } } },
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, phone: true },
+            },
+          },
         },
       },
     });
@@ -27,7 +31,11 @@ export class ListingsService {
       where: { id },
       include: {
         agent: {
-          include: { user: { select: { id: true, name: true, email: true } } },
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, phone: true },
+            },
+          },
         },
       },
     });
