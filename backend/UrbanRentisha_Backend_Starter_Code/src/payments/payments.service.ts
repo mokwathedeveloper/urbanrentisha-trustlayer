@@ -3,10 +3,15 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { PaymentStatus, ViewingRequestStatus } from "@prisma/client";
+import {
+  NotificationType,
+  PaymentStatus,
+  ViewingRequestStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { StellarService } from "../stellar/stellar.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { ConfirmPaymentDto } from "./dto/confirm-payment.dto";
 
@@ -16,6 +21,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly stellar: StellarService,
     private readonly auditLogs: AuditLogsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async createIntent(actorId: string, dto: CreatePaymentIntentDto) {
@@ -96,6 +102,14 @@ export class PaymentsService {
         txHash: dto.txHash,
         viewingRequestId: payment.viewingRequestId,
       },
+    });
+
+    await this.notifications.create({
+      userId: actorId,
+      type: NotificationType.PAYMENT,
+      title: "Payment Received",
+      message: `Your payment of ${updated.amount} ${updated.stellarAsset} has been received and confirmed.`,
+      viewingRequestId: payment.viewingRequestId,
     });
 
     return updated;
