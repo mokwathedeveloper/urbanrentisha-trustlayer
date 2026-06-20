@@ -3,10 +3,15 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { ProofStatus, ViewingRequestStatus } from "@prisma/client";
+import {
+  NotificationType,
+  ProofStatus,
+  ViewingRequestStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { SorobanService } from "../soroban/soroban.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { SubmitProofVerificationDto } from "./dto/submit-proof-verification.dto";
 
 interface StoredPublicInputs {
@@ -27,6 +32,7 @@ export class ProofVerificationService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly soroban: SorobanService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async submit(actorId: string, dto: SubmitProofVerificationDto) {
@@ -122,6 +128,18 @@ export class ProofVerificationService {
         sorobanTxHash,
         proofHash: request.zkProof.proofHash,
       },
+    });
+
+    await this.notifications.create({
+      userId: actorId,
+      type: NotificationType.PROOF,
+      title: verified
+        ? "Proof Verified Successfully"
+        : "Proof Verification Failed",
+      message: verified
+        ? "Your zero-knowledge proof has been verified on Stellar Testnet."
+        : "Your zero-knowledge proof could not be verified. Viewing access remains locked.",
+      viewingRequestId: request.id,
     });
 
     if (!verified) {
