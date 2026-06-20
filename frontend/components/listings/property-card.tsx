@@ -1,10 +1,16 @@
 import Link from "next/link";
-import { Bath, BedDouble, Heart, MapPin, Maximize, MoreVertical } from "lucide-react";
+import { ArrowRight, Bath, BedDouble, Heart, MapPin, Maximize, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Listing } from "@/lib/api";
 
-export function PropertyCard({ listing }: { listing: Listing }) {
+export function PropertyCard({
+  listing,
+  variant = "request",
+}: {
+  listing: Listing;
+  variant?: "request" | "details";
+}) {
   return (
     <div className="ur-card overflow-hidden">
       <div className="relative h-44 bg-ur-card-soft">
@@ -63,9 +69,24 @@ export function PropertyCard({ listing }: { listing: Listing }) {
           </span>
         </div>
 
-        <Link href={`/listings/${listing.id}`}>
-          <Button className="mt-4 w-full">Request Viewing</Button>
-        </Link>
+        {variant === "details" ? (
+          <div className="mt-4 flex items-center justify-between border-t border-ur-border pt-3">
+            <p className="text-xs text-ur-text-secondary">
+              Viewing Fee: <span className="font-semibold text-ur-text">{listing.currency} {listing.viewingFee.toLocaleString()}</span>
+            </p>
+            <Link
+              href={`/listings/${listing.id}`}
+              className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
+            >
+              View Details
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        ) : (
+          <Link href={`/listings/${listing.id}`}>
+            <Button className="mt-4 w-full">Request Viewing</Button>
+          </Link>
+        )}
       </div>
     </div>
   );

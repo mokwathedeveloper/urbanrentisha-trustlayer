@@ -9,9 +9,11 @@ import {
   CreditCard,
   FileText,
   Heart,
+  HelpCircle,
   Home,
   LogOut,
   Mail,
+  Settings,
   User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -26,7 +28,10 @@ const navItems = [
   { label: "Applications", href: "/applications", icon: FileText },
   { label: "Payments", href: "/payments", icon: CreditCard },
   { label: "Profile", href: "/profile", icon: UserIcon },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
+
+const supportItems = [{ label: "Help & Support", href: "/help", icon: HelpCircle }];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -90,6 +95,27 @@ export function Sidebar() {
           : null}
 
         {navItems.map((item) => {
+          const active = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-ur-sm px-3 py-2.5 text-sm font-medium transition-colors",
+                active
+                  ? "border-l-2 border-ur-primary bg-ur-success-bg text-ur-primary"
+                  : "text-ur-text-secondary hover:bg-ur-card-hover hover:text-ur-navy",
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+
+        <div className="my-2 border-t border-ur-border" />
+
+        {supportItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
