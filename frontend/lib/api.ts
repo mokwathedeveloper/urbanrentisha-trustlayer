@@ -77,6 +77,10 @@ export interface ViewingRequest {
   preferredTime: string | null;
   status: string;
   listing?: Listing;
+  payment?: Payment | null;
+  zkProof?: ZkProof | null;
+  proofVerification?: ProofVerification | null;
+  viewingCode?: ViewingCode | null;
 }
 
 export interface Payment {
