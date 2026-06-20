@@ -57,4 +57,12 @@ export class ReportsService {
       },
     });
   }
+
+  findMine(reporterId: string) {
+    return this.prisma.report.findMany({
+      where: { reporterId },
+      orderBy: { createdAt: "desc" },
+      include: { listing: true },
+    });
+  }
 }
