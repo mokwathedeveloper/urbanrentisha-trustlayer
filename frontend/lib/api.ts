@@ -76,6 +76,7 @@ export interface ViewingRequest {
   preferredDate: string | null;
   preferredTime: string | null;
   status: string;
+  createdAt: string;
   listing?: Listing;
   payment?: Payment | null;
   zkProof?: ZkProof | null;
@@ -149,6 +150,7 @@ export interface ReportItem {
   severity: string;
   allowContact: boolean;
   createdAt: string;
+  listing?: Listing | null;
 }
 
 export interface AuditLogEntry {
@@ -177,6 +179,7 @@ export const api = {
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
       request<ViewingRequest>("/viewing-requests", { method: "POST", body, token }),
+    findMine: (token: string) => request<ViewingRequest[]>("/viewing-requests", { token }),
     findOne: (token: string, id: string) => request<ViewingRequest>(`/viewing-requests/${id}`, { token }),
     status: (token: string, id: string) => request<{ status: string }>(`/viewing-requests/${id}/status`, { token }),
   },
@@ -215,6 +218,7 @@ export const api = {
       },
     ) => request<ReportItem>("/reports", { method: "POST", body, token }),
     findAll: (token: string) => request<ReportItem[]>("/reports", { token }),
+    findMine: (token: string) => request<ReportItem[]>("/reports/mine", { token }),
   },
   notifications: {
     findMine: (token: string) => request<NotificationItem[]>("/notifications", { token }),
