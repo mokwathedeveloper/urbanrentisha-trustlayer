@@ -15,6 +15,11 @@ export class ViewingRequestsController {
     return this.viewingRequests.create(user.sub, dto);
   }
 
+  @Get()
+  findMine(@CurrentUser() user: AuthUser) {
+    return this.viewingRequests.findAllForUser(user.sub);
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.viewingRequests.findOne(id);
