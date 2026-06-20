@@ -17,6 +17,7 @@ import { AuditLogsModule } from "./audit-logs/audit-logs.module";
 import { ExternalApiModule } from "./external-api/external-api.module";
 import { WebhooksModule } from "./webhooks/webhooks.module";
 import { AdminModule } from "./admin/admin.module";
+import { AgentsModule } from "./agents/agents.module";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AdminModule } from "./admin/admin.module";
     ExternalApiModule,
     WebhooksModule,
     AdminModule,
+    AgentsModule,
   ],
 })
 export class AppModule {}
