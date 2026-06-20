@@ -21,7 +21,10 @@ export class ReportsService {
         viewingRequestId: dto.viewingRequestId,
         reportType: dto.reportType,
         description: dto.description,
-        severity: dto.reportType === "UNSAFE_PAYMENT" ? "high" : "medium",
+        severity:
+          dto.severity ??
+          (dto.reportType === "UNSAFE_PAYMENT" ? "high" : "medium"),
+        allowContact: dto.allowContact ?? false,
       },
     });
 
