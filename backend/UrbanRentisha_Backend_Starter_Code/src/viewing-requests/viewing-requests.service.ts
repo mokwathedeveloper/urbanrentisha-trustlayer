@@ -51,6 +51,35 @@ export class ViewingRequestsService {
     return request;
   }
 
+  async findAllForUser(userId: string) {
+    const tenant = await this.prisma.tenantProfile.findUnique({
+      where: { userId },
+    });
+    if (!tenant) return [];
+
+    return this.prisma.viewingRequest.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        listing: {
+          include: {
+            agent: {
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true, phone: true },
+                },
+              },
+            },
+          },
+        },
+        payment: true,
+        zkProof: true,
+        proofVerification: true,
+        viewingCode: true,
+      },
+    });
+  }
+
   async findOne(id: string) {
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id },
