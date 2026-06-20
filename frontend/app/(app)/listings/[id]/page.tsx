@@ -204,12 +204,12 @@ export default function PropertyDetailPage() {
           {listing.agent ? (
             <div className="ur-card p-5">
               <p className="text-sm font-bold text-ur-navy">Listed By</p>
-              <div className="mt-3 flex items-center gap-3">
+              <Link href={`/agents/${listing.agent.id}`} className="mt-3 flex items-center gap-3">
                 <div className="grid h-12 w-12 place-items-center rounded-full bg-ur-card-soft text-ur-primary">
                   {listing.agent.user.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="flex items-center gap-1 text-sm font-bold text-ur-navy">
+                  <p className="flex items-center gap-1 text-sm font-bold text-ur-navy hover:underline">
                     {listing.agent.user.name}
                     <ShieldCheck className="h-3.5 w-3.5 text-ur-primary" />
                   </p>
@@ -219,7 +219,7 @@ export default function PropertyDetailPage() {
                     {listing.agent.trustScore / 20} trust score
                   </p>
                 </div>
-              </div>
+              </Link>
               <p className="mt-3 flex items-center gap-2 text-xs text-ur-text-secondary">
                 <Phone className="h-3.5 w-3.5" />
                 Contact via platform
