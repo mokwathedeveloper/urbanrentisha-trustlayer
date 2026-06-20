@@ -212,6 +212,49 @@ export interface AgentDashboard {
   reports: { id: string; listingTitle: string; reportType: string; status: string; createdAt: string }[];
 }
 
+export interface AdminOverview {
+  stats: {
+    pendingListings: number;
+    verifiedListings: number;
+    totalReports: number;
+    openReports: number;
+    inProgressReports: number;
+    resolvedReports: number;
+    dismissedReports: number;
+    totalAgents: number;
+    verifiedAgents: number;
+    pendingAgents: number;
+    verifiedProofs: number;
+    pendingProofs: number;
+    escrowHoldsCount: number;
+    escrowHoldsAmount: number;
+    activeViewingCodes: number;
+    platformTrustScore: number;
+  };
+  platformAnalytics: {
+    totalUsers: number;
+    totalProperties: number;
+    totalBookings: number;
+    totalRevenue: number;
+  };
+  pendingApprovals: {
+    listings: { id: string; title: string; agencyName: string; createdAt: string }[];
+    agents: { id: string; name: string; email: string; createdAt: string }[];
+  };
+  reportsByStatus: { OPEN: number; UNDER_REVIEW: number; RESOLVED: number; DISMISSED: number };
+  topReportCategories: { type: string; count: number }[];
+  activeAgents: {
+    id: string;
+    agencyName: string;
+    listingCount: number;
+    verificationStatus: string;
+    trustScore: number;
+  }[];
+  recentProofVerifications: { id: string; listingTitle: string; status: string; createdAt: string }[];
+  suspiciousActivity: { type: string; severity: "high" | "medium"; message: string }[];
+  recentAuditLogs: { id: string; action: string; actorName: string; severity: string; createdAt: string }[];
+}
+
 export interface AuditLogEntry {
   id: string;
   actorId: string | null;
@@ -289,6 +332,7 @@ export const api = {
   },
   admin: {
     dashboard: (token: string) => request<Record<string, number>>("/admin/dashboard", { token }),
+    overview: (token: string) => request<AdminOverview>("/admin/overview", { token }),
   },
   agents: {
     findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
