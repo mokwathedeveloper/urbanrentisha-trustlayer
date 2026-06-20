@@ -131,9 +131,12 @@ export interface ViewingCode {
 export interface NotificationItem {
   id: string;
   type: string;
+  title: string;
   message: string;
-  read: boolean;
+  viewingRequestId: string | null;
+  readAt: string | null;
   createdAt: string;
+  viewingRequest?: ViewingRequest | null;
 }
 
 export interface AuditLogEntry {
