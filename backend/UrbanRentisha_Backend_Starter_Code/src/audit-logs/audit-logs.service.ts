@@ -37,4 +37,34 @@ export class AuditLogsService {
       },
     });
   }
+
+  async stats() {
+    const [
+      totalEvents,
+      systemEvents,
+      trustActivity,
+      userActions,
+      securityEvents,
+    ] = await Promise.all([
+      this.prisma.auditLog.count(),
+      this.prisma.auditLog.count({ where: { severity: "INFO" } }),
+      this.prisma.auditLog.count({
+        where: { entityType: { in: ["proof_verification", "viewing_code"] } },
+      }),
+      this.prisma.auditLog.count({
+        where: { entityType: { in: ["report", "payment", "viewing_request"] } },
+      }),
+      this.prisma.auditLog.count({
+        where: { severity: { in: ["WARNING", "CRITICAL"] } },
+      }),
+    ]);
+
+    return {
+      totalEvents,
+      systemEvents,
+      trustActivity,
+      userActions,
+      securityEvents,
+    };
+  }
 }
