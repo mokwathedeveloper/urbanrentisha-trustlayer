@@ -62,6 +62,7 @@ export interface Listing {
   imageUrl: string | null;
   verificationStatus: string;
   agent?: {
+    id: string;
     agencyName: string;
     trustScore: number;
     verificationStatus: string;
@@ -153,6 +154,33 @@ export interface ReportItem {
   listing?: Listing | null;
 }
 
+export interface AgentProfile {
+  id: string;
+  agencyName: string | null;
+  licenseNumber: string | null;
+  verificationStatus: string;
+  trustScore: number;
+  reportCount: number;
+  createdAt: string;
+  user: { id: string; name: string; email: string; phone: string | null; createdAt: string };
+  stats: {
+    totalListings: number;
+    activeListings: number;
+    inactiveListings: number;
+    openReports: number;
+    resolvedReports: number;
+    completedViewings: number;
+  };
+  listings: Listing[];
+  recentViewingRequests: {
+    id: string;
+    tenantName: string;
+    listingTitle: string;
+    updatedAt: string;
+    status: string;
+  }[];
+}
+
 export interface AuditLogEntry {
   id: string;
   actorId: string | null;
@@ -230,5 +258,8 @@ export const api = {
   },
   admin: {
     dashboard: (token: string) => request<Record<string, number>>("/admin/dashboard", { token }),
+  },
+  agents: {
+    findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
   },
 };
