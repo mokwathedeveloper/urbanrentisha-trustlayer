@@ -1,11 +1,18 @@
 import { Controller, Get, Param, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { AuthUser } from "../common/types/auth-user.type";
 import { AgentsService } from "./agents.service";
 
 @UseGuards(JwtAuthGuard)
 @Controller("agents")
 export class AgentsController {
   constructor(private readonly agents: AgentsService) {}
+
+  @Get("me/dashboard")
+  findMyDashboard(@CurrentUser() user: AuthUser) {
+    return this.agents.findMyDashboard(user.sub);
+  }
 
   @Get(":id")
   findOne(@Param("id") id: string) {
