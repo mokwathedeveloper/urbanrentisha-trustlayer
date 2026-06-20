@@ -32,6 +32,20 @@
   --color-ur-subtle: #64748b;
   --color-ur-disabled: #475569;
 
+  /* Aliases so screens originally mocked up against the older light theme
+     (see docs/design/landingpage) render with the dark palette above,
+     without rewriting every className in those components. */
+  --color-ur-page: #060b0a;
+  --color-ur-surface: #0e1a16;
+  --color-ur-card-soft: #12241d;
+  --color-ur-navy: #f8fafc;
+  --color-ur-secondary: #22d3ee;
+  --color-ur-accent: #34d399;
+  --color-ur-text-secondary: #94a3b8;
+  --color-ur-text-muted: #64748b;
+
+  --shadow-ur-soft: 0 24px 80px rgba(0, 0, 0, 0.35);
+
   --radius-ur-sm: 8px;
   --radius-ur: 12px;
   --radius-ur-lg: 18px;
@@ -82,5 +96,19 @@ pre,
   .dashboard-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(22, 163, 74, 0.45) rgba(255, 255, 255, 0.04);
+  }
+
+  .ur-section {
+    @apply py-16 lg:py-20;
+  }
+
+  .ur-card {
+    @apply rounded-2xl border border-ur-border bg-ur-card shadow-sm;
+  }
+
+  .ur-muted-grid {
+    background-image: linear-gradient(rgba(22, 163, 74, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 163, 74, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 }
