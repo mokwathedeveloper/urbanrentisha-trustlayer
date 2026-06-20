@@ -19,4 +19,9 @@ export class ReportsController {
   findAll() {
     return this.reports.findAll();
   }
+
+  @Get("mine")
+  findMine(@CurrentUser() user: AuthUser) {
+    return this.reports.findMine(user.sub);
+  }
 }
