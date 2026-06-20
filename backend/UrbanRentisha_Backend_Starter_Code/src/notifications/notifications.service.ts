@@ -11,6 +11,7 @@ export class NotificationsService {
     type: NotificationType;
     title: string;
     message: string;
+    viewingRequestId?: string;
   }) {
     return this.prisma.notification.create({ data: input });
   }
@@ -19,6 +20,17 @@ export class NotificationsService {
     return this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
+      include: {
+        viewingRequest: {
+          include: {
+            listing: true,
+            payment: true,
+            zkProof: true,
+            proofVerification: true,
+            viewingCode: true,
+          },
+        },
+      },
     });
   }
 
