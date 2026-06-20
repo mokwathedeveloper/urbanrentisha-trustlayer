@@ -139,6 +139,18 @@ export interface NotificationItem {
   viewingRequest?: ViewingRequest | null;
 }
 
+export interface ReportItem {
+  id: string;
+  listingId: string | null;
+  viewingRequestId: string | null;
+  reportType: string;
+  description: string;
+  status: string;
+  severity: string;
+  allowContact: boolean;
+  createdAt: string;
+}
+
 export interface AuditLogEntry {
   id: string;
   actorId: string | null;
@@ -193,9 +205,16 @@ export const api = {
   reports: {
     create: (
       token: string,
-      body: { listingId?: string; viewingRequestId?: string; reportType: string; description: string },
-    ) => request("/reports", { method: "POST", body, token }),
-    findAll: (token: string) => request<unknown[]>("/reports", { token }),
+      body: {
+        listingId?: string;
+        viewingRequestId?: string;
+        reportType: string;
+        description: string;
+        severity?: "high" | "medium" | "low";
+        allowContact?: boolean;
+      },
+    ) => request<ReportItem>("/reports", { method: "POST", body, token }),
+    findAll: (token: string) => request<ReportItem[]>("/reports", { token }),
   },
   notifications: {
     findMine: (token: string) => request<NotificationItem[]>("/notifications", { token }),
