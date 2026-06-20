@@ -94,6 +94,7 @@ export interface Payment {
   stellarMemo: string;
   txHash: string | null;
   status: string;
+  paidAt: string | null;
 }
 
 export interface ZkProof {
