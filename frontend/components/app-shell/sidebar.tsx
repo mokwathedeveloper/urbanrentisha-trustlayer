@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Bell,
   ChevronUp,
+  ClipboardList,
   CreditCard,
   FileText,
   Flag,
@@ -38,6 +39,7 @@ const navItems = [
   { label: "Reports", href: "/reports", icon: Flag },
   { label: "Report Fake Listing", href: "/reports/new", icon: AlertTriangle },
   { label: "Notifications", href: "/notifications", icon: Bell },
+  { label: "Audit Logs", href: "/audit-logs", icon: ClipboardList },
   { label: "Profile", href: "/profile", icon: UserIcon },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
