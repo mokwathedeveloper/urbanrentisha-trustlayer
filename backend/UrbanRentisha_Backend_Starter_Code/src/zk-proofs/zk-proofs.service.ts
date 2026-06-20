@@ -5,14 +5,29 @@ import {
 } from "@nestjs/common";
 import {
   PaymentStatus,
+  Prisma,
   ProofStatus,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
+import * as path from "path";
+import * as snarkjs from "snarkjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { sha256 } from "../common/utils/hash.util";
+import { addMod, fieldHash, mulMod, randomField } from "./field.util";
 import { GenerateProofDto } from "./dto/generate-proof.dto";
+
+const WASM_PATH = path.join(
+  __dirname,
+  "circuit-artifacts",
+  "payment_proof.wasm",
+);
+const ZKEY_PATH = path.join(
+  __dirname,
+  "circuit-artifacts",
+  "payment_proof_final.zkey",
+);
 
 @Injectable()
 export class ZkProofsService {
@@ -40,44 +55,90 @@ export class ZkProofsService {
       data: { status: ViewingRequestStatus.PROOF_GENERATING },
     });
 
-    const proofHash = sha256(
-      [
-        request.id,
-        request.listingId,
-        request.payment.txHash,
-        request.listing.viewingFee,
-        this.config.get<string>("ZK_PROOF_SALT") ?? "dev-proof-salt",
-      ].join(":"),
+    // Map the request's identifiers and the payment's private data into the
+    // circuit's scalar field. See docs/zkproof/.../section 7-8 for the proof
+    // statement and circuits/payment-proof/payment_proof.circom for the circuit.
+    const requestIdField = fieldHash(request.id);
+    const listingIdField = fieldHash(request.listingId);
+    const feeField = BigInt(request.listing.viewingFee);
+    const secretField = fieldHash(
+      `${request.payment.txHash}:${this.config.get<string>("ZK_PROOF_SALT") ?? "dev-proof-salt"}`,
+    );
+    const nonceField = randomField();
+    const paymentCommitment = addMod(
+      mulMod(secretField, secretField),
+      mulMod(nonceField, nonceField),
+      mulMod(requestIdField, listingIdField),
+      feeField,
     );
 
-    const proof = await this.prisma.zkProof.upsert({
+    const circuitInput = {
+      requestId: requestIdField.toString(),
+      listingId: listingIdField.toString(),
+      requiredViewingFee: feeField.toString(),
+      paymentCommitment: paymentCommitment.toString(),
+      paymentSecret: secretField.toString(),
+      paymentNonce: nonceField.toString(),
+    };
+
+    let snarkProof: unknown;
+    try {
+      const { proof } = await snarkjs.groth16.fullProve(
+        circuitInput,
+        WASM_PATH,
+        ZKEY_PATH,
+      );
+      snarkProof = proof;
+    } catch (error) {
+      // Revert to PAYMENT_RECEIVED (not a dedicated FAILED state - none exists
+      // on ViewingRequestStatus) so proof generation can be retried.
+      await this.prisma.viewingRequest.update({
+        where: { id: request.id },
+        data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
+      });
+      await this.prisma.zkProof.upsert({
+        where: { viewingRequestId: request.id },
+        update: { status: ProofStatus.FAILED },
+        create: { viewingRequestId: request.id, status: ProofStatus.FAILED },
+      });
+      await this.auditLogs.create({
+        actorId,
+        action: "zk_proof.generation_failed",
+        entityType: "viewing_request",
+        entityId: request.id,
+        severity: "CRITICAL",
+        metadata: { reason: (error as Error).message },
+      });
+      throw new BadRequestException("Proof could not be generated.");
+    }
+
+    const proofHash = sha256(JSON.stringify(snarkProof));
+    const publicInputs: Prisma.InputJsonValue = {
+      requestId: circuitInput.requestId,
+      listingId: circuitInput.listingId,
+      requiredViewingFee: circuitInput.requiredViewingFee,
+      paymentCommitment: circuitInput.paymentCommitment,
+      proof: snarkProof as Prisma.InputJsonValue,
+    };
+    // Private witness material is never persisted in the clear - only its hash.
+    const privateHintHash = sha256(
+      `${secretField.toString()}:${nonceField.toString()}`,
+    );
+
+    const proofRecord = await this.prisma.zkProof.upsert({
       where: { viewingRequestId: request.id },
       update: {
         proofHash,
-        publicInputs: {
-          requestId: request.id,
-          listingId: request.listingId,
-          requiredViewingFee: request.listing.viewingFee,
-          paymentCommitment: sha256(`${request.payment.txHash}:${request.id}`),
-        },
-        privateHintHash: sha256(
-          `${request.payment.txHash}:${request.payment.payerWallet ?? "wallet"}`,
-        ),
+        publicInputs,
+        privateHintHash,
         status: ProofStatus.GENERATED,
         generatedAt: new Date(),
       },
       create: {
         viewingRequestId: request.id,
         proofHash,
-        publicInputs: {
-          requestId: request.id,
-          listingId: request.listingId,
-          requiredViewingFee: request.listing.viewingFee,
-          paymentCommitment: sha256(`${request.payment.txHash}:${request.id}`),
-        },
-        privateHintHash: sha256(
-          `${request.payment.txHash}:${request.payment.payerWallet ?? "wallet"}`,
-        ),
+        publicInputs,
+        privateHintHash,
         status: ProofStatus.GENERATED,
         generatedAt: new Date(),
       },
@@ -92,12 +153,12 @@ export class ZkProofsService {
       actorId,
       action: "zk_proof.generated",
       entityType: "zk_proof",
-      entityId: proof.id,
+      entityId: proofRecord.id,
       severity: "SUCCESS",
       metadata: { viewingRequestId: request.id, proofHash },
     });
 
-    return proof;
+    return proofRecord;
   }
 
   async findOne(id: string) {

@@ -7,6 +7,7 @@ import { ListingsModule } from "./listings/listings.module";
 import { ViewingRequestsModule } from "./viewing-requests/viewing-requests.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { StellarModule } from "./stellar/stellar.module";
+import { SorobanModule } from "./soroban/soroban.module";
 import { ZkProofsModule } from "./zk-proofs/zk-proofs.module";
 import { ProofVerificationModule } from "./proof-verification/proof-verification.module";
 import { ViewingCodesModule } from "./viewing-codes/viewing-codes.module";
@@ -27,6 +28,7 @@ import { AdminModule } from "./admin/admin.module";
     ViewingRequestsModule,
     PaymentsModule,
     StellarModule,
+    SorobanModule,
     ZkProofsModule,
     ProofVerificationModule,
     ViewingCodesModule,

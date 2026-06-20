@@ -6,14 +6,27 @@ import {
 import { ProofStatus, ViewingRequestStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
-import { sha256 } from "../common/utils/hash.util";
+import { SorobanService } from "../soroban/soroban.service";
 import { SubmitProofVerificationDto } from "./dto/submit-proof-verification.dto";
+
+interface StoredPublicInputs {
+  requestId: string;
+  listingId: string;
+  requiredViewingFee: string;
+  paymentCommitment: string;
+  proof: {
+    pi_a: [string, string, string];
+    pi_b: [[string, string], [string, string], [string, string]];
+    pi_c: [string, string, string];
+  };
+}
 
 @Injectable()
 export class ProofVerificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly soroban: SorobanService,
   ) {}
 
   async submit(actorId: string, dto: SubmitProofVerificationDto) {
@@ -29,7 +42,41 @@ export class ProofVerificationService {
       );
     }
 
-    const sorobanTxHash = `mock_soroban_${sha256(`${request.id}:${request.zkProof.proofHash}`).slice(0, 32)}`;
+    const publicInputs = request.zkProof
+      .publicInputs as unknown as StoredPublicInputs;
+    const publicSignals = [
+      publicInputs.requestId,
+      publicInputs.listingId,
+      publicInputs.requiredViewingFee,
+      publicInputs.paymentCommitment,
+    ];
+
+    let verified: boolean;
+    let sorobanTxHash: string;
+    try {
+      const result = await this.soroban.verifyOnChain(
+        publicInputs.proof,
+        publicSignals,
+      );
+      verified = result.verified;
+      sorobanTxHash = result.txHash;
+    } catch (error) {
+      await this.prisma.zkProof.update({
+        where: { id: request.zkProof.id },
+        data: { status: ProofStatus.FAILED },
+      });
+      await this.auditLogs.create({
+        actorId,
+        action: "proof.verification_error",
+        entityType: "viewing_request",
+        entityId: request.id,
+        severity: "CRITICAL",
+        metadata: { reason: (error as Error).message },
+      });
+      throw new BadRequestException(
+        "Proof verification could not be completed.",
+      );
+    }
 
     const verification = await this.prisma.proofVerification.upsert({
       where: { viewingRequestId: request.id },
@@ -37,41 +84,51 @@ export class ProofVerificationService {
         proofId: request.zkProof.id,
         sorobanTxHash,
         verifierAddress: "UrbanRentishaTrustVerifier",
-        status: ProofStatus.VERIFIED,
-        verifiedAt: new Date(),
+        status: verified ? ProofStatus.VERIFIED : ProofStatus.FAILED,
+        verifiedAt: verified ? new Date() : null,
       },
       create: {
         viewingRequestId: request.id,
         proofId: request.zkProof.id,
         sorobanTxHash,
         verifierAddress: "UrbanRentishaTrustVerifier",
-        status: ProofStatus.VERIFIED,
-        verifiedAt: new Date(),
+        status: verified ? ProofStatus.VERIFIED : ProofStatus.FAILED,
+        verifiedAt: verified ? new Date() : null,
       },
     });
 
     await this.prisma.zkProof.update({
       where: { id: request.zkProof.id },
-      data: { status: ProofStatus.VERIFIED },
+      data: { status: verified ? ProofStatus.VERIFIED : ProofStatus.FAILED },
     });
 
     await this.prisma.viewingRequest.update({
       where: { id: request.id },
-      data: { status: ViewingRequestStatus.PROOF_VERIFIED },
+      data: {
+        status: verified
+          ? ViewingRequestStatus.PROOF_VERIFIED
+          : ViewingRequestStatus.PAYMENT_RECEIVED,
+      },
     });
 
     await this.auditLogs.create({
       actorId,
-      action: "proof.verified",
+      action: verified ? "proof.verified" : "proof.failed",
       entityType: "proof_verification",
       entityId: verification.id,
-      severity: "SUCCESS",
+      severity: verified ? "SUCCESS" : "CRITICAL",
       metadata: {
         viewingRequestId: request.id,
         sorobanTxHash,
         proofHash: request.zkProof.proofHash,
       },
     });
+
+    if (!verified) {
+      throw new BadRequestException(
+        "Proof verification failed. Viewing access remains locked.",
+      );
+    }
 
     return verification;
   }
