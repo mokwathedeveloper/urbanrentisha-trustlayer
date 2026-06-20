@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowRight,
+  Bell,
   ChevronUp,
   CreditCard,
   FileText,
+  Flag,
   Heart,
   HelpCircle,
   Home,
@@ -32,6 +34,8 @@ const navItems = [
   { label: "Escrow / Holds", href: "/escrow", icon: Lock },
   { label: "Verifications", href: "/verifications", icon: ShieldCheck },
   { label: "Viewing Code", href: "/viewing-code", icon: Lock },
+  { label: "Reports", href: "/reports", icon: Flag },
+  { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Profile", href: "/profile", icon: UserIcon },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
