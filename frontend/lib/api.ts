@@ -262,8 +262,17 @@ export interface AuditLogEntry {
   entityType: string;
   entityId: string | null;
   severity: string;
-  metadata: unknown;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
+  actor: { id: string; email: string; name: string; role: string } | null;
+}
+
+export interface AuditLogStats {
+  totalEvents: number;
+  systemEvents: number;
+  trustActivity: number;
+  userActions: number;
+  securityEvents: number;
 }
 
 export const api = {
@@ -329,6 +338,7 @@ export const api = {
   },
   auditLogs: {
     findAll: (token: string) => request<AuditLogEntry[]>("/audit-logs", { token }),
+    stats: (token: string) => request<AuditLogStats>("/audit-logs/stats", { token }),
   },
   admin: {
     dashboard: (token: string) => request<Record<string, number>>("/admin/dashboard", { token }),
