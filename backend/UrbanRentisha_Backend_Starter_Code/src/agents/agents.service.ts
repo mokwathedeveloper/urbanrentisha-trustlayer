@@ -10,27 +10,7 @@ import { PrismaService } from "../prisma/prisma.service";
 export class AgentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findOne(id: string) {
-    const agent = await this.prisma.agentProfile.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            createdAt: true,
-          },
-        },
-        listings: true,
-      },
-    });
-
-    if (!agent) throw new NotFoundException("Agent not found.");
-
-    const listingIds = agent.listings.map((listing) => listing.id);
-
+  private async computeStats(agentId: string, listingIds: string[]) {
     const [
       activeListings,
       inactiveListings,
@@ -40,11 +20,11 @@ export class AgentsService {
       recentViewingRequests,
     ] = await Promise.all([
       this.prisma.listing.count({
-        where: { agentId: id, verificationStatus: ListingStatus.VERIFIED },
+        where: { agentId, verificationStatus: ListingStatus.VERIFIED },
       }),
       this.prisma.listing.count({
         where: {
-          agentId: id,
+          agentId,
           verificationStatus: { not: ListingStatus.VERIFIED },
         },
       }),
@@ -78,6 +58,44 @@ export class AgentsService {
     ]);
 
     return {
+      activeListings,
+      inactiveListings,
+      openReports,
+      resolvedReports,
+      completedViewings,
+      recentViewingRequests: recentViewingRequests.map((request) => ({
+        id: request.id,
+        tenantName: request.tenant.user.name,
+        listingTitle: request.listing.title,
+        updatedAt: request.updatedAt,
+        status: request.status,
+      })),
+    };
+  }
+
+  async findOne(id: string) {
+    const agent = await this.prisma.agentProfile.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            createdAt: true,
+          },
+        },
+        listings: true,
+      },
+    });
+
+    if (!agent) throw new NotFoundException("Agent not found.");
+
+    const listingIds = agent.listings.map((listing) => listing.id);
+    const computed = await this.computeStats(agent.id, listingIds);
+
+    return {
       id: agent.id,
       agencyName: agent.agencyName,
       licenseNumber: agent.licenseNumber,
@@ -88,19 +106,122 @@ export class AgentsService {
       user: agent.user,
       stats: {
         totalListings: agent.listings.length,
-        activeListings,
-        inactiveListings,
-        openReports,
-        resolvedReports,
-        completedViewings,
+        activeListings: computed.activeListings,
+        inactiveListings: computed.inactiveListings,
+        openReports: computed.openReports,
+        resolvedReports: computed.resolvedReports,
+        completedViewings: computed.completedViewings,
       },
       listings: agent.listings,
-      recentViewingRequests: recentViewingRequests.map((request) => ({
-        id: request.id,
-        tenantName: request.tenant.user.name,
-        listingTitle: request.listing.title,
-        updatedAt: request.updatedAt,
-        status: request.status,
+      recentViewingRequests: computed.recentViewingRequests,
+    };
+  }
+
+  async findMyDashboard(userId: string) {
+    const agent = await this.prisma.agentProfile.findUnique({
+      where: { userId },
+      include: { listings: true },
+    });
+
+    if (!agent) throw new NotFoundException("Agent profile not found.");
+
+    const listingIds = agent.listings.map((listing) => listing.id);
+    const computed = await this.computeStats(agent.id, listingIds);
+
+    const [allViewingRequests, reports, verifiedTenantRows] = await Promise.all(
+      [
+        this.prisma.viewingRequest.findMany({
+          where: { listingId: { in: listingIds } },
+          orderBy: { createdAt: "desc" },
+          include: {
+            listing: { select: { title: true } },
+            tenant: {
+              include: {
+                user: { select: { name: true, email: true, phone: true } },
+              },
+            },
+            payment: true,
+            viewingCode: true,
+          },
+        }),
+        this.prisma.report.findMany({
+          where: { listingId: { in: listingIds } },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          include: { listing: { select: { title: true } } },
+        }),
+        this.prisma.tenantProfile.findMany({
+          where: {
+            viewingRequests: { some: { listingId: { in: listingIds } } },
+          },
+          include: {
+            user: {
+              select: { name: true, email: true, phone: true, status: true },
+            },
+          },
+          take: 10,
+        }),
+      ],
+    );
+
+    const escrowHolds = allViewingRequests.filter(
+      (r) =>
+        r.payment?.status === "RECEIVED" && r.viewingCode?.status !== "ACTIVE",
+    );
+    const activeViewingCodes = allViewingRequests.filter(
+      (r) => r.viewingCode?.status === "ACTIVE",
+    );
+
+    return {
+      id: agent.id,
+      agencyName: agent.agencyName,
+      verificationStatus: agent.verificationStatus,
+      trustScore: agent.trustScore,
+      listings: agent.listings,
+      stats: {
+        totalListings: agent.listings.length,
+        activeListings: computed.activeListings,
+        inactiveListings: computed.inactiveListings,
+        totalViewingRequests: allViewingRequests.length,
+        verifiedTenants: verifiedTenantRows.length,
+        escrowHolds: escrowHolds.length,
+        activeViewingCodes: activeViewingCodes.length,
+        openReports: computed.openReports,
+        resolvedReports: computed.resolvedReports,
+      },
+      viewingRequests: allViewingRequests.slice(0, 6).map((r) => ({
+        id: r.id,
+        tenantName: r.tenant.user.name,
+        listingTitle: r.listing.title,
+        status: r.status,
+        preferredDate: r.preferredDate,
+        createdAt: r.createdAt,
+      })),
+      verifiedTenants: verifiedTenantRows.map((tenant) => ({
+        name: tenant.user.name,
+        email: tenant.user.email,
+        phone: tenant.user.phone,
+        status: tenant.user.status,
+      })),
+      escrowHolds: escrowHolds.slice(0, 5).map((r) => ({
+        id: r.id,
+        listingTitle: r.listing.title,
+        amount: r.payment?.amount ?? 0,
+        currency: r.payment?.currency ?? "KES",
+        paymentId: r.payment?.id ?? "",
+      })),
+      activeViewingCodes: activeViewingCodes.slice(0, 5).map((r) => ({
+        id: r.id,
+        listingTitle: r.listing.title,
+        code: r.viewingCode?.code ?? "",
+        expiresAt: r.viewingCode?.expiresAt ?? null,
+      })),
+      reports: reports.map((report) => ({
+        id: report.id,
+        listingTitle: report.listing?.title ?? "Listing",
+        reportType: report.reportType,
+        status: report.status,
+        createdAt: report.createdAt,
       })),
     };
   }
