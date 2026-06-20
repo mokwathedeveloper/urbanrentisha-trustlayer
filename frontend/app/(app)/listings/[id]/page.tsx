@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -42,6 +42,7 @@ const verifications = [
 
 export default function PropertyDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -232,7 +233,11 @@ export default function PropertyDetailPage() {
                 <MessageCircle className="h-4 w-4" />
                 Message Agent
               </Button>
-              <Button variant="danger" className="mt-2 w-full">
+              <Button
+                variant="danger"
+                className="mt-2 w-full"
+                onClick={() => router.push(`/reports/new?listingId=${params.id}`)}
+              >
                 <Flag className="h-4 w-4" />
                 Report Listing
               </Button>
