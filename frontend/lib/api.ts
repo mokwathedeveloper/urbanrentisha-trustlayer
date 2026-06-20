@@ -181,6 +181,37 @@ export interface AgentProfile {
   }[];
 }
 
+export interface AgentDashboard {
+  id: string;
+  agencyName: string | null;
+  verificationStatus: string;
+  trustScore: number;
+  listings: Listing[];
+  stats: {
+    totalListings: number;
+    activeListings: number;
+    inactiveListings: number;
+    totalViewingRequests: number;
+    verifiedTenants: number;
+    escrowHolds: number;
+    activeViewingCodes: number;
+    openReports: number;
+    resolvedReports: number;
+  };
+  viewingRequests: {
+    id: string;
+    tenantName: string;
+    listingTitle: string;
+    status: string;
+    preferredDate: string | null;
+    createdAt: string;
+  }[];
+  verifiedTenants: { name: string; email: string; phone: string | null; status: string }[];
+  escrowHolds: { id: string; listingTitle: string; amount: number; currency: string; paymentId: string }[];
+  activeViewingCodes: { id: string; listingTitle: string; code: string; expiresAt: string | null }[];
+  reports: { id: string; listingTitle: string; reportType: string; status: string; createdAt: string }[];
+}
+
 export interface AuditLogEntry {
   id: string;
   actorId: string | null;
@@ -261,5 +292,6 @@ export const api = {
   },
   agents: {
     findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
+    myDashboard: (token: string) => request<AgentDashboard>("/agents/me/dashboard", { token }),
   },
 };
