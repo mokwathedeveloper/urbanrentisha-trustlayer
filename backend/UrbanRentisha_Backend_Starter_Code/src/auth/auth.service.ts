@@ -70,6 +70,15 @@ export class AuthService {
     };
   }
 
+  async me(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, role: true, status: true },
+    });
+    if (!user) throw new UnauthorizedException("User not found.");
+    return user;
+  }
+
   private sign(id: string, email: string, role: UserRole) {
     return this.jwt.sign({ sub: id, email, role });
   }
