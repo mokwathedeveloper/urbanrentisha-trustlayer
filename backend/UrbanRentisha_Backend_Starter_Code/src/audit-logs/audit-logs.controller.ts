@@ -15,4 +15,10 @@ export class AuditLogsController {
   findAll() {
     return this.auditLogs.findAll();
   }
+
+  @Roles(UserRole.ADMIN)
+  @Get("stats")
+  stats() {
+    return this.auditLogs.stats();
+  }
 }
