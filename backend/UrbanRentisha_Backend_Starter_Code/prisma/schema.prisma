@@ -259,6 +259,7 @@ model Report {
   description      String
   status           ReportStatus @default(OPEN)
   severity         String       @default("medium")
+  allowContact     Boolean      @default(false)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 }
