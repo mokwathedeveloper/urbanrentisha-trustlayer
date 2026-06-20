@@ -65,7 +65,7 @@ export interface Listing {
     agencyName: string;
     trustScore: number;
     verificationStatus: string;
-    user: { name: string; email: string };
+    user: { name: string; email: string; phone: string | null };
   };
 }
 
@@ -125,6 +125,7 @@ export interface ViewingCode {
   id: string;
   code: string;
   status: string;
+  expiresAt: string;
 }
 
 export interface NotificationItem {

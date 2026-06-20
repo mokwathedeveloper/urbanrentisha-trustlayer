@@ -31,6 +31,7 @@ const navItems = [
   { label: "Payments", href: "/payments", icon: CreditCard },
   { label: "Escrow / Holds", href: "/escrow", icon: Lock },
   { label: "Verifications", href: "/verifications", icon: ShieldCheck },
+  { label: "Viewing Code", href: "/viewing-code", icon: Lock },
   { label: "Profile", href: "/profile", icon: UserIcon },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
