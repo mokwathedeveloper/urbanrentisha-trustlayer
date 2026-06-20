@@ -15,4 +15,9 @@ export class AdminController {
   dashboard() {
     return this.admin.dashboard();
   }
+
+  @Get("overview")
+  overview() {
+    return this.admin.overview();
+  }
 }
