@@ -4,12 +4,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
+  NotificationType,
   ProofStatus,
   ViewingCodeStatus,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { randomCode } from "../common/utils/hash.util";
 import { GenerateViewingCodeDto } from "./dto/generate-viewing-code.dto";
 
@@ -18,6 +20,7 @@ export class ViewingCodesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async generate(actorId: string, dto: GenerateViewingCodeDto) {
@@ -59,6 +62,15 @@ export class ViewingCodesService {
       entityId: code.id,
       severity: "SUCCESS",
       metadata: { viewingRequestId: request.id },
+    });
+
+    await this.notifications.create({
+      userId: actorId,
+      type: NotificationType.VIEWING_CODE,
+      title: "Viewing Code Generated",
+      message:
+        "Your viewing code is ready. Share it with the agent to schedule your visit.",
+      viewingRequestId: request.id,
     });
 
     return code;
