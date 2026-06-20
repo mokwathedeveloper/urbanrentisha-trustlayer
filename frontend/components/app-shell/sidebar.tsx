@@ -14,6 +14,7 @@ import {
   LogOut,
   Mail,
   Settings,
+  ShieldCheck,
   User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Messages", href: "/messages", icon: Mail },
   { label: "Applications", href: "/applications", icon: FileText },
   { label: "Payments", href: "/payments", icon: CreditCard },
+  { label: "Verifications", href: "/verifications", icon: ShieldCheck },
   { label: "Profile", href: "/profile", icon: UserIcon },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

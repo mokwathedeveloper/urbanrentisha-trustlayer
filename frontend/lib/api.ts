@@ -103,6 +103,12 @@ export interface ZkProof {
   proofHash: string | null;
   status: string;
   generatedAt: string | null;
+  publicInputs?: {
+    requestId: string;
+    listingId: string;
+    requiredViewingFee: string;
+    paymentCommitment: string;
+  } | null;
 }
 
 export interface ProofVerification {
