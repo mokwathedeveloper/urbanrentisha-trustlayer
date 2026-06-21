@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   UserCheck,
 } from "lucide-react";
-import { api, type AgentDashboard } from "@/lib/api";
+import { ApiError, api, type AgentDashboard } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
 
@@ -20,14 +20,32 @@ export function PropertyManagerDashboardView() {
   const { token, user } = useAuth();
   const [dashboard, setDashboard] = useState<AgentDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
     api.agents
       .myDashboard(token)
       .then(setDashboard)
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Could not load your agent dashboard.");
+      })
       .finally(() => setLoading(false));
   }, [token]);
+
+  if (error) {
+    return (
+      <div className="px-6 py-8">
+        <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">
+          Welcome back, {user?.name?.split(" ")[0] ?? "Manager"}! 👋
+        </h1>
+        <p className="mt-4 text-sm text-ur-error">{error}</p>
+        <p className="mt-1 text-sm text-ur-text-secondary">
+          Your agent profile may still be setting up. Try again shortly or contact support if this persists.
+        </p>
+      </div>
+    );
+  }
 
   const stats = [
     { label: "Total Listings", value: dashboard?.stats.totalListings ?? 0, icon: Building2, color: "text-ur-cyan" },
