@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { StorageService } from "../storage/storage.service";
 import { VerificationDecision } from "./dto/review-verification.dto";
 
 @Injectable()
@@ -16,6 +17,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly storage: StorageService,
   ) {}
 
   async dashboard() {
@@ -360,34 +362,40 @@ export class AdminService {
       landlord?: { user: { name: string } } | null;
       documents: {
         id: string;
+        fileUrl: string;
         fileName: string;
         status: string;
         createdAt: Date;
       }[];
     };
 
-    const toRow = (profile: VerifiableProfile, profileType: string) => ({
+    const toRow = async (profile: VerifiableProfile, profileType: string) => ({
       profileType,
       profileId: profile.id,
       name: profile.user.name,
       email: profile.user.email,
       verificationStage: profile.verificationStage,
       linkedLandlordName: profile.landlord?.user.name ?? null,
-      documents: profile.documents.map((doc) => ({
-        id: doc.id,
-        fileName: doc.fileName,
-        status: doc.status,
-        createdAt: doc.createdAt,
-      })),
+      documents: await Promise.all(
+        profile.documents.map(async (doc) => ({
+          id: doc.id,
+          fileName: doc.fileName,
+          status: doc.status,
+          createdAt: doc.createdAt,
+          signedUrl: await this.storage.getDocumentSignedUrl(doc.fileUrl),
+        })),
+      ),
       createdAt: profile.createdAt,
     });
 
-    return [
+    const rows = await Promise.all([
       ...tenants.map((p) => toRow(p, "tenant")),
       ...landlords.map((p) => toRow(p, "landlord")),
       ...agents.map((p) => toRow(p, "agent")),
       ...managers.map((p) => toRow(p, "manager")),
-    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    ]);
+
+    return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async reviewVerification(
