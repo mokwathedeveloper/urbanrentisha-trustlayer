@@ -109,7 +109,7 @@ export default function LoginPage() {
               <LogoMark />
             </Link>
 
-            <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-ur-primary/30 bg-ur-success-bg px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-ur-primary">
+            <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-ur-primary/30 bg-ur-success-bg px-3 py-1 text-xs font-bold tracking-[0.02em] text-ur-primary">
               Blockchain-Powered. Privacy-First. Zero-Knowledge.
             </div>
 
@@ -122,14 +122,14 @@ export default function LoginPage() {
                 : "Access your rentals, agents, and on-chain intelligence."}
             </p>
 
-            <div className="mt-6 flex gap-6 border-b border-ur-border text-sm font-semibold">
+            <div className="mt-6 flex gap-1 text-sm font-semibold">
               <button
                 type="button"
                 onClick={() => setTab("signin")}
-                className={`-mb-px border-b-2 pb-3 transition-colors ${
+                className={`rounded-ur-sm px-4 py-2 transition-colors ${
                   tab === "signin"
-                    ? "border-ur-primary text-ur-primary"
-                    : "border-transparent text-ur-text-secondary hover:text-ur-navy"
+                    ? "bg-ur-success-bg text-ur-primary"
+                    : "text-ur-text-secondary hover:text-ur-navy"
                 }`}
               >
                 Sign In
@@ -137,10 +137,10 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setTab("signup")}
-                className={`-mb-px border-b-2 pb-3 transition-colors ${
+                className={`rounded-ur-sm px-4 py-2 transition-colors ${
                   tab === "signup"
-                    ? "border-ur-primary text-ur-primary"
-                    : "border-transparent text-ur-text-secondary hover:text-ur-navy"
+                    ? "bg-ur-success-bg text-ur-primary"
+                    : "text-ur-text-secondary hover:text-ur-navy"
                 }`}
               >
                 Create Account
@@ -148,15 +148,16 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setTab("demo")}
-                className={`-mb-px border-b-2 pb-3 transition-colors ${
+                className={`rounded-ur-sm px-4 py-2 transition-colors ${
                   tab === "demo"
-                    ? "border-ur-primary text-ur-primary"
-                    : "border-transparent text-ur-text-secondary hover:text-ur-navy"
+                    ? "bg-ur-success-bg text-ur-primary"
+                    : "text-ur-text-secondary hover:text-ur-navy"
                 }`}
               >
                 Demo Login
               </button>
             </div>
+            <div className="mt-3 border-b border-ur-border" />
 
             {error ? (
               <p className="mt-4 rounded-ur border border-ur-error/30 bg-ur-error-bg px-3 py-2 text-sm text-ur-error">
@@ -352,7 +353,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <AccessSidebar onTryDemo={handleTryDemo} />
+        <AccessSidebar
+          onTryDemo={handleTryDemo}
+          onUseEmail={() => setTab("signin")}
+          onConnectWallet={() => setTab("signin")}
+        />
       </div>
     </main>
   );
