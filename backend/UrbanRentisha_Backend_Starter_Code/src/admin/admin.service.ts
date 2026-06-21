@@ -72,10 +72,18 @@ export class AdminService {
       }),
       this.prisma.report.count({ where: { status: ReportStatus.RESOLVED } }),
       this.prisma.report.count({ where: { status: ReportStatus.DISMISSED } }),
-      this.prisma.agentProfile.count(),
-      this.prisma.agentProfile.count({
-        where: { verificationStatus: "verified" },
-      }),
+      Promise.all([
+        this.prisma.agentProfile.count(),
+        this.prisma.managerProfile.count(),
+      ]).then(([a, m]) => a + m),
+      Promise.all([
+        this.prisma.agentProfile.count({
+          where: { verificationStatus: "verified" },
+        }),
+        this.prisma.managerProfile.count({
+          where: { verificationStatus: "verified" },
+        }),
+      ]).then(([a, m]) => a + m),
       this.prisma.proofVerification.count({
         where: { status: ProofStatus.VERIFIED },
       }),
@@ -92,7 +100,10 @@ export class AdminService {
       this.prisma.user.count(),
       this.prisma.listing.count(),
       this.prisma.viewingRequest.count(),
-      this.prisma.agentProfile.findMany({ select: { trustScore: true } }),
+      Promise.all([
+        this.prisma.agentProfile.findMany({ select: { trustScore: true } }),
+        this.prisma.managerProfile.findMany({ select: { trustScore: true } }),
+      ]).then(([a, m]) => [...a, ...m]),
     ]);
 
     const totalRevenue = receivedPayments.reduce(
@@ -118,20 +129,44 @@ export class AdminService {
         orderBy: { createdAt: "desc" },
         include: { agent: { select: { agencyName: true } } },
       }),
-      this.prisma.agentProfile.findMany({
-        where: { verificationStatus: { not: "verified" } },
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { name: true, email: true } } },
-      }),
-      this.prisma.agentProfile.findMany({
-        take: 6,
-        orderBy: { trustScore: "desc" },
-        include: {
-          user: { select: { name: true } },
-          listings: { select: { id: true } },
-        },
-      }),
+      Promise.all([
+        this.prisma.agentProfile.findMany({
+          where: { verificationStatus: { not: "verified" } },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+          include: { user: { select: { name: true, email: true } } },
+        }),
+        this.prisma.managerProfile.findMany({
+          where: { verificationStatus: { not: "verified" } },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+          include: { user: { select: { name: true, email: true } } },
+        }),
+      ]).then(([a, m]) =>
+        [...a, ...m]
+          .sort((x, y) => y.createdAt.getTime() - x.createdAt.getTime())
+          .slice(0, 5),
+      ),
+      Promise.all([
+        this.prisma.agentProfile.findMany({
+          take: 6,
+          orderBy: { trustScore: "desc" },
+          include: {
+            user: { select: { name: true } },
+            listings: { select: { id: true } },
+          },
+        }),
+        this.prisma.managerProfile.findMany({
+          take: 6,
+          orderBy: { trustScore: "desc" },
+          include: {
+            user: { select: { name: true } },
+            listings: { select: { id: true } },
+          },
+        }),
+      ]).then(([a, m]) =>
+        [...a, ...m].sort((x, y) => y.trustScore - x.trustScore).slice(0, 6),
+      ),
       this.prisma.proofVerification.findMany({
         take: 6,
         orderBy: { createdAt: "desc" },
@@ -167,11 +202,22 @@ export class AdminService {
       select: { id: true, title: true },
     });
 
-    const lowTrustAgents = await this.prisma.agentProfile.findMany({
-      where: { trustScore: { lt: 70 } },
-      take: 5,
-      include: { user: { select: { name: true } } },
-    });
+    const [lowTrustAgentRows, lowTrustManagerRows] = await Promise.all([
+      this.prisma.agentProfile.findMany({
+        where: { trustScore: { lt: 70 } },
+        take: 5,
+        include: { user: { select: { name: true } } },
+      }),
+      this.prisma.managerProfile.findMany({
+        where: { trustScore: { lt: 70 } },
+        take: 5,
+        include: { user: { select: { name: true } } },
+      }),
+    ]);
+    const lowTrustAgents = [...lowTrustAgentRows, ...lowTrustManagerRows].slice(
+      0,
+      5,
+    );
 
     const suspiciousActivity = [
       ...flaggedListings.map((listing) => ({
