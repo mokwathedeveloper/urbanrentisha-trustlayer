@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 
 export const landingNavItems = [
-  { label: "How it Works", href: "#trust-flow" },
+  { label: "How It Works", href: "#trust-flow" },
   { label: "Features", href: "#problem" },
   { label: "For Everyone", href: "#audience" },
   { label: "About Us", href: "#stellar" },
-  { label: "FAQ", href: "/docs" },
+  { label: "FAQ", href: "/help" },
 ];
 
 export const heroStats = [
