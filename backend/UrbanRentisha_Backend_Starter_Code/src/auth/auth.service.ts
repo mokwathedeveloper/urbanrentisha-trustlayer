@@ -56,7 +56,14 @@ export class AuthService {
             ? { create: { verificationStatus: "pending", landlordId } }
             : undefined,
       },
-      select: { id: true, email: true, name: true, role: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        avatarUrl: true,
+      },
     });
 
     return {
@@ -82,6 +89,7 @@ export class AuthService {
         name: user.name,
         role: user.role,
         status: user.status,
+        avatarUrl: user.avatarUrl,
       },
       accessToken: this.sign(user.id, user.email, user.role),
     };
@@ -90,7 +98,14 @@ export class AuthService {
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        avatarUrl: true,
+      },
     });
     if (!user) throw new UnauthorizedException("User not found.");
     return user;
