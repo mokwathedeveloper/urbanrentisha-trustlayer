@@ -153,6 +153,23 @@ export interface NotificationItem {
   viewingRequest?: ViewingRequest | null;
 }
 
+export interface MessageThread {
+  viewingRequestId: string;
+  listingTitle: string;
+  otherParty: string;
+  lastMessage: string;
+  lastMessageAt: string;
+}
+
+export interface MessageItem {
+  id: string;
+  viewingRequestId: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+  sender: { id: string; name: string; role: string };
+}
+
 export interface ReportItem {
   id: string;
   listingId: string | null;
@@ -394,5 +411,16 @@ export const api = {
   agents: {
     findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
     myDashboard: (token: string) => request<AgentDashboard>("/agents/me/dashboard", { token }),
+  },
+  messages: {
+    findInbox: (token: string) => request<MessageThread[]>("/messages", { token }),
+    findForRequest: (token: string, viewingRequestId: string) =>
+      request<MessageItem[]>(`/viewing-requests/${viewingRequestId}/messages`, { token }),
+    send: (token: string, viewingRequestId: string, body: string) =>
+      request<MessageItem>(`/viewing-requests/${viewingRequestId}/messages`, {
+        method: "POST",
+        body: { body },
+        token,
+      }),
   },
 };
