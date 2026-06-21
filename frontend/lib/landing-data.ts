@@ -1,15 +1,4 @@
-import {
-  AlertTriangle,
-  Building2,
-  CreditCard,
-  FileCheck2,
-  KeyRound,
-  ScanSearch,
-  ShieldCheck,
-  ShieldOff,
-  Users,
-  Wallet,
-} from "lucide-react";
+import type { IconName } from "@/components/ui/icon";
 
 export const landingNavItems = [
   { label: "How It Works", href: "#trust-flow" },
@@ -19,60 +8,60 @@ export const landingNavItems = [
   { label: "FAQ", href: "/help" },
 ];
 
-export const heroStats = [
-  { label: "Users Protected", value: "10K+", icon: Users },
-  { label: "Verified Properties", value: "2K+", icon: Building2 },
-  { label: "Transactions Secured", value: "5K+", icon: CreditCard },
-  { label: "Privacy First", value: "100%", icon: ShieldCheck },
+export const heroStats: { label: string; value: string; icon: IconName }[] = [
+  { label: "Users Protected", value: "10K+", icon: "groups" },
+  { label: "Verified Properties", value: "2K+", icon: "apartment" },
+  { label: "Transactions Secured", value: "5K+", icon: "credit_card" },
+  { label: "Privacy First", value: "100%", icon: "verified_user" },
 ];
 
-export const problems = [
+export const problems: { title: string; description: string; footnote: string; icon: IconName }[] = [
   {
     title: "Fake Listings",
     description: "Fraudulent listings that don't exist.",
     footnote: "No verification",
-    icon: ScanSearch,
+    icon: "search",
   },
   {
     title: "Fake Agents",
     description: "Impersonators take your hard-earned money.",
     footnote: "No accountability",
-    icon: ShieldOff,
+    icon: "gpp_maybe",
   },
   {
     title: "Unsafe Payments",
     description: "Pay before viewing, no security.",
     footnote: "High financial risk",
-    icon: Wallet,
+    icon: "account_balance_wallet",
   },
   {
     title: "No Proof",
     description: "No way to prove payment or agreement.",
     footnote: "Disputes & losses",
-    icon: AlertTriangle,
+    icon: "warning",
   },
 ];
 
-export const trustFlowSteps = [
+export const trustFlowSteps: { title: string; description: string; icon: IconName }[] = [
   {
     title: "Make Viewing Payment",
     description: "Pay securely on Stellar Network.",
-    icon: Wallet,
+    icon: "account_balance_wallet",
   },
   {
     title: "Generate ZK Proof",
     description: "Prove payment privately off-chain.",
-    icon: FileCheck2,
+    icon: "description",
   },
   {
     title: "Verify on Stellar",
     description: "Proof verified on Soroban contract.",
-    icon: ShieldCheck,
+    icon: "verified_user",
   },
   {
     title: "Unlock Access",
     description: "Get verified access to property details.",
-    icon: KeyRound,
+    icon: "key",
   },
 ];
 

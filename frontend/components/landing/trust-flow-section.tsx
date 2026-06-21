@@ -23,7 +23,7 @@ export function TrustFlowSection() {
               <div className="grid h-12 w-12 place-items-center rounded-full border border-ur-primary/30 bg-ur-success-bg text-ur-primary">
                 <span className="text-sm font-black">{index + 1}</span>
               </div>
-              <step.icon className="mt-3 h-5 w-5 text-ur-primary" />
+              <Icon name={step.icon} size={20} className="mt-3 text-ur-primary" />
               <h3 className="mt-3 font-bold text-ur-navy">{step.title}</h3>
               <p className="mt-2 text-sm leading-6 text-ur-text-secondary">{step.description}</p>
             </div>

@@ -1,4 +1,5 @@
 import { problems } from "@/lib/landing-data";
+import { Icon } from "@/components/ui/icon";
 
 export function ProblemSection() {
   return (
@@ -18,7 +19,7 @@ export function ProblemSection() {
           {problems.map((problem) => (
             <div key={problem.title} className="ur-card p-6">
               <span className="grid h-10 w-10 place-items-center rounded-lg bg-ur-primary/10 text-ur-primary">
-                <problem.icon className="h-5 w-5" />
+                <Icon name={problem.icon} size={20} />
               </span>
               <h3 className="mt-4 font-bold text-ur-navy">{problem.title}</h3>
               <p className="mt-2 text-sm leading-6 text-ur-text-secondary">{problem.description}</p>

@@ -57,7 +57,7 @@ export function HeroSection() {
               <div key={stat.label}>
                 <div className="flex items-center gap-2">
                   <span className="grid h-7 w-7 place-items-center rounded-md bg-ur-primary/10 text-ur-primary">
-                    <stat.icon className="h-4 w-4" />
+                    <Icon name={stat.icon} size={16} />
                   </span>
                   <dd className="text-xl font-black text-ur-navy">{stat.value}</dd>
                 </div>
