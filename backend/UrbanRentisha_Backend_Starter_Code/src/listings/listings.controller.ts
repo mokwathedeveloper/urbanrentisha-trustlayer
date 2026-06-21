@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -25,6 +26,12 @@ export class ListingsController {
     return this.listings.findAll();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get("saved")
+  findSaved(@CurrentUser() user: AuthUser) {
+    return this.listings.findSaved(user.sub);
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.listings.findOne(id);
@@ -35,6 +42,18 @@ export class ListingsController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateListingDto) {
     return this.listings.create(user.sub, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/save")
+  save(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.listings.saveListing(user.sub, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(":id/save")
+  unsave(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.listings.unsaveListing(user.sub, id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
