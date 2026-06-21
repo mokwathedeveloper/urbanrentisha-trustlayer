@@ -2,31 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  BookOpen,
-  ChevronDown,
-  Code2,
-  CreditCard,
-  Flag,
-  Headset,
-  KeyRound,
-  Network,
-  Rocket,
-  Search,
-  ShieldAlert,
-  ShieldCheck,
-} from "lucide-react";
 import { faqTopics } from "@/lib/faq-data";
+import { Icon, type IconName } from "@/components/ui/icon";
 
-const topicIcons: Record<string, typeof Network> = {
-  "stellar-testnet": Network,
-  "zk-proof": ShieldCheck,
-  "payment-hold-status": CreditCard,
-  "viewing-codes": KeyRound,
-  reports: Flag,
-  "safety-rules": ShieldAlert,
-  "known-limitations": AlertTriangle,
+const topicIcons: Record<string, IconName> = {
+  "stellar-testnet": "hub",
+  "zk-proof": "verified_user",
+  "payment-hold-status": "credit_card",
+  "viewing-codes": "key",
+  reports: "flag",
+  "safety-rules": "gpp_maybe",
+  "known-limitations": "warning",
 };
 
 const topicColor: Record<string, string> = {
@@ -75,7 +61,7 @@ export default function HelpFaqPage() {
             Find answers to common questions about UrbanRentisha and how everything works.
           </p>
           <div className="relative mt-4 max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ur-text-muted" />
+            <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ur-text-muted" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -92,7 +78,7 @@ export default function HelpFaqPage() {
             href="mailto:support@urbanrentisha.local"
             className="mt-3 flex items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
           >
-            <Headset className="h-4 w-4" />
+            <Icon name="support_agent" size={16} />
             Contact Support
           </a>
         </div>
@@ -100,7 +86,7 @@ export default function HelpFaqPage() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
         {faqTopics.map((topic) => {
-          const Icon = topicIcons[topic.id] ?? Network;
+          const topicIcon = topicIcons[topic.id] ?? "hub";
           const active = activeTopic === topic.id;
           return (
             <button
@@ -109,7 +95,7 @@ export default function HelpFaqPage() {
               onClick={() => setActiveTopic(active ? null : topic.id)}
               className={`ur-card p-4 text-left transition-colors ${active ? "border-ur-primary bg-ur-success-bg" : ""}`}
             >
-              <Icon className={`h-5 w-5 ${topicColor[topic.id] ?? "text-ur-cyan"}`} />
+              <Icon name={topicIcon} size={20} className={`${topicColor[topic.id] ?? "text-ur-cyan"}`} />
               <p className="mt-2 text-sm font-bold text-ur-navy">{topic.label}</p>
               <p className="mt-1 text-xs text-ur-cyan">{topic.items.length} articles</p>
             </button>
@@ -145,7 +131,7 @@ export default function HelpFaqPage() {
                         <span className="block text-sm font-bold text-ur-text">{item.question}</span>
                         <span className="text-xs text-ur-text-muted">{item.topicLabel}</span>
                       </span>
-                      <ChevronDown className={`h-4 w-4 shrink-0 text-ur-text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+                      <Icon name="expand_more" size={16} className={`shrink-0 text-ur-text-muted transition-transform ${open ? "rotate-180" : ""}`} />
                     </button>
                     {open ? <p className="mt-2 text-sm text-ur-text-secondary">{item.answer}</p> : null}
                   </div>
@@ -173,10 +159,10 @@ export default function HelpFaqPage() {
           <div className="ur-card p-4">
             <p className="text-sm font-bold text-ur-navy">Quick Links</p>
             <div className="mt-2 space-y-1">
-              <QuickLink href="/listings" icon={Rocket} label="Find Verified Properties" />
-              <QuickLink href="/api-docs" icon={Code2} label="API Documentation" />
-              <QuickLink href="/reports/new" icon={Flag} label="Report Fake Listing" />
-              <QuickLink href="/dashboard" icon={BookOpen} label="Back to Dashboard" />
+              <QuickLink href="/listings" icon="rocket_launch" label="Find Verified Properties" />
+              <QuickLink href="/api-docs" icon="code" label="API Documentation" />
+              <QuickLink href="/reports/new" icon="flag" label="Report Fake Listing" />
+              <QuickLink href="/dashboard" icon="menu_book" label="Back to Dashboard" />
             </div>
           </div>
         </div>
@@ -185,10 +171,10 @@ export default function HelpFaqPage() {
   );
 }
 
-function QuickLink({ href, icon: Icon, label }: { href: string; icon: typeof Rocket; label: string }) {
+function QuickLink({ href, icon, label }: { href: string; icon: IconName; label: string }) {
   return (
     <Link href={href} className="flex items-center gap-2 rounded-ur-sm px-2 py-2 text-sm text-ur-text-secondary hover:bg-ur-card-hover hover:text-ur-navy">
-      <Icon className="h-4 w-4 text-ur-primary" />
+      <Icon name={icon} size={16} className="text-ur-primary" />
       {label}
     </Link>
   );
