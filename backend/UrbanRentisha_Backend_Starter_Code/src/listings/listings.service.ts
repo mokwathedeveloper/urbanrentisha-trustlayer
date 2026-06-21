@@ -47,7 +47,7 @@ export class ListingsService {
   async create(ownerId: string, dto: CreateListingDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: ownerId },
-      include: { agentProfile: true },
+      include: { agentProfile: true, managerProfile: true },
     });
 
     const listing = await this.prisma.listing.create({
@@ -56,6 +56,7 @@ export class ListingsService {
         currency: dto.currency ?? "KES",
         ownerId,
         agentId: user?.agentProfile?.id,
+        managerId: user?.managerProfile?.id,
         verificationStatus: ListingStatus.PENDING_REVIEW,
       },
     });
