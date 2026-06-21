@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, type AdminOverview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, formatDate } from "./dashboard-ui";
@@ -47,6 +48,13 @@ export function AdminDashboardView() {
           </h1>
           <p className="mt-1 text-sm text-ur-text-secondary">Here&apos;s what&apos;s happening across the platform.</p>
         </div>
+        <Link
+          href="/admin/verifications"
+          className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
+        >
+          <Icon name="verified_user" size={16} />
+          Review Verifications
+        </Link>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
