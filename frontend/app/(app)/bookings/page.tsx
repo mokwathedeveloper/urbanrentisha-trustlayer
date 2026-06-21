@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, FileText } from "lucide-react";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { StatusBadge, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 export default function MyBookingsPage() {
   const { token } = useAuth();
@@ -29,7 +29,7 @@ export default function MyBookingsPage() {
         {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
         {!loading && requests.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <FileText className="h-8 w-8 text-ur-text-muted" />
+            <Icon name="description" size={32} className="text-ur-text-muted" />
             <p className="text-sm text-ur-text-muted">You haven&apos;t requested any viewings yet.</p>
             <Link href="/listings" className="text-sm font-semibold text-ur-primary hover:underline">
               Browse verified properties &rarr;
@@ -52,7 +52,7 @@ export default function MyBookingsPage() {
                   className="flex items-center gap-1 text-sm font-semibold text-ur-primary hover:underline"
                 >
                   {nextStepLabel(request.status)}
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <Icon name="chevron_right" size={14} />
                 </Link>
               </div>
             </div>

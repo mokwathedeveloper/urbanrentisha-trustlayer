@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lock } from "lucide-react";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 export default function EscrowPage() {
   const { token } = useAuth();
@@ -35,7 +35,7 @@ export default function EscrowPage() {
         {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
         {!loading && held.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <Lock className="h-8 w-8 text-ur-text-muted" />
+            <Icon name="lock" size={32} className="text-ur-text-muted" />
             <p className="text-sm text-ur-text-muted">No active escrow holds.</p>
           </div>
         ) : null}

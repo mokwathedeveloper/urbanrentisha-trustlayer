@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ClipboardList } from "lucide-react";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { StatusBadge, activeStatuses, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 export default function ApplicationsPage() {
   const { token } = useAuth();
@@ -33,7 +33,7 @@ export default function ApplicationsPage() {
         {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
         {!loading && active.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <ClipboardList className="h-8 w-8 text-ur-text-muted" />
+            <Icon name="assignment" size={32} className="text-ur-text-muted" />
             <p className="text-sm text-ur-text-muted">No applications in progress right now.</p>
             <Link href="/listings" className="text-sm font-semibold text-ur-primary hover:underline">
               Browse verified properties &rarr;
@@ -56,7 +56,7 @@ export default function ApplicationsPage() {
                   className="flex items-center gap-1 text-sm font-semibold text-ur-primary hover:underline"
                 >
                   {nextStepLabel(request.status)}
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <Icon name="chevron_right" size={14} />
                 </Link>
               </div>
             </div>

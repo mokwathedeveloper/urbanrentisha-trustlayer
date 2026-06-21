@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CreditCard } from "lucide-react";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 const statusTone: Record<string, string> = {
   CREATED: "border-ur-text-muted text-ur-text-muted",
@@ -40,7 +40,7 @@ export default function PaymentsPage() {
         {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
         {!loading && payments.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <CreditCard className="h-8 w-8 text-ur-text-muted" />
+            <Icon name="credit_card" size={32} className="text-ur-text-muted" />
             <p className="text-sm text-ur-text-muted">No payments yet.</p>
             <Link href="/listings" className="text-sm font-semibold text-ur-primary hover:underline">
               Browse verified properties &rarr;

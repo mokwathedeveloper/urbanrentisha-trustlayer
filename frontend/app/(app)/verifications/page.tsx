@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 const statusTone: Record<string, string> = {
   NOT_STARTED: "border-ur-text-muted text-ur-text-muted",
@@ -42,7 +42,7 @@ export default function VerificationsPage() {
         {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
         {!loading && proofs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <ShieldCheck className="h-8 w-8 text-ur-text-muted" />
+            <Icon name="verified_user" size={32} className="text-ur-text-muted" />
             <p className="text-sm text-ur-text-muted">No proofs generated yet.</p>
           </div>
         ) : null}
