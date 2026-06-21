@@ -14,7 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { api, type AuditLogEntry, type AuditLogStats } from "@/lib/api";
+import { api, ApiError, type AuditLogEntry, type AuditLogStats } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const entityIcons: Record<string, typeof FileText> = {
@@ -52,26 +52,44 @@ function formatDateTime(iso: string): string {
 }
 
 export default function AuditLogsPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [stats, setStats] = useState<AuditLogStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [entityFilter, setEntityFilter] = useState("ALL");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [selected, setSelected] = useState<AuditLogEntry | null>(null);
 
+  const isAdmin = user?.role === "ADMIN" || user?.role === "PLATFORM";
+
   useEffect(() => {
-    if (!token) return;
+    if (!token || !isAdmin) return;
     Promise.all([api.auditLogs.findAll(token), api.auditLogs.stats(token)])
       .then(([logRows, statRow]) => {
         setLogs(logRows);
         setStats(statRow);
       })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Could not load audit logs.");
+      })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, isAdmin]);
 
   const entityTypes = useMemo(() => Array.from(new Set(logs.map((l) => l.entityType))), [logs]);
+
+  if (!isAdmin) {
+    return (
+      <div className="px-6 py-8">
+        <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Audit Log</h1>
+        <p className="mt-4 text-sm text-ur-error">
+          This page is only available to administrators. Sign in with an admin account to view platform audit
+          logs.
+        </p>
+      </div>
+    );
+  }
 
   const filtered = logs.filter((log) => {
     if (entityFilter !== "ALL" && log.entityType !== entityFilter) return false;
@@ -99,6 +117,8 @@ export default function AuditLogsPage() {
       <p className="mt-1 text-sm text-ur-text-secondary">
         Track important system events, user actions, and trust activity across the platform.
       </p>
+
+      {error ? <p className="mt-4 text-sm text-ur-error">{error}</p> : null}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard icon={FileText} label="Total Events" value={stats?.totalEvents ?? 0} color="text-ur-cyan" loading={loading} />
