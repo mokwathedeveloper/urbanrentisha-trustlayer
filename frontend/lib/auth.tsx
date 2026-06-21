@@ -17,8 +17,15 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (input: { email: string; name: string; password: string; role: UserRole }) => Promise<void>;
+  register: (input: {
+    email: string;
+    name: string;
+    password: string;
+    role: UserRole;
+    landlordEmail?: string;
+  }) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -60,7 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const register = useCallback(
-    async (input: { email: string; name: string; password: string; role: UserRole }) => {
+    async (input: {
+      email: string;
+      name: string;
+      password: string;
+      role: UserRole;
+      landlordEmail?: string;
+    }) => {
       const res = await api.auth.register(input);
       applySession(res.accessToken, res.user);
     },
@@ -73,8 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    const refreshed = await api.auth.me(token);
+    setUser(refreshed);
+  }, [token]);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
