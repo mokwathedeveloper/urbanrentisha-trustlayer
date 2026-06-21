@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -94,13 +95,13 @@ export function EmptyRow({ text }: { text: string }) {
 }
 
 export function StatCard({
-  icon: Icon,
+  icon,
   label,
   value,
   color,
   loading,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: IconName;
   label: string;
   value: number | string;
   color: string;
@@ -108,7 +109,7 @@ export function StatCard({
 }) {
   return (
     <div className="ur-card p-4">
-      <Icon className={`h-4 w-4 ${color}`} />
+      <Icon name={icon} size={16} className={`${color}`} />
       <p className="mt-2 text-xs text-ur-text-secondary">{label}</p>
       <p className="text-xl font-black text-ur-navy">{loading ? "—" : value}</p>
     </div>

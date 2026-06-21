@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, CreditCard, FileText, Flag, KeyRound, Lock, ShieldCheck, Sparkles } from "lucide-react";
 import { api, type NotificationItem, type ReportItem, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 export function TenantDashboardView() {
   const { token, user } = useAuth();
@@ -35,14 +35,14 @@ export function TenantDashboardView() {
   const viewingCodes = requests.filter((r) => r.viewingCode);
   const unreadNotifications = notifications.filter((n) => !n.readAt);
 
-  const stats = [
-    { label: "Total Requests", value: requests.length, icon: FileText, color: "text-ur-cyan" },
-    { label: "Payments", value: payments.length, icon: CreditCard, color: "text-ur-primary" },
-    { label: "Proofs", value: proofs.length, icon: ShieldCheck, color: "text-ur-mint" },
-    { label: "Escrow / Holds", value: escrowHolds.length, icon: Lock, color: "text-ur-warning" },
-    { label: "Viewing Codes", value: viewingCodes.length, icon: KeyRound, color: "text-ur-cyan" },
-    { label: "Notifications", value: notifications.length, icon: Bell, color: "text-ur-mint" },
-    { label: "Reports", value: reports.length, icon: Flag, color: "text-ur-error" },
+  const stats: { label: string; value: number; icon: IconName; color: string }[] = [
+    { label: "Total Requests", value: requests.length, icon: "description", color: "text-ur-cyan" },
+    { label: "Payments", value: payments.length, icon: "credit_card", color: "text-ur-primary" },
+    { label: "Proofs", value: proofs.length, icon: "verified_user", color: "text-ur-mint" },
+    { label: "Escrow / Holds", value: escrowHolds.length, icon: "lock", color: "text-ur-warning" },
+    { label: "Viewing Codes", value: viewingCodes.length, icon: "key", color: "text-ur-cyan" },
+    { label: "Notifications", value: notifications.length, icon: "notifications", color: "text-ur-mint" },
+    { label: "Reports", value: reports.length, icon: "flag", color: "text-ur-error" },
   ];
 
   return (
@@ -59,7 +59,7 @@ export function TenantDashboardView() {
             type="button"
             className="flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-semibold text-ur-navy"
           >
-            <Sparkles className="h-4 w-4" />
+            <Icon name="auto_awesome" size={16} />
             Quick Actions
           </button>
           <Link

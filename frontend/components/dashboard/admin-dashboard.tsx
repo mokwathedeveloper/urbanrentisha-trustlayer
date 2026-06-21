@@ -1,17 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  AlertTriangle,
-  Building2,
-  Flag,
-  Lock,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
 import { api, type AdminOverview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, formatDate } from "./dashboard-ui";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 const reportTypeLabels: Record<string, string> = {
   FAKE_LISTING: "Fake Listing",
@@ -37,12 +30,12 @@ export function AdminDashboardView() {
 
   const s = overview?.stats;
 
-  const stats = [
-    { label: "Pending Listings", value: s?.pendingListings ?? 0, icon: Building2, color: "text-ur-warning" },
-    { label: "Total Reports", value: s?.totalReports ?? 0, icon: Flag, color: "text-ur-error" },
-    { label: "Active Agents", value: s?.verifiedAgents ?? 0, icon: Users, color: "text-ur-cyan" },
-    { label: "Proof Verifications", value: s?.verifiedProofs ?? 0, icon: ShieldCheck, color: "text-ur-mint" },
-    { label: "Escrow Holds", value: s?.escrowHoldsCount ?? 0, icon: Lock, color: "text-ur-warning" },
+  const stats: { label: string; value: number; icon: IconName; color: string }[] = [
+    { label: "Pending Listings", value: s?.pendingListings ?? 0, icon: "apartment", color: "text-ur-warning" },
+    { label: "Total Reports", value: s?.totalReports ?? 0, icon: "flag", color: "text-ur-error" },
+    { label: "Active Agents", value: s?.verifiedAgents ?? 0, icon: "groups", color: "text-ur-cyan" },
+    { label: "Proof Verifications", value: s?.verifiedProofs ?? 0, icon: "verified_user", color: "text-ur-mint" },
+    { label: "Escrow Holds", value: s?.escrowHoldsCount ?? 0, icon: "lock", color: "text-ur-warning" },
   ];
 
   return (
@@ -60,7 +53,7 @@ export function AdminDashboardView() {
         {stats.map((stat) => (
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
-        <StatCard icon={ShieldCheck} label="Trust Score (Platform)" value={`${s?.platformTrustScore ?? 0} / 100`} color="text-ur-primary" loading={loading} />
+        <StatCard icon="verified_user" label="Trust Score (Platform)" value={`${s?.platformTrustScore ?? 0} / 100`} color="text-ur-primary" loading={loading} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -169,9 +162,7 @@ export function AdminDashboardView() {
             overview.suspiciousActivity.map((alert, index) => (
               <Row key={`${alert.type}-${index}`}>
                 <div className="flex items-start gap-2">
-                  <AlertTriangle
-                    className={`mt-0.5 h-3.5 w-3.5 ${alert.severity === "high" ? "text-ur-error" : "text-ur-warning"}`}
-                  />
+                  <Icon name="warning" size={14} className={`mt-0.5 ${alert.severity === "high" ? "text-ur-error" : "text-ur-warning"}`} />
                   <p className="text-sm text-ur-text-secondary">{alert.message}</p>
                 </div>
                 <span

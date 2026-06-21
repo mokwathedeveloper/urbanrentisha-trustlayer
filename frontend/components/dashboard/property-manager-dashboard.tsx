@@ -2,19 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Building2,
-  CreditCard,
-  Flag,
-  KeyRound,
-  Lock,
-  PlusCircle,
-  ShieldCheck,
-  UserCheck,
-} from "lucide-react";
 import { ApiError, api, type AgentDashboard } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 export function PropertyManagerDashboardView() {
   const { token, user } = useAuth();
@@ -47,13 +38,13 @@ export function PropertyManagerDashboardView() {
     );
   }
 
-  const stats = [
-    { label: "Total Listings", value: dashboard?.stats.totalListings ?? 0, icon: Building2, color: "text-ur-cyan" },
-    { label: "Viewing Requests", value: dashboard?.stats.totalViewingRequests ?? 0, icon: CreditCard, color: "text-ur-mint" },
-    { label: "Verified Tenants", value: dashboard?.stats.verifiedTenants ?? 0, icon: UserCheck, color: "text-ur-primary" },
-    { label: "Escrow / Holds", value: dashboard?.stats.escrowHolds ?? 0, icon: Lock, color: "text-ur-warning" },
-    { label: "Viewing Codes", value: dashboard?.stats.activeViewingCodes ?? 0, icon: KeyRound, color: "text-ur-cyan" },
-    { label: "Reports", value: (dashboard?.stats.openReports ?? 0) + (dashboard?.stats.resolvedReports ?? 0), icon: Flag, color: "text-ur-error" },
+  const stats: { label: string; value: number; icon: IconName; color: string }[] = [
+    { label: "Total Listings", value: dashboard?.stats.totalListings ?? 0, icon: "apartment", color: "text-ur-cyan" },
+    { label: "Viewing Requests", value: dashboard?.stats.totalViewingRequests ?? 0, icon: "credit_card", color: "text-ur-mint" },
+    { label: "Verified Tenants", value: dashboard?.stats.verifiedTenants ?? 0, icon: "person_check", color: "text-ur-primary" },
+    { label: "Escrow / Holds", value: dashboard?.stats.escrowHolds ?? 0, icon: "lock", color: "text-ur-warning" },
+    { label: "Viewing Codes", value: dashboard?.stats.activeViewingCodes ?? 0, icon: "key", color: "text-ur-cyan" },
+    { label: "Reports", value: (dashboard?.stats.openReports ?? 0) + (dashboard?.stats.resolvedReports ?? 0), icon: "flag", color: "text-ur-error" },
   ];
 
   return (
@@ -69,7 +60,7 @@ export function PropertyManagerDashboardView() {
           href="/listings/new"
           className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
         >
-          <PlusCircle className="h-4 w-4" />
+          <Icon name="add_circle" size={16} />
           Add New Listing
         </Link>
       </div>
@@ -78,7 +69,7 @@ export function PropertyManagerDashboardView() {
         {stats.map((stat) => (
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
-        <StatCard icon={ShieldCheck} label="Trust Score" value={`${dashboard?.trustScore ?? 0} / 100`} color="text-ur-mint" loading={loading} />
+        <StatCard icon="verified_user" label="Trust Score" value={`${dashboard?.trustScore ?? 0} / 100`} color="text-ur-mint" loading={loading} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
