@@ -32,13 +32,19 @@ export class ListingsController {
     return this.listings.findSaved(user.sub);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get("mine")
+  findMine(@CurrentUser() user: AuthUser) {
+    return this.listings.findMine(user.sub);
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.listings.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN)
+  @Roles(UserRole.LANDLORD, UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN)
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateListingDto) {
     return this.listings.create(user.sub, dto);
