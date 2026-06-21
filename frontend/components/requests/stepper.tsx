@@ -1,5 +1,5 @@
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/ui/icon";
 
 const defaultSteps = ["Review Details", "Make Payment", "Processing", "Confirmed", "Complete"];
 
@@ -22,7 +22,7 @@ export function Stepper({ currentStep, steps = defaultSteps }: { currentStep: nu
                   !completed && !active && "border-ur-border text-ur-text-muted",
                 )}
               >
-                {completed ? <Check className="h-4 w-4" /> : stepNumber}
+                {completed ? <Icon name="check" size={16} /> : stepNumber}
               </div>
               <div className="text-center">
                 <p className={cn("text-xs font-bold", completed || active ? "text-ur-text" : "text-ur-text-muted")}>
