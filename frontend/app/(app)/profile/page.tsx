@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, api, type UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { VerificationProgress } from "@/components/verification/verification-progress";
 
 export default function ProfilePage() {
-  const { token } = useAuth();
+  const { token, refreshUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -17,6 +18,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -29,6 +32,27 @@ export default function ProfilePage() {
       })
       .finally(() => setLoading(false));
   }, [token]);
+
+  async function handleAvatarChange(file: File) {
+    if (!token) return;
+    setUploadingAvatar(true);
+    try {
+      await api.uploads.avatar(token, file);
+      await refreshUser();
+      const refreshed = await api.users.me(token);
+      setProfile(refreshed);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not upload profile picture.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  const verificationStage =
+    profile?.landlordProfile?.verificationStage ??
+    profile?.agentProfile?.verificationStage ??
+    profile?.managerProfile?.verificationStage ??
+    profile?.tenantProfile?.verificationStage;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -59,11 +83,42 @@ export default function ProfilePage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <form onSubmit={handleSubmit} className="ur-card space-y-4 p-6">
           <div className="flex items-center gap-4">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-ur-card-soft text-xl font-bold text-ur-primary">
-              {profile.name.charAt(0)}
+            <div className="relative h-16 w-16 shrink-0">
+              <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-ur-card-soft text-xl font-bold text-ur-primary">
+                {profile.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatarUrl} alt={profile.name} className="h-full w-full object-cover" />
+                ) : (
+                  profile.name.charAt(0)
+                )}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleAvatarChange(file);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border border-ur-border bg-ur-card text-ur-text-secondary hover:text-ur-primary"
+                aria-label="Change profile picture"
+              >
+                <Icon name="add" size={12} />
+              </button>
             </div>
             <div>
-              <p className="font-bold text-ur-navy">{profile.name}</p>
+              <p className="flex items-center gap-1.5 font-bold text-ur-navy">
+                {profile.name}
+                {profile.tenantProfile?.verifiedBadge ? (
+                  <Icon name="verified" size={16} className="text-ur-primary" />
+                ) : null}
+              </p>
               <p className="text-xs capitalize text-ur-text-secondary">{profile.role.toLowerCase()}</p>
             </div>
           </div>
@@ -88,6 +143,8 @@ export default function ProfilePage() {
         </form>
 
         <div className="space-y-4">
+          {verificationStage ? <VerificationProgress stage={verificationStage} /> : null}
+
           <div className="ur-card p-5">
             <p className="text-sm font-bold text-ur-navy">Account</p>
             <div className="mt-3 space-y-2 text-sm">
@@ -112,6 +169,22 @@ export default function ProfilePage() {
             <div className="ur-card p-5">
               <p className="text-sm font-bold text-ur-navy">Trust Score</p>
               <p className="mt-2 text-2xl font-black text-ur-primary">{profile.tenantProfile.trustScore} / 100</p>
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-ur-text-secondary">
+                <Icon
+                  name="verified"
+                  size={14}
+                  className={profile.tenantProfile.verifiedBadge ? "text-ur-primary" : "text-ur-text-muted"}
+                />
+                {profile.tenantProfile.verifiedBadge ? "Verified Tenant" : "Not yet verified"}
+              </p>
+            </div>
+          ) : null}
+
+          {profile.landlordProfile ? (
+            <div className="ur-card p-5">
+              <p className="text-sm font-bold text-ur-navy">Landlord Profile</p>
+              <p className="mt-2 text-sm text-ur-text-secondary">{profile.landlordProfile.companyName ?? "Individual landlord"}</p>
+              <p className="mt-1 text-xs text-ur-text-muted">Trust score: {profile.landlordProfile.trustScore} / 100</p>
             </div>
           ) : null}
 
@@ -121,6 +194,15 @@ export default function ProfilePage() {
               <p className="mt-2 text-sm text-ur-text-secondary">{profile.agentProfile.agencyName ?? "—"}</p>
               <p className="mt-1 text-xs text-ur-text-muted">License: {profile.agentProfile.licenseNumber ?? "—"}</p>
               <p className="mt-1 text-xs text-ur-text-muted">Status: {profile.agentProfile.verificationStatus}</p>
+            </div>
+          ) : null}
+
+          {profile.managerProfile ? (
+            <div className="ur-card p-5">
+              <p className="text-sm font-bold text-ur-navy">Property Manager Profile</p>
+              <p className="mt-2 text-sm text-ur-text-secondary">{profile.managerProfile.agencyName ?? "—"}</p>
+              <p className="mt-1 text-xs text-ur-text-muted">License: {profile.managerProfile.licenseNumber ?? "—"}</p>
+              <p className="mt-1 text-xs text-ur-text-muted">Status: {profile.managerProfile.verificationStatus}</p>
             </div>
           ) : null}
         </div>
