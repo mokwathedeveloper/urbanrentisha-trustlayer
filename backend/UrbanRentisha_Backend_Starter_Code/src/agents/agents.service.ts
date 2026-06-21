@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import {
   ListingStatus,
   ReportStatus,
+  UserRole,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -10,7 +11,11 @@ import { PrismaService } from "../prisma/prisma.service";
 export class AgentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async computeStats(agentId: string, listingIds: string[]) {
+  private async computeStats(
+    profileKey: "agentId" | "managerId",
+    profileId: string,
+    listingIds: string[],
+  ) {
     const [
       activeListings,
       inactiveListings,
@@ -20,11 +25,14 @@ export class AgentsService {
       recentViewingRequests,
     ] = await Promise.all([
       this.prisma.listing.count({
-        where: { agentId, verificationStatus: ListingStatus.VERIFIED },
+        where: {
+          [profileKey]: profileId,
+          verificationStatus: ListingStatus.VERIFIED,
+        },
       }),
       this.prisma.listing.count({
         where: {
-          agentId,
+          [profileKey]: profileId,
           verificationStatus: { not: ListingStatus.VERIFIED },
         },
       }),
@@ -93,7 +101,7 @@ export class AgentsService {
     if (!agent) throw new NotFoundException("Agent not found.");
 
     const listingIds = agent.listings.map((listing) => listing.id);
-    const computed = await this.computeStats(agent.id, listingIds);
+    const computed = await this.computeStats("agentId", agent.id, listingIds);
 
     return {
       id: agent.id,
@@ -117,16 +125,23 @@ export class AgentsService {
     };
   }
 
-  async findMyDashboard(userId: string) {
-    const agent = await this.prisma.agentProfile.findUnique({
-      where: { userId },
-      include: { listings: true },
-    });
+  async findMyDashboard(userId: string, role: UserRole) {
+    const profileKey = role === UserRole.MANAGER ? "managerId" : "agentId";
+    const agent =
+      role === UserRole.MANAGER
+        ? await this.prisma.managerProfile.findUnique({
+            where: { userId },
+            include: { listings: true },
+          })
+        : await this.prisma.agentProfile.findUnique({
+            where: { userId },
+            include: { listings: true },
+          });
 
     if (!agent) throw new NotFoundException("Agent profile not found.");
 
     const listingIds = agent.listings.map((listing) => listing.id);
-    const computed = await this.computeStats(agent.id, listingIds);
+    const computed = await this.computeStats(profileKey, agent.id, listingIds);
 
     const [allViewingRequests, reports, verifiedTenantRows] = await Promise.all(
       [

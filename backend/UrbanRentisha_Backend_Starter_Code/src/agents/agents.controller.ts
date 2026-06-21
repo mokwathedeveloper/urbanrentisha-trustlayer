@@ -11,7 +11,7 @@ export class AgentsController {
 
   @Get("me/dashboard")
   findMyDashboard(@CurrentUser() user: AuthUser) {
-    return this.agents.findMyDashboard(user.sub);
+    return this.agents.findMyDashboard(user.sub, user.role);
   }
 
   @Get(":id")
