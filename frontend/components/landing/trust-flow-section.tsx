@@ -1,5 +1,5 @@
-import { ArrowRight } from "lucide-react";
 import { trustFlowSteps } from "@/lib/landing-data";
+import { Icon } from "@/components/ui/icon";
 
 export function TrustFlowSection() {
   return (
@@ -18,7 +18,7 @@ export function TrustFlowSection() {
           {trustFlowSteps.map((step, index) => (
             <div key={step.title} className="relative flex flex-col items-center text-center">
               {index < trustFlowSteps.length - 1 ? (
-                <ArrowRight className="absolute -right-4 top-6 hidden h-5 w-5 text-ur-border-strong lg:block" />
+                <Icon name="arrow_forward" size={20} className="absolute -right-4 top-6 hidden text-ur-border-strong lg:block" />
               ) : null}
               <div className="grid h-12 w-12 place-items-center rounded-full border border-ur-primary/30 bg-ur-success-bg text-ur-primary">
                 <span className="text-sm font-black">{index + 1}</span>

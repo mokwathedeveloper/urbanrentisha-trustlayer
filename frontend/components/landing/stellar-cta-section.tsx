@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 export function StellarCtaSection() {
   return (
@@ -20,7 +20,7 @@ export function StellarCtaSection() {
             className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
           >
             Explore on Stellar
-            <ExternalLink className="h-3.5 w-3.5" />
+            <Icon name="open_in_new" size={14} />
           </a>
         </div>
         <div className="flex items-center gap-3 text-xl font-black text-ur-navy">

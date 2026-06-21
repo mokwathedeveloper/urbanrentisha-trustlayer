@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ExternalLink, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { landingNavItems } from "@/lib/landing-data";
+import { Icon } from "@/components/ui/icon";
 
 export function LandingNavbar() {
   return (
@@ -31,7 +31,7 @@ export function LandingNavbar() {
           <a href="https://stellar.org" target="_blank" rel="noopener noreferrer">
             <Button variant="outline">
               Explore on Stellar
-              <ExternalLink className="h-4 w-4" />
+              <Icon name="open_in_new" size={16} />
             </Button>
           </a>
         </div>
@@ -41,7 +41,7 @@ export function LandingNavbar() {
           className="grid h-10 w-10 place-items-center rounded-ur-sm border border-ur-border bg-ur-surface text-ur-navy lg:hidden"
           aria-label="Open navigation"
         >
-          <Menu className="h-5 w-5" />
+          <Icon name="menu" size={20} />
         </button>
       </div>
     </header>

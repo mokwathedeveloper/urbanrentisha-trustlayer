@@ -1,5 +1,5 @@
-import { Check } from "lucide-react";
 import { audiences } from "@/lib/landing-data";
+import { Icon } from "@/components/ui/icon";
 
 export function AudienceSection() {
   return (
@@ -21,7 +21,7 @@ export function AudienceSection() {
               <ul className="mt-4 space-y-3">
                 {audience.bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2 text-sm text-ur-text-secondary">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-ur-primary" />
+                    <Icon name="check" size={16} className="mt-0.5 shrink-0 text-ur-primary" />
                     {bullet}
                   </li>
                 ))}

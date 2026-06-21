@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Play, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { heroStats } from "@/lib/landing-data";
+import { Icon } from "@/components/ui/icon";
 
 export function HeroSection() {
   return (
@@ -20,7 +20,7 @@ export function HeroSection() {
       <div className="ur-container relative flex min-h-[640px] flex-col justify-center py-16 lg:py-20">
         <div className="flex max-w-xl flex-col">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-ur-primary/30 bg-ur-success-bg px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-ur-primary">
-            <ShieldCheck className="h-3.5 w-3.5" />
+            <Icon name="verified_user" size={14} />
             ZK Proof &middot; Stellar Blockchain
           </div>
 
@@ -41,12 +41,12 @@ export function HeroSection() {
             <Link href="/login">
               <Button size="lg">
                 Get Started
-                <ArrowRight className="h-4 w-4" />
+                <Icon name="arrow_forward" size={16} />
               </Button>
             </Link>
             <a href="#trust-flow">
               <Button size="lg" variant="outline">
-                <Play className="h-4 w-4" />
+                <Icon name="play_arrow" size={16} />
                 How It Works
               </Button>
             </a>
