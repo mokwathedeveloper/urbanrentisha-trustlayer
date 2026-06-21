@@ -1,16 +1,46 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Bath, BedDouble, Heart, MapPin, Maximize, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Listing } from "@/lib/api";
+import { api, type Listing } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 export function PropertyCard({
   listing,
   variant = "request",
+  initialSaved = false,
+  onUnsave,
 }: {
   listing: Listing;
   variant?: "request" | "details";
+  initialSaved?: boolean;
+  onUnsave?: (listingId: string) => void;
 }) {
+  const { token } = useAuth();
+  const [saved, setSaved] = useState(initialSaved);
+  const [pending, setPending] = useState(false);
+
+  async function toggleSave(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!token || pending) return;
+    setPending(true);
+    try {
+      if (saved) {
+        await api.listings.unsave(token, listing.id);
+        setSaved(false);
+        onUnsave?.(listing.id);
+      } else {
+        await api.listings.save(token, listing.id);
+        setSaved(true);
+      }
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <div className="ur-card overflow-hidden">
       <div className="relative h-44 bg-ur-card-soft">
@@ -22,10 +52,12 @@ export function PropertyCard({
         )}
         <button
           type="button"
-          aria-label="Save property"
-          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
+          aria-label={saved ? "Remove from saved properties" : "Save property"}
+          onClick={toggleSave}
+          disabled={pending}
+          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/40 text-white backdrop-blur disabled:opacity-60"
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={`h-4 w-4 ${saved ? "fill-ur-error text-ur-error" : ""}`} />
         </button>
         {listing.verificationStatus === "VERIFIED" ? (
           <Badge variant="verified" className="absolute bottom-3 left-3">
