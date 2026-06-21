@@ -4,13 +4,19 @@ import {
   PaymentStatus,
   ProofStatus,
   ReportStatus,
+  VerificationStage,
   ViewingCodeStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { VerificationDecision } from "./dto/review-verification.dto";
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogs: AuditLogsService,
+  ) {}
 
   async dashboard() {
     const [
@@ -304,5 +310,153 @@ export class AdminService {
         createdAt: log.createdAt,
       })),
     };
+  }
+
+  async listVerifications() {
+    const pendingStages: VerificationStage[] = [
+      VerificationStage.DOCUMENTS_UPLOADED,
+      VerificationStage.UNDER_REVIEW,
+      VerificationStage.NEEDS_CORRECTION,
+    ];
+
+    const [tenants, landlords, agents, managers] = await Promise.all([
+      this.prisma.tenantProfile.findMany({
+        where: { verificationStage: { in: pendingStages } },
+        include: {
+          user: { select: { name: true, email: true } },
+          documents: true,
+        },
+      }),
+      this.prisma.landlordProfile.findMany({
+        where: { verificationStage: { in: pendingStages } },
+        include: {
+          user: { select: { name: true, email: true } },
+          documents: true,
+        },
+      }),
+      this.prisma.agentProfile.findMany({
+        where: { verificationStage: { in: pendingStages } },
+        include: {
+          user: { select: { name: true, email: true } },
+          documents: true,
+          landlord: { include: { user: { select: { name: true } } } },
+        },
+      }),
+      this.prisma.managerProfile.findMany({
+        where: { verificationStage: { in: pendingStages } },
+        include: {
+          user: { select: { name: true, email: true } },
+          documents: true,
+          landlord: { include: { user: { select: { name: true } } } },
+        },
+      }),
+    ]);
+
+    type VerifiableProfile = {
+      id: string;
+      createdAt: Date;
+      verificationStage: VerificationStage;
+      user: { name: string; email: string };
+      landlord?: { user: { name: string } } | null;
+      documents: {
+        id: string;
+        fileName: string;
+        status: string;
+        createdAt: Date;
+      }[];
+    };
+
+    const toRow = (profile: VerifiableProfile, profileType: string) => ({
+      profileType,
+      profileId: profile.id,
+      name: profile.user.name,
+      email: profile.user.email,
+      verificationStage: profile.verificationStage,
+      linkedLandlordName: profile.landlord?.user.name ?? null,
+      documents: profile.documents.map((doc) => ({
+        id: doc.id,
+        fileName: doc.fileName,
+        status: doc.status,
+        createdAt: doc.createdAt,
+      })),
+      createdAt: profile.createdAt,
+    });
+
+    return [
+      ...tenants.map((p) => toRow(p, "tenant")),
+      ...landlords.map((p) => toRow(p, "landlord")),
+      ...agents.map((p) => toRow(p, "agent")),
+      ...managers.map((p) => toRow(p, "manager")),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async reviewVerification(
+    profileType: "tenant" | "landlord" | "agent" | "manager",
+    profileId: string,
+    decision: VerificationDecision,
+    note: string | undefined,
+    actorId: string,
+  ) {
+    const stage =
+      decision === VerificationDecision.APPROVED
+        ? VerificationStage.APPROVED
+        : decision === VerificationDecision.REJECTED
+          ? VerificationStage.REJECTED
+          : VerificationStage.NEEDS_CORRECTION;
+
+    let updated;
+    switch (profileType) {
+      case "tenant":
+        updated = await this.prisma.tenantProfile.update({
+          where: { id: profileId },
+          data: {
+            verificationStage: stage,
+            verifiedBadge: decision === VerificationDecision.APPROVED,
+          },
+        });
+        break;
+      case "landlord":
+        updated = await this.prisma.landlordProfile.update({
+          where: { id: profileId },
+          data: { verificationStage: stage },
+        });
+        break;
+      case "agent":
+        updated = await this.prisma.agentProfile.update({
+          where: { id: profileId },
+          data: {
+            verificationStage: stage,
+            verificationStatus:
+              decision === VerificationDecision.APPROVED
+                ? "verified"
+                : "pending",
+          },
+        });
+        break;
+      case "manager":
+        updated = await this.prisma.managerProfile.update({
+          where: { id: profileId },
+          data: {
+            verificationStage: stage,
+            verificationStatus:
+              decision === VerificationDecision.APPROVED
+                ? "verified"
+                : "pending",
+          },
+        });
+        break;
+    }
+
+    await this.auditLogs.create({
+      actorId,
+      action: `verification.${decision.toLowerCase()}`,
+      entityType: profileType,
+      entityId: profileId,
+      severity:
+        decision === VerificationDecision.REJECTED ? "WARNING" : "SUCCESS",
+      metadata: { note },
+    });
+
+    return updated;
   }
 }
