@@ -3,20 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Check,
-  Clock,
-  ExternalLink,
-  Info,
-  Lock,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/requests/stepper";
 import { api, ApiError, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 const proofSteps = ["Payment Confirmed", "Generate Proof", "Proof Generated", "Verify Proof", "Use Code"];
 
@@ -79,7 +70,7 @@ export default function ProofGenerationPage() {
         href={`/requests/${params.id}/payment`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <Icon name="arrow_back" size={16} />
         Back to Payment
       </Link>
 
@@ -94,7 +85,7 @@ export default function ProofGenerationPage() {
 
           <div className="flex items-center justify-between rounded-ur border border-ur-primary/25 bg-ur-success-bg p-4">
             <div className="flex items-center gap-3">
-              <Lock className="h-5 w-5 text-ur-primary" />
+              <Icon name="lock" size={20} className="text-ur-primary" />
               <div>
                 <p className="text-sm font-bold text-ur-primary">Your payment is confirmed</p>
                 <p className="text-xs text-ur-text-secondary">
@@ -150,7 +141,7 @@ export default function ProofGenerationPage() {
                   className="mt-4 flex w-fit items-center gap-1 rounded-ur-sm border border-ur-border px-3 py-2 text-xs font-semibold text-ur-text-secondary hover:text-ur-navy"
                 >
                   View on Stellar Expert
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <Icon name="open_in_new" size={14} />
                 </a>
               ) : null}
             </div>
@@ -158,7 +149,7 @@ export default function ProofGenerationPage() {
             <div className="ur-card flex flex-col items-center p-5 text-center">
               <h2 className="font-bold text-ur-navy">Generate Your ZK Proof</h2>
               <div className="my-4 grid h-24 w-24 place-items-center rounded-full border border-ur-primary/40 bg-ur-success-bg">
-                <ShieldCheck className="h-10 w-10 text-ur-primary" />
+                <Icon name="verified_user" size={40} className="text-ur-primary" />
               </div>
               <p className="text-sm text-ur-text-secondary">
                 This will create a zero-knowledge proof that verifies your payment without revealing any private
@@ -167,18 +158,18 @@ export default function ProofGenerationPage() {
               <div className="mt-4 w-full space-y-2 text-left">
                 {proofGuarantees.map((item) => (
                   <p key={item} className="flex items-center gap-2 text-sm text-ur-text-secondary">
-                    <ShieldCheck className="h-4 w-4 text-ur-primary" />
+                    <Icon name="verified_user" size={16} className="text-ur-primary" />
                     {item}
                   </p>
                 ))}
               </div>
 
               <Button className="mt-5 w-full" size="lg" onClick={handleGenerate} disabled={generating || generated}>
-                <Sparkles className="h-4 w-4" />
+                <Icon name="auto_awesome" size={16} />
                 {generated ? "Proof Generated" : generating ? "Generating..." : "Generate ZK Proof"}
               </Button>
               <p className="mt-2 flex items-center gap-1 text-xs text-ur-text-muted">
-                <Clock className="h-3 w-3" />
+                <Icon name="schedule" size={12} />
                 This process usually takes 15-30 seconds
               </p>
             </div>
@@ -219,7 +210,7 @@ export default function ProofGenerationPage() {
           </div>
 
           <p className="flex items-start gap-2 rounded-ur border border-ur-border bg-ur-card-soft p-3 text-xs text-ur-text-secondary">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <Icon name="info" size={14} className="mt-0.5 shrink-0" />
             Your ZK proof will be securely stored and can be used to confirm your payment to the property agent.
           </p>
         </div>
@@ -228,7 +219,7 @@ export default function ProofGenerationPage() {
           <div className="ur-card p-5">
             <h2 className="flex items-center gap-1 font-bold text-ur-navy">
               What is a ZK Proof?
-              <Info className="h-3.5 w-3.5 text-ur-text-muted" />
+              <Icon name="info" size={14} className="text-ur-text-muted" />
             </h2>
             <p className="mt-2 text-sm text-ur-text-secondary">
               A zero-knowledge proof lets you prove that a statement is true without revealing any underlying
@@ -237,7 +228,7 @@ export default function ProofGenerationPage() {
             <div className="mt-3 space-y-2">
               {zkExplainer.map((item) => (
                 <p key={item} className="flex items-center gap-2 text-sm text-ur-text-secondary">
-                  <Check className="h-4 w-4 text-ur-primary" />
+                  <Icon name="check" size={16} className="text-ur-primary" />
                   {item}
                 </p>
               ))}
@@ -253,7 +244,7 @@ export default function ProofGenerationPage() {
                 <p className="break-all text-xs text-ur-primary">{proofHash}</p>
               ) : (
                 <>
-                  <Lock className="mx-auto h-6 w-6 text-ur-text-muted" />
+                  <Icon name="lock" size={24} className="mx-auto text-ur-text-muted" />
                   <p className="mt-2 text-xs text-ur-text-muted">No proof generated yet</p>
                 </>
               )}
@@ -267,7 +258,7 @@ export default function ProofGenerationPage() {
 
           <div className="ur-card p-5">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-ur-primary" />
+              <Icon name="verified_user" size={16} className="text-ur-primary" />
               <h2 className="font-bold text-ur-navy">About Your Privacy</h2>
             </div>
             <p className="mt-2 text-sm text-ur-text-secondary">
@@ -276,7 +267,7 @@ export default function ProofGenerationPage() {
             </p>
             <a href="#" className="mt-2 flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline">
               Learn more about ZK Proofs
-              <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+              <Icon name="arrow_back" size={14} className="rotate-180" />
             </a>
           </div>
         </div>

@@ -3,21 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Check,
-  ExternalLink,
-  FileJson,
-  Headset,
-  Hourglass,
-  Info,
-  Lock,
-  ShieldCheck,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/requests/stepper";
 import { api, ApiError, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 const verifySteps = ["Proof Submitted", "Verifying Proof", "Verification Result", "Access Granted", "Complete"];
 
@@ -93,7 +83,7 @@ export default function VerifyProofPage() {
         href={`/requests/${params.id}/proof`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <Icon name="arrow_back" size={16} />
         Back to ZK Proof
       </Link>
 
@@ -106,7 +96,7 @@ export default function VerifyProofPage() {
 
           {verifying ? (
             <div className="flex items-center gap-3 rounded-ur border border-ur-cyan/30 bg-ur-bg-soft p-4">
-              <Hourglass className="h-5 w-5 animate-pulse text-ur-cyan" />
+              <Icon name="hourglass_empty" size={20} className="animate-pulse text-ur-cyan" />
               <div>
                 <p className="text-sm font-bold text-ur-cyan">Verifying your proof...</p>
                 <p className="text-xs text-ur-text-secondary">
@@ -152,9 +142,9 @@ export default function VerifyProofPage() {
               <div className="mt-3">
                 <p className="text-xs text-ur-text-secondary">Proof File (JSON)</p>
                 <div className="mt-1 flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card-soft px-3 py-2">
-                  <FileJson className="h-4 w-4 text-ur-text-muted" />
+                  <Icon name="data_object" size={16} className="text-ur-text-muted" />
                   <span className="flex-1 truncate text-xs text-ur-text">proof_{proof.id}.json</span>
-                  {verified ? <Check className="h-4 w-4 text-ur-primary" /> : null}
+                  {verified ? <Icon name="check" size={16} className="text-ur-primary" /> : null}
                 </div>
               </div>
 
@@ -173,7 +163,7 @@ export default function VerifyProofPage() {
                 {verified ? "Proof Verified" : verifying ? "Verifying Proof..." : "Verify Proof"}
               </Button>
               <p className="mt-2 flex items-center justify-center gap-1 text-xs text-ur-text-muted">
-                <Lock className="h-3 w-3" />
+                <Icon name="lock" size={12} />
                 Your proof is private and secure.
               </p>
             </div>
@@ -204,7 +194,7 @@ export default function VerifyProofPage() {
                 </div>
               </dl>
               <p className="mt-3 flex items-start gap-2 rounded-ur border border-ur-border bg-ur-card-soft p-3 text-xs text-ur-text-secondary">
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <Icon name="info" size={14} className="mt-0.5 shrink-0" />
                 Zero-knowledge proofs ensure your payment details remain private while proving validity.
               </p>
             </div>
@@ -220,11 +210,11 @@ export default function VerifyProofPage() {
               }`}
             >
               {verified ? (
-                <Check className="h-9 w-9 text-ur-primary" />
+                <Icon name="check" size={36} className="text-ur-primary" />
               ) : failed ? (
-                <ShieldCheck className="h-9 w-9 text-ur-error" />
+                <Icon name="verified_user" size={36} className="text-ur-error" />
               ) : (
-                <Hourglass className="h-9 w-9 text-ur-cyan" />
+                <Icon name="hourglass_empty" size={36} className="text-ur-cyan" />
               )}
             </div>
             <p className="font-bold text-ur-navy">
@@ -282,14 +272,14 @@ export default function VerifyProofPage() {
                 className="mt-3 flex items-center gap-1 text-xs font-semibold text-ur-mint hover:underline"
               >
                 View on Stellar Expert
-                <ExternalLink className="h-3 w-3" />
+                <Icon name="open_in_new" size={12} />
               </a>
             ) : null}
           </div>
 
           <div className="ur-card p-5">
             <div className="flex items-center gap-2">
-              <Headset className="h-4 w-4 text-ur-primary" />
+              <Icon name="support_agent" size={16} className="text-ur-primary" />
               <h2 className="font-bold text-ur-navy">Need Help?</h2>
             </div>
             <p className="mt-2 text-sm text-ur-text-secondary">
@@ -302,7 +292,7 @@ export default function VerifyProofPage() {
 
           <div className="rounded-ur border border-ur-border bg-ur-card-soft p-4">
             <p className="flex items-center gap-2 text-xs text-ur-text-secondary">
-              <Lock className="h-3.5 w-3.5" />
+              <Icon name="lock" size={14} />
               Access will be granted after successful verification.
             </p>
             <Link href={`/requests/${params.id}/code`}>

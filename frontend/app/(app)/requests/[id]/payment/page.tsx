@@ -3,20 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Check,
-  Clock,
-  Copy,
-  Headset,
-  Info,
-  ShieldCheck,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Stepper } from "@/components/requests/stepper";
 import { api, ApiError, type Payment, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 const howItWorks = [
   "Send the exact amount of XLM to the address above",
@@ -90,7 +82,7 @@ export default function PaymentPage() {
         href={`/listings/${request.listingId}/request`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <Icon name="arrow_back" size={16} />
         Back to Request
       </Link>
 
@@ -128,7 +120,7 @@ export default function PaymentPage() {
                 <div className="mt-1 flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2.5">
                   <span className="truncate text-xs text-ur-text">{payment.destinationWallet}</span>
                   <button type="button" onClick={copyAddress} aria-label="Copy address" className="shrink-0 text-ur-text-muted hover:text-ur-primary">
-                    {copied ? <Check className="h-3.5 w-3.5 text-ur-primary" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? <Icon name="check" size={14} className="text-ur-primary" /> : <Icon name="content_copy" size={14} />}
                   </button>
                 </div>
                 <p className="mt-1 text-xs text-ur-text-muted">Memo: {payment.stellarMemo}</p>
@@ -150,7 +142,7 @@ export default function PaymentPage() {
             </div>
 
             <div className="mt-4 flex items-start gap-2 rounded-ur border border-ur-cyan/30 bg-ur-bg-soft p-3 text-xs text-ur-cyan">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Icon name="info" size={14} className="mt-0.5 shrink-0" />
               Only send XLM on Stellar Testnet. Sending any other asset may result in permanent loss.
             </div>
           </div>
@@ -160,7 +152,7 @@ export default function PaymentPage() {
             <div className="mt-3 flex items-center justify-between rounded-ur border border-ur-border bg-ur-card-soft p-4">
               <div className="flex items-center gap-3">
                 <div className="grid h-12 w-12 place-items-center rounded-full border-2 border-ur-primary text-ur-primary">
-                  {received ? <Check className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+                  {received ? <Icon name="check" size={20} /> : <Icon name="schedule" size={20} />}
                 </div>
                 <div>
                   <p className="font-bold text-ur-primary">{received ? "Payment Received" : "Waiting for Payment..."}</p>
@@ -225,7 +217,7 @@ export default function PaymentPage() {
             </ol>
 
             <p className="mt-4 flex items-start gap-2 rounded-ur border border-ur-border bg-ur-card-soft p-3 text-xs text-ur-text-secondary">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Icon name="info" size={14} className="mt-0.5 shrink-0" />
               This is a test payment on Stellar Testnet. No real funds are used.
             </p>
           </div>
@@ -256,14 +248,14 @@ export default function PaymentPage() {
 
           <div className="ur-card p-5">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-ur-primary" />
+              <Icon name="verified_user" size={16} className="text-ur-primary" />
               <h2 className="font-bold text-ur-navy">Secure &amp; Transparent</h2>
             </div>
             <div className="mt-3 space-y-2">
               {["100% on-chain payment", "Secure Stellar Testnet!", "Funds are held in escrow", "Instant transaction confirmation"].map(
                 (item) => (
                   <p key={item} className="flex items-center gap-2 text-sm text-ur-text-secondary">
-                    <Check className="h-4 w-4 text-ur-primary" />
+                    <Icon name="check" size={16} className="text-ur-primary" />
                     {item}
                   </p>
                 ),
@@ -273,7 +265,7 @@ export default function PaymentPage() {
 
           <div className="ur-card p-5">
             <div className="flex items-center gap-2">
-              <Headset className="h-4 w-4 text-ur-primary" />
+              <Icon name="support_agent" size={16} className="text-ur-primary" />
               <h2 className="font-bold text-ur-navy">Need Help?</h2>
             </div>
             <p className="mt-2 text-sm text-ur-text-secondary">

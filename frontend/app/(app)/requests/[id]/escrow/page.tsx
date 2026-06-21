@@ -3,20 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Check,
-  Clock,
-  ExternalLink,
-  Eye,
-  Headset,
-  Lock,
-  MessageCircle,
-  ShieldCheck,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 export default function EscrowStatusPage() {
   const params = useParams<{ id: string }>();
@@ -64,7 +54,7 @@ export default function EscrowStatusPage() {
         href={`/requests/${params.id}/verify`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <Icon name="arrow_back" size={16} />
         Back to Payments
       </Link>
 
@@ -86,7 +76,7 @@ export default function EscrowStatusPage() {
             <div className="mt-3 flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-3">
                 <div className="grid h-14 w-14 place-items-center rounded-full border border-ur-warning/40 bg-ur-warning-bg text-ur-warning">
-                  <Lock className="h-6 w-6" />
+                  <Icon name="lock" size={24} />
                 </div>
                 <div>
                   <p className="font-bold text-ur-warning">{released ? "Funds Released" : "Funds Held in Escrow"}</p>
@@ -142,7 +132,7 @@ export default function EscrowStatusPage() {
                               : "border-2 border-ur-border"
                         }`}
                       >
-                        {step.status === "Completed" ? <Check className="h-3 w-3" /> : null}
+                        {step.status === "Completed" ? <Icon name="check" size={12} /> : null}
                       </span>
                       <p className="text-sm font-semibold text-ur-text">{step.label}</p>
                     </div>
@@ -206,15 +196,15 @@ export default function EscrowStatusPage() {
             <p className="mt-1 text-sm text-ur-text-secondary">What would you like to do?</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <button type="button" className="flex items-center gap-2 rounded-ur-sm border border-ur-border px-3 py-3 text-sm font-semibold text-ur-text-secondary hover:text-ur-navy">
-                <Eye className="h-4 w-4" />
+                <Icon name="visibility" size={16} />
                 View Hold Details
               </button>
               <button type="button" className="flex items-center gap-2 rounded-ur-sm border border-ur-border px-3 py-3 text-sm font-semibold text-ur-text-secondary hover:text-ur-navy">
-                <ShieldCheck className="h-4 w-4" />
+                <Icon name="verified_user" size={16} />
                 View Conditions
               </button>
               <button type="button" className="flex items-center gap-2 rounded-ur-sm border border-ur-border px-3 py-3 text-sm font-semibold text-ur-text-secondary hover:text-ur-navy">
-                <MessageCircle className="h-4 w-4" />
+                <Icon name="chat_bubble" size={16} />
                 Contact Support
               </button>
             </div>
@@ -232,7 +222,7 @@ export default function EscrowStatusPage() {
                 released ? "border-ur-primary bg-ur-success-bg" : "border-ur-cyan/40 bg-ur-bg-soft"
               }`}
             >
-              <Lock className={`h-9 w-9 ${released ? "text-ur-primary" : "text-ur-cyan"}`} />
+              <Icon name="lock" size={36} className={`${released ? "text-ur-primary" : "text-ur-cyan"}`} />
             </div>
             <p className={`font-bold ${released ? "text-ur-primary" : "text-ur-cyan"}`}>
               {released ? "Access Unlocked" : "Access Locked"}
@@ -255,9 +245,9 @@ export default function EscrowStatusPage() {
               {nextSteps.map((step) => (
                 <p key={step.label} className="flex items-center gap-2 text-sm text-ur-text-secondary">
                   {step.done ? (
-                    <Check className="h-4 w-4 text-ur-primary" />
+                    <Icon name="check" size={16} className="text-ur-primary" />
                   ) : step.active ? (
-                    <Clock className="h-4 w-4 text-ur-warning" />
+                    <Icon name="schedule" size={16} className="text-ur-warning" />
                   ) : (
                     <span className="h-4 w-4 rounded-full border border-ur-border" />
                   )}
@@ -278,7 +268,7 @@ export default function EscrowStatusPage() {
                   className="flex items-center gap-1 text-xs font-semibold text-ur-mint hover:underline"
                 >
                   View on Stellar Expert
-                  <ExternalLink className="h-3 w-3" />
+                  <Icon name="open_in_new" size={12} />
                 </a>
               ) : null}
             </div>
@@ -296,7 +286,7 @@ export default function EscrowStatusPage() {
 
           <div className="ur-card p-5">
             <div className="flex items-center gap-2">
-              <Headset className="h-4 w-4 text-ur-primary" />
+              <Icon name="support_agent" size={16} className="text-ur-primary" />
               <h2 className="font-bold text-ur-navy">Need Help?</h2>
             </div>
             <Button variant="outline" className="mt-3 w-full">
