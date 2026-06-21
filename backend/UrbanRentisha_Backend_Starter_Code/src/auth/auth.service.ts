@@ -25,6 +25,17 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
+    let landlordId: string | undefined;
+    if (
+      (dto.role === UserRole.AGENT || dto.role === UserRole.MANAGER) &&
+      dto.landlordEmail
+    ) {
+      const landlord = await this.prisma.landlordProfile.findFirst({
+        where: { user: { email: dto.landlordEmail } },
+      });
+      landlordId = landlord?.id;
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -38,11 +49,11 @@ export class AuthService {
           dto.role === UserRole.LANDLORD ? { create: {} } : undefined,
         agentProfile:
           dto.role === UserRole.AGENT
-            ? { create: { verificationStatus: "pending" } }
+            ? { create: { verificationStatus: "pending", landlordId } }
             : undefined,
         managerProfile:
           dto.role === UserRole.MANAGER
-            ? { create: { verificationStatus: "pending" } }
+            ? { create: { verificationStatus: "pending", landlordId } }
             : undefined,
       },
       select: { id: true, email: true, name: true, role: true, status: true },
