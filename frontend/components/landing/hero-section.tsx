@@ -6,12 +6,19 @@ import { heroStats } from "@/lib/landing-data";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden border-b border-ur-border bg-ur-page">
-      <div className="absolute inset-0 ur-muted-grid" aria-hidden="true" />
-      <div className="absolute -right-32 top-20 h-80 w-80 rounded-full bg-ur-primary/10 blur-3xl" />
+    <section className="relative min-h-[640px] overflow-hidden border-b border-ur-border bg-ur-page">
+      <Image
+        src="/images/hero-illustration.png"
+        alt="Zero-knowledge proof verified on Stellar blockchain, unlocking verified rental access"
+        fill
+        priority
+        unoptimized
+        className="object-contain object-right"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-ur-page via-ur-page/85 to-ur-page/20" />
 
-      <div className="ur-container relative grid gap-12 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
-        <div className="flex flex-col justify-center">
+      <div className="ur-container relative flex min-h-[640px] flex-col justify-center py-16 lg:py-20">
+        <div className="flex max-w-xl flex-col">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-ur-primary/30 bg-ur-success-bg px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-ur-primary">
             <ShieldCheck className="h-3.5 w-3.5" />
             ZK Proof &middot; Stellar Blockchain
@@ -58,22 +65,6 @@ export function HeroSection() {
               </div>
             ))}
           </dl>
-        </div>
-
-        <div className="relative flex items-center justify-center">
-          <div
-            className="absolute inset-[8%] -z-10 rounded-full bg-ur-primary/20 blur-[60px]"
-            aria-hidden="true"
-          />
-          <Image
-            src="/images/hero-illustration.png"
-            alt="Zero-knowledge proof verified on Stellar blockchain, unlocking verified rental access"
-            width={640}
-            height={640}
-            priority
-            unoptimized
-            className="relative w-full max-w-md drop-shadow-[0_0_35px_rgba(34,197,94,0.22)]"
-          />
         </div>
       </div>
     </section>
