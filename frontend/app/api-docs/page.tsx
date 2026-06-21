@@ -2,17 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Braces,
-  Code2,
-  Copy,
-  Home,
-  KeyRound,
-  Search,
-  Send,
-  ShieldCheck,
-} from "lucide-react";
 import { apiEndpoints, apiGroups, type ApiEndpoint, type HttpMethod } from "@/lib/api-docs-data";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
@@ -75,13 +66,13 @@ export default function ApiDocsPage() {
     <div className="min-h-screen bg-ur-page text-ur-text">
       <header className="flex items-center justify-between border-b border-ur-border px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <Home className="h-5 w-5 text-ur-primary" />
+          <Icon name="home" size={20} className="text-ur-primary" />
           <span className="font-black">
             <span className="text-white">URBAN</span> <span className="text-ur-primary">RENTISHA</span>
           </span>
         </Link>
         <div className="relative w-80">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ur-text-muted" />
+          <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ur-text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -104,9 +95,9 @@ export default function ApiDocsPage() {
           read real Stellar testnet payment and zero-knowledge proof verification status.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Badge icon={Code2} label="REST API" />
-          <Badge icon={Braces} label="JSON Responses" />
-          <Badge icon={KeyRound} label="API Key for Partners" />
+          <Badge icon="code" label="REST API" />
+          <Badge icon="data_object" label="JSON Responses" />
+          <Badge icon="key" label="API Key for Partners" />
         </div>
       </div>
 
@@ -179,7 +170,7 @@ export default function ApiDocsPage() {
                 disabled={sending}
                 className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
               >
-                <Send className="h-4 w-4" />
+                <Icon name="send" size={16} />
                 {sending ? "Sending..." : "Send"}
               </button>
             </div>
@@ -234,14 +225,14 @@ export default function ApiDocsPage() {
             <div className="mt-2 flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2">
               <span className="flex-1 truncate font-mono text-xs text-ur-text">{API_BASE_URL}</span>
               <button type="button" onClick={() => navigator.clipboard.writeText(API_BASE_URL)} className="text-ur-text-muted hover:text-ur-primary">
-                <Copy className="h-3.5 w-3.5" />
+                <Icon name="content_copy" size={14} />
               </button>
             </div>
           </div>
 
           <div className="ur-card p-4">
             <p className="flex items-center gap-2 text-sm font-bold text-ur-navy">
-              <ShieldCheck className="h-4 w-4 text-ur-primary" />
+              <Icon name="verified_user" size={16} className="text-ur-primary" />
               Authentication
             </p>
             <p className="mt-2 text-sm text-ur-text-secondary">
@@ -267,10 +258,10 @@ export default function ApiDocsPage() {
   );
 }
 
-function Badge({ icon: Icon, label }: { icon: typeof Code2; label: string }) {
+function Badge({ icon, label }: { icon: IconName; label: string }) {
   return (
     <span className="flex items-center gap-1.5 rounded-full border border-ur-border bg-ur-card px-3 py-1 text-xs font-semibold text-ur-text-secondary">
-      <Icon className="h-3.5 w-3.5 text-ur-primary" />
+      <Icon name={icon} size={14} className="text-ur-primary" />
       {label}
     </span>
   );

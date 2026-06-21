@@ -3,24 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Building2,
-  Check,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ShieldCheck,
-  User,
-  Wallet,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { AccessSidebar } from "@/components/auth/access-sidebar";
 import { useAuth } from "@/lib/auth";
 import { ApiError, type UserRole } from "@/lib/api";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 type Tab = "signin" | "signup" | "demo";
 
@@ -168,7 +157,7 @@ export default function LoginPage() {
             {tab === "signin" ? (
               <form className="mt-6 space-y-4" onSubmit={handleSignIn}>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-ur-text-muted" />
+                  <Icon name="mail" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
                   <Input
                     label="Email address"
                     name="email"
@@ -182,7 +171,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-ur-text-muted" />
+                    <Icon name="lock" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
                     <Input
                       label="Password"
                       name="password"
@@ -199,7 +188,7 @@ export default function LoginPage() {
                       className="absolute right-3 top-9 text-ur-text-muted hover:text-ur-navy"
                       aria-label="Toggle password visibility"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <Icon name="visibility_off" size={16} /> : <Icon name="visibility" size={16} />}
                     </button>
                   </div>
                   <div className="mt-1 text-right">
@@ -211,7 +200,7 @@ export default function LoginPage() {
 
                 <Button type="submit" className="w-full" size="lg" disabled={submitting}>
                   {submitting ? "Signing in..." : "Sign In"}
-                  <ArrowRight className="h-4 w-4" />
+                  <Icon name="arrow_forward" size={16} />
                 </Button>
 
                 <Divider />
@@ -229,7 +218,7 @@ export default function LoginPage() {
             {tab === "signup" ? (
               <form className="mt-6 space-y-4" onSubmit={handleSignUp}>
                 <div className="relative">
-                  <User className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-ur-text-muted" />
+                  <Icon name="person" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
                   <Input
                     label="Full name"
                     name="name"
@@ -241,7 +230,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-ur-text-muted" />
+                  <Icon name="mail" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
                   <Input
                     label="Email address"
                     name="email"
@@ -255,7 +244,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-ur-text-muted" />
+                    <Icon name="lock" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
                     <Input
                       label="Password"
                       name="password"
@@ -274,7 +263,7 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-ur-text-muted" />
+                  <Icon name="lock" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
                   <Input
                     label="Confirm password"
                     name="confirmPassword"
@@ -291,14 +280,14 @@ export default function LoginPage() {
                   <p className="text-xs font-semibold tracking-[0.04em] text-white/78">I am a...</p>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <RoleCard
-                      icon={User}
+                      icon="person"
                       title="Individual"
                       description="Manage my properties"
                       selected={signupForm.role === "TENANT"}
                       onClick={() => setSignupForm((f) => ({ ...f, role: "TENANT" }))}
                     />
                     <RoleCard
-                      icon={Building2}
+                      icon="apartment"
                       title="Property Manager"
                       description="Manage properties for others"
                       selected={signupForm.role === "MANAGER"}
@@ -320,7 +309,7 @@ export default function LoginPage() {
 
                 <Button type="submit" className="w-full" size="lg" disabled={submitting}>
                   {submitting ? "Creating account..." : "Create Account"}
-                  <ArrowRight className="h-4 w-4" />
+                  <Icon name="arrow_forward" size={16} />
                 </Button>
 
                 <Divider />
@@ -330,20 +319,20 @@ export default function LoginPage() {
 
             {tab === "demo" ? (
               <div className="mt-6 space-y-4 text-center">
-                <ShieldCheck className="mx-auto h-10 w-10 text-ur-primary" />
+                <Icon name="verified_user" size={40} className="mx-auto text-ur-primary" />
                 <p className="text-sm text-ur-text-secondary">
                   Explore the full UrbanRentisha TrustLayer flow with a seeded demo tenant account &mdash;
                   no signup required.
                 </p>
                 <Button className="w-full" size="lg" onClick={handleTryDemo} disabled={submitting}>
                   {submitting ? "Logging in..." : "Try Demo"}
-                  <ArrowRight className="h-4 w-4" />
+                  <Icon name="arrow_forward" size={16} />
                 </Button>
               </div>
             ) : null}
 
             <p className="mt-6 flex items-center gap-2 text-xs text-ur-text-muted">
-              <ShieldCheck className="h-4 w-4 text-ur-primary" />
+              <Icon name="verified_user" size={16} className="text-ur-primary" />
               Your data is encrypted and never stored in the clear. Non-custodial. You stay in control.
             </p>
           </div>
@@ -376,7 +365,7 @@ function Divider() {
 function WalletButton() {
   return (
     <Button type="button" variant="outline" className="w-full">
-      <Wallet className="h-4 w-4" />
+      <Icon name="account_balance_wallet" size={16} />
       Connect Wallet
     </Button>
   );
@@ -385,20 +374,20 @@ function WalletButton() {
 function PasswordCheck({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span className={`inline-flex items-center gap-1 ${ok ? "text-ur-primary" : "text-ur-text-muted"}`}>
-      <Check className="h-3 w-3" />
+      <Icon name="check" size={12} />
       {label}
     </span>
   );
 }
 
 function RoleCard({
-  icon: Icon,
+  icon,
   title,
   description,
   selected,
   onClick,
 }: {
-  icon: typeof User;
+  icon: IconName;
   title: string;
   description: string;
   selected: boolean;
@@ -412,7 +401,7 @@ function RoleCard({
         selected ? "border-ur-primary bg-ur-success-bg" : "border-ur-border bg-ur-card-soft"
       }`}
     >
-      <Icon className={`h-5 w-5 ${selected ? "text-ur-primary" : "text-ur-text-muted"}`} />
+      <Icon name={icon} size={20} className={`${selected ? "text-ur-primary" : "text-ur-text-muted"}`} />
       <p className="mt-2 text-sm font-bold text-ur-navy">{title}</p>
       <p className="text-xs text-ur-text-muted">{description}</p>
     </button>
