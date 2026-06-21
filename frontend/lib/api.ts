@@ -47,6 +47,18 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  role: UserRole;
+  status: string;
+  createdAt: string;
+  tenantProfile: { id: string; trustScore: number } | null;
+  agentProfile: { id: string; agencyName: string | null; licenseNumber: string | null; verificationStatus: string; trustScore: number } | null;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -282,6 +294,13 @@ export const api = {
     login: (body: { email: string; password: string }) =>
       request<AuthResponse>("/auth/login", { method: "POST", body }),
     me: (token: string) => request<AuthUser>("/auth/me", { token }),
+  },
+  users: {
+    me: (token: string) => request<UserProfile>("/users/me", { token }),
+    updateProfile: (token: string, body: { name?: string; phone?: string }) =>
+      request<UserProfile>("/users/me", { method: "PATCH", body, token }),
+    changePassword: (token: string, body: { currentPassword: string; newPassword: string }) =>
+      request<{ success: boolean }>("/users/me/password", { method: "PATCH", body, token }),
   },
   listings: {
     findAll: () => request<Listing[]>("/listings"),
