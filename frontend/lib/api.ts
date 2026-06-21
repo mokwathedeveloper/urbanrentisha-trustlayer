@@ -317,6 +317,22 @@ export const api = {
     save: (token: string, id: string) => request<SavedListingItem>(`/listings/${id}/save`, { method: "POST", token }),
     unsave: (token: string, id: string) =>
       request<{ success: boolean }>(`/listings/${id}/save`, { method: "DELETE", token }),
+    create: (
+      token: string,
+      body: {
+        title: string;
+        description: string;
+        location: string;
+        address?: string;
+        rentAmount: number;
+        currency?: string;
+        viewingFee: number;
+        propertyType: string;
+        bedrooms?: number;
+        bathrooms?: number;
+        imageUrl?: string;
+      },
+    ) => request<Listing>("/listings", { method: "POST", body, token }),
   },
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
