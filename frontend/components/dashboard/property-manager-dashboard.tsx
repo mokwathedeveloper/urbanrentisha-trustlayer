@@ -6,6 +6,7 @@ import { ApiError, api, type AgentDashboard } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { VerificationProgress } from "@/components/verification/verification-progress";
 
 export function PropertyManagerDashboardView() {
   const { token, user } = useAuth();
@@ -28,7 +29,7 @@ export function PropertyManagerDashboardView() {
     return (
       <div className="px-6 py-8">
         <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">
-          Welcome back, {user?.name?.split(" ")[0] ?? "Manager"}! 👋
+          Welcome back, {user?.name?.split(" ")[0] ?? "Manager"}!
         </h1>
         <p className="mt-4 text-sm text-ur-error">{error}</p>
         <p className="mt-1 text-sm text-ur-text-secondary">
@@ -51,8 +52,11 @@ export function PropertyManagerDashboardView() {
     <div className="px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">
-            Welcome back, {user?.name?.split(" ")[0] ?? "Manager"}! 👋
+          <h1 className="flex items-center gap-2 text-2xl font-black tracking-[-0.02em] text-ur-navy">
+            Welcome back, {user?.name?.split(" ")[0] ?? "Manager"}!
+            {dashboard?.verificationStatus === "verified" ? (
+              <Icon name="verified" size={20} className="text-ur-primary" />
+            ) : null}
           </h1>
           <p className="mt-1 text-sm text-ur-text-secondary">Here&apos;s what&apos;s happening across your properties.</p>
         </div>
@@ -71,6 +75,12 @@ export function PropertyManagerDashboardView() {
         ))}
         <StatCard icon="verified_user" label="Trust Score" value={`${dashboard?.trustScore ?? 0} / 100`} color="text-ur-mint" loading={loading} />
       </div>
+
+      {dashboard && dashboard.verificationStage !== "APPROVED" ? (
+        <div className="mt-6">
+          <VerificationProgress stage={dashboard.verificationStage} />
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
