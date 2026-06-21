@@ -267,6 +267,7 @@ export interface AgentDashboard {
   id: string;
   agencyName: string | null;
   verificationStatus: string;
+  verificationStage: VerificationStage;
   trustScore: number;
   listings: Listing[];
   stats: {
