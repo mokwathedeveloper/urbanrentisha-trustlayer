@@ -119,6 +119,7 @@ model User {
   notifications Notification[]
   auditLogs     AuditLog[]     @relation("AuditActor")
   savedListings SavedListing[]
+  messages      Message[]
 }
 
 model TenantProfile {
@@ -203,6 +204,17 @@ model ViewingRequest {
   viewingCode       ViewingCode?
   reports           Report[]
   notifications     Notification[]
+  messages          Message[]
+}
+
+model Message {
+  id               String         @id @default(cuid())
+  viewingRequestId String
+  viewingRequest   ViewingRequest @relation(fields: [viewingRequestId], references: [id], onDelete: Cascade)
+  senderId         String
+  sender           User           @relation(fields: [senderId], references: [id])
+  body             String
+  createdAt        DateTime       @default(now())
 }
 
 model Payment {
