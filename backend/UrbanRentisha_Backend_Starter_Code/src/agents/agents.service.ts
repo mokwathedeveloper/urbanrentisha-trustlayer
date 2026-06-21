@@ -191,6 +191,7 @@ export class AgentsService {
       id: agent.id,
       agencyName: agent.agencyName,
       verificationStatus: agent.verificationStatus,
+      verificationStage: agent.verificationStage,
       trustScore: agent.trustScore,
       listings: agent.listings,
       stats: {
