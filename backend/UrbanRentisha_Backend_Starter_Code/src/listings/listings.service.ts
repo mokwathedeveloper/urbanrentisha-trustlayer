@@ -26,6 +26,22 @@ export class ListingsService {
     });
   }
 
+  findMine(ownerId: string) {
+    return this.prisma.listing.findMany({
+      where: { ownerId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        agent: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, phone: true },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
