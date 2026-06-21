@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { ExternalLink, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { landingNavItems } from "@/lib/landing-data";
@@ -29,7 +29,10 @@ export function LandingNavbar() {
             <Button>Get Started</Button>
           </Link>
           <a href="https://stellar.org" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline">Explore on Stellar</Button>
+            <Button variant="outline">
+              Explore on Stellar
+              <ExternalLink className="h-4 w-4" />
+            </Button>
           </a>
         </div>
 
