@@ -72,6 +72,44 @@ export class ListingsService {
     return listing;
   }
 
+  async saveListing(userId: string, listingId: string) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+    });
+    if (!listing) throw new NotFoundException("Listing not found.");
+
+    return this.prisma.savedListing.upsert({
+      where: { userId_listingId: { userId, listingId } },
+      update: {},
+      create: { userId, listingId },
+    });
+  }
+
+  async unsaveListing(userId: string, listingId: string) {
+    await this.prisma.savedListing.deleteMany({ where: { userId, listingId } });
+    return { success: true };
+  }
+
+  findSaved(userId: string) {
+    return this.prisma.savedListing.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        listing: {
+          include: {
+            agent: {
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true, phone: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async markVerified(id: string, actorId: string) {
     const listing = await this.prisma.listing.update({
       where: { id },
