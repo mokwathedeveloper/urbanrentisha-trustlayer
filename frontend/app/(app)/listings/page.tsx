@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SlidersHorizontal, Search } from "lucide-react";
 import { api, type Listing } from "@/lib/api";
 import { PropertyCard } from "@/components/listings/property-card";
 import { FilterPanel, DEFAULT_FILTERS, type ListingFilters } from "@/components/listings/filter-panel";
+import { Icon } from "@/components/ui/icon";
 
 export default function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -74,7 +74,7 @@ export default function ListingsPage() {
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[260px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ur-text-muted" />
+          <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ur-text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -87,7 +87,7 @@ export default function ListingsPage() {
           onClick={() => setShowFilters((s) => !s)}
           className="flex h-11 items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-4 text-sm font-semibold text-ur-navy lg:hidden"
         >
-          <SlidersHorizontal className="h-4 w-4" />
+          <Icon name="tune" size={16} />
           Filters
         </button>
         <select

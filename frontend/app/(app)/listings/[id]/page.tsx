@@ -3,26 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Bath,
-  BedDouble,
-  Building2,
-  CalendarCheck,
-  CheckCircle2,
-  Share2,
-  Flag,
-  Link2,
-  Mail,
-  MessageCircle,
-  Phone,
-  ShieldCheck,
-  Star,
-  X,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api, type Listing } from "@/lib/api";
+import { Icon } from "@/components/ui/icon";
 
 const features = [
   "Spacious living room with natural light",
@@ -68,7 +52,7 @@ export default function PropertyDetailPage() {
   return (
     <div className="px-6 py-8">
       <Link href="/listings" className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline">
-        <ArrowLeft className="h-4 w-4" />
+        <Icon name="arrow_back" size={16} />
         Back to Listings
       </Link>
 
@@ -97,18 +81,18 @@ export default function PropertyDetailPage() {
       <div className="mt-5 flex flex-wrap items-center gap-6 rounded-ur border border-ur-border bg-ur-card p-4">
         {listing.bedrooms != null ? (
           <span className="flex items-center gap-2 text-sm text-ur-text-secondary">
-            <BedDouble className="h-4 w-4 text-ur-primary" />
+            <Icon name="bed" size={16} className="text-ur-primary" />
             {listing.bedrooms} Bedrooms
           </span>
         ) : null}
         {listing.bathrooms != null ? (
           <span className="flex items-center gap-2 text-sm text-ur-text-secondary">
-            <Bath className="h-4 w-4 text-ur-primary" />
+            <Icon name="bathtub" size={16} className="text-ur-primary" />
             {listing.bathrooms} Bathrooms
           </span>
         ) : null}
         <span className="flex items-center gap-2 text-sm text-ur-text-secondary">
-          <Building2 className="h-4 w-4 text-ur-primary" />
+          <Icon name="apartment" size={16} className="text-ur-primary" />
           {listing.propertyType}
         </span>
       </div>
@@ -121,7 +105,7 @@ export default function PropertyDetailPage() {
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {features.map((feature) => (
                 <p key={feature} className="flex items-center gap-2 text-sm text-ur-text-secondary">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-ur-primary" />
+                  <Icon name="check_circle" size={16} className="shrink-0 text-ur-primary" />
                   {feature}
                 </p>
               ))}
@@ -130,7 +114,7 @@ export default function PropertyDetailPage() {
 
           <div className="rounded-ur border border-ur-primary/25 bg-ur-success-bg p-5">
             <div className="flex items-center gap-2 text-ur-primary">
-              <ShieldCheck className="h-5 w-5" />
+              <Icon name="verified_user" size={20} />
               <h2 className="font-bold">This Property is Verified</h2>
             </div>
             <p className="mt-2 text-sm text-ur-text-secondary">
@@ -139,7 +123,7 @@ export default function PropertyDetailPage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {verifications.map((item) => (
                 <p key={item.label} className="flex items-center gap-2 text-sm text-ur-text-secondary">
-                  <CheckCircle2 className="h-4 w-4 text-ur-primary" />
+                  <Icon name="check_circle" size={16} className="text-ur-primary" />
                   {item.label} <span className="text-ur-primary">Verified</span>
                 </p>
               ))}
@@ -167,7 +151,7 @@ export default function PropertyDetailPage() {
 
             <Link href={`/listings/${listing.id}/request`}>
               <Button className="mt-4 w-full" size="lg">
-                <CalendarCheck className="h-4 w-4" />
+                <Icon name="event_available" size={16} />
                 Request Viewing
               </Button>
             </Link>
@@ -175,7 +159,7 @@ export default function PropertyDetailPage() {
 
           <div className="ur-card p-5">
             <div className="flex items-center gap-2 text-ur-navy">
-              <ShieldCheck className="h-4 w-4 text-ur-primary" />
+              <Icon name="verified_user" size={16} className="text-ur-primary" />
               <h3 className="text-sm font-bold">Why Pay Viewing Fee?</h3>
             </div>
             <p className="mt-2 text-xs leading-5 text-ur-text-secondary">
@@ -187,16 +171,16 @@ export default function PropertyDetailPage() {
             <p className="text-sm font-bold text-ur-navy">Share Property</p>
             <div className="mt-3 flex gap-2">
               <button type="button" className="grid h-9 w-9 place-items-center rounded-full border border-ur-border text-ur-text-secondary">
-                <Link2 className="h-4 w-4" />
+                <Icon name="link" size={16} />
               </button>
               <button type="button" className="grid h-9 w-9 place-items-center rounded-full border border-ur-border text-ur-mint">
-                <MessageCircle className="h-4 w-4" />
+                <Icon name="chat_bubble" size={16} />
               </button>
               <button type="button" className="grid h-9 w-9 place-items-center rounded-full border border-ur-border text-ur-text-secondary">
-                <X className="h-4 w-4" />
+                <Icon name="close" size={16} />
               </button>
               <button type="button" className="grid h-9 w-9 place-items-center rounded-full border border-ur-border text-ur-cyan">
-                <Share2 className="h-4 w-4" />
+                <Icon name="share" size={16} />
               </button>
             </div>
           </div>
@@ -211,26 +195,26 @@ export default function PropertyDetailPage() {
                 <div>
                   <p className="flex items-center gap-1 text-sm font-bold text-ur-navy hover:underline">
                     {listing.agent.user.name}
-                    <ShieldCheck className="h-3.5 w-3.5 text-ur-primary" />
+                    <Icon name="verified_user" size={14} className="text-ur-primary" />
                   </p>
                   <p className="text-xs text-ur-text-secondary">{listing.agent.agencyName ?? "Property Agent"}</p>
                   <p className="mt-1 flex items-center gap-1 text-xs text-ur-warning">
-                    <Star className="h-3 w-3 fill-ur-warning" />
+                    <Icon name="star" size={12} className="fill-ur-warning" />
                     {listing.agent.trustScore / 20} trust score
                   </p>
                 </div>
               </Link>
               <p className="mt-3 flex items-center gap-2 text-xs text-ur-text-secondary">
-                <Phone className="h-3.5 w-3.5" />
+                <Icon name="call" size={14} />
                 Contact via platform
               </p>
               <p className="flex items-center gap-2 text-xs text-ur-text-secondary">
-                <Mail className="h-3.5 w-3.5" />
+                <Icon name="mail" size={14} />
                 {listing.agent.user.email}
               </p>
 
               <Button className="mt-4 w-full">
-                <MessageCircle className="h-4 w-4" />
+                <Icon name="chat_bubble" size={16} />
                 Message Agent
               </Button>
               <Button
@@ -238,7 +222,7 @@ export default function PropertyDetailPage() {
                 className="mt-2 w-full"
                 onClick={() => router.push(`/reports/new?listingId=${params.id}`)}
               >
-                <Flag className="h-4 w-4" />
+                <Icon name="flag" size={16} />
                 Report Listing
               </Button>
             </div>

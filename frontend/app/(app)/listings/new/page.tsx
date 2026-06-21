@@ -2,11 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Building2 } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Icon } from "@/components/ui/icon";
 
 export default function NewListingPage() {
   const { token, user } = useAuth();
@@ -72,7 +72,7 @@ export default function NewListingPage() {
   return (
     <div className="px-6 py-8">
       <div className="flex items-center gap-2">
-        <Building2 className="h-6 w-6 text-ur-primary" />
+        <Icon name="apartment" size={24} className="text-ur-primary" />
         <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">List a Property</h1>
       </div>
       <p className="mt-1 text-sm text-ur-text-secondary">

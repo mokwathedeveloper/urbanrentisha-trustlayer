@@ -3,23 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  Info,
-  Lock,
-  Mail,
-  MessageCircle,
-  Phone,
-  ShieldCheck,
-  Star,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api, ApiError, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 const whyChargeReasons = [
   "Ensures genuine and serious enquiries",
@@ -86,7 +75,7 @@ export default function RequestViewingPage() {
         href={`/listings/${listing.id}`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <Icon name="arrow_back" size={16} />
         Back to Property
       </Link>
 
@@ -188,11 +177,11 @@ export default function RequestViewingPage() {
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               {(
                 [
-                  ["WHATSAPP", "WhatsApp", MessageCircle, "Recommended"],
-                  ["PHONE", "Phone Call", Phone, null],
-                  ["EMAIL", "Email", Mail, null],
+                  ["WHATSAPP", "WhatsApp", "chat_bubble", "Recommended"],
+                  ["PHONE", "Phone Call", "call", null],
+                  ["EMAIL", "Email", "mail", null],
                 ] as const
-              ).map(([value, label, Icon, tag]) => (
+              ).map(([value, label, icon, tag]) => (
                 <button
                   key={value}
                   type="button"
@@ -203,7 +192,7 @@ export default function RequestViewingPage() {
                       : "border-ur-border text-ur-text-secondary"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon name={icon} size={16} />
                   <span>
                     {label}
                     {tag ? <span className="block text-xs font-normal text-ur-primary">{tag}</span> : null}
@@ -217,7 +206,7 @@ export default function RequestViewingPage() {
 
           <div className="flex flex-col gap-3 rounded-ur border border-ur-primary/25 bg-ur-success-bg p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-ur-primary" />
+              <Icon name="verified_user" size={20} className="text-ur-primary" />
               <div>
                 <p className="text-sm font-bold text-ur-primary">Your payment is secure and protected.</p>
                 <p className="text-xs text-ur-text-secondary">We use secure payment gateways. Your money is safe with us.</p>
@@ -226,10 +215,10 @@ export default function RequestViewingPage() {
             <div className="flex flex-col items-end gap-1">
               <Button type="submit" size="lg" disabled={submitting}>
                 {submitting ? "Submitting..." : "Proceed to Payment"}
-                <ArrowRight className="h-4 w-4" />
+                <Icon name="arrow_forward" size={16} />
               </Button>
               <p className="flex items-center gap-1 text-xs text-ur-text-secondary">
-                <Lock className="h-3 w-3" />
+                <Icon name="lock" size={12} />
                 You will be redirected to a secure payment page
               </p>
             </div>
@@ -241,9 +230,9 @@ export default function RequestViewingPage() {
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-1 font-bold text-ur-navy">
                 Viewing Fee
-                <Info className="h-3.5 w-3.5 text-ur-text-muted" />
+                <Icon name="info" size={14} className="text-ur-text-muted" />
               </h2>
-              <ShieldCheck className="h-5 w-5 text-ur-primary" />
+              <Icon name="verified_user" size={20} className="text-ur-primary" />
             </div>
 
             <div className="mt-3 rounded-ur border border-ur-border bg-ur-card-soft p-4">
@@ -254,7 +243,7 @@ export default function RequestViewingPage() {
             </div>
 
             <div className="mt-3 flex items-start gap-2 rounded-ur border border-ur-warning/30 bg-ur-warning-bg p-3 text-xs text-ur-warning">
-              <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Icon name="lock" size={14} className="mt-0.5 shrink-0" />
               Pay the viewing fee to confirm your request. The fee ensures serious enquiries only.
             </div>
 
@@ -286,14 +275,14 @@ export default function RequestViewingPage() {
             <div className="mt-3 space-y-2">
               {whyChargeReasons.map((reason) => (
                 <p key={reason} className="flex items-start gap-2 text-sm text-ur-text-secondary">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ur-primary" />
+                  <Icon name="check_circle" size={16} className="mt-0.5 shrink-0 text-ur-primary" />
                   {reason}
                 </p>
               ))}
             </div>
             <a href="#" className="mt-3 flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline">
               Learn More
-              <ArrowRight className="h-3.5 w-3.5" />
+              <Icon name="arrow_forward" size={14} />
             </a>
           </div>
 
@@ -307,17 +296,17 @@ export default function RequestViewingPage() {
                 <div>
                   <p className="flex items-center gap-1 text-sm font-bold text-ur-navy">
                     {listing.agent.user.name}
-                    <ShieldCheck className="h-3.5 w-3.5 text-ur-primary" />
+                    <Icon name="verified_user" size={14} className="text-ur-primary" />
                   </p>
                   <p className="text-xs text-ur-text-secondary">Verified Property Agent</p>
                   <p className="mt-1 flex items-center gap-1 text-xs text-ur-warning">
-                    <Star className="h-3 w-3 fill-ur-warning" />
+                    <Icon name="star" size={12} className="fill-ur-warning" />
                     {(listing.agent.trustScore / 20).toFixed(1)} trust score
                   </p>
                 </div>
               </div>
               <p className="mt-3 flex items-center gap-2 text-xs text-ur-text-secondary">
-                <Mail className="h-3.5 w-3.5" />
+                <Icon name="mail" size={14} />
                 {listing.agent.user.email}
               </p>
             </div>

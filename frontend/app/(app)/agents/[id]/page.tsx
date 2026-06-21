@@ -3,21 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  BadgeCheck,
-  Building2,
-  CheckCircle2,
-  FileWarning,
-  IdCard,
-  Mail,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Share2,
-  UserCheck,
-} from "lucide-react";
 import { api, ApiError, type AgentProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -70,7 +58,7 @@ export default function AgentVerificationProfilePage() {
           type="button"
           className="flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-semibold text-ur-navy"
         >
-          <Share2 className="h-4 w-4" />
+          <Icon name="share" size={16} />
           Share Profile
         </button>
       </div>
@@ -87,7 +75,7 @@ export default function AgentVerificationProfilePage() {
             <div>
               <p className="flex items-center gap-1.5 text-lg font-bold text-ur-navy">
                 {agent.user.name}
-                <BadgeCheck className="h-4 w-4 text-ur-cyan" />
+                <Icon name="verified" size={16} className="text-ur-cyan" />
               </p>
               <p className="text-sm text-ur-text-secondary">
                 Verified Agent · <span className="text-ur-primary">Active</span>
@@ -96,17 +84,17 @@ export default function AgentVerificationProfilePage() {
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-ur-text-secondary">
                 {agent.user.phone ? (
                   <span className="flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" />
+                    <Icon name="call" size={14} />
                     {agent.user.phone}
                   </span>
                 ) : null}
                 <span className="flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" />
+                  <Icon name="mail" size={14} />
                   {agent.user.email}
                 </span>
                 {agent.agencyName ? (
                   <span className="flex items-center gap-1.5">
-                    <Building2 className="h-3.5 w-3.5" />
+                    <Icon name="apartment" size={14} />
                     {agent.agencyName}
                   </span>
                 ) : null}
@@ -117,7 +105,7 @@ export default function AgentVerificationProfilePage() {
           <div className="flex gap-3">
             <div className="rounded-ur border border-ur-primary/30 bg-ur-success-bg px-4 py-3 text-center">
               <p className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase text-ur-primary">
-                <ShieldCheck className="h-3.5 w-3.5" />
+                <Icon name="verified_user" size={14} />
                 Verification Status
               </p>
               <p className="mt-1 font-bold text-ur-primary">{isVerified ? "Verified" : agent.verificationStatus}</p>
@@ -135,23 +123,23 @@ export default function AgentVerificationProfilePage() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon={ShieldCheck} label="Trust Score" value={`${agent.trustScore} / 100`} color="text-ur-primary" />
+        <StatCard icon="verified_user" label="Trust Score" value={`${agent.trustScore} / 100`} color="text-ur-primary" />
         <StatCard
-          icon={FileWarning}
+          icon="report"
           label="Report Count"
           value={`${agent.stats.openReports + agent.stats.resolvedReports}`}
           sub={`${agent.stats.openReports} active · ${agent.stats.resolvedReports} resolved`}
           color="text-ur-warning"
         />
         <StatCard
-          icon={Building2}
+          icon="apartment"
           label="Listed Properties"
           value={`${agent.stats.totalListings}`}
           sub={`${agent.stats.activeListings} active · ${agent.stats.inactiveListings} inactive`}
           color="text-ur-cyan"
         />
         <StatCard
-          icon={UserCheck}
+          icon="person_check"
           label="Verified Viewings"
           value={`${agent.stats.completedViewings}`}
           sub="Access unlocked"
@@ -177,7 +165,7 @@ export default function AgentVerificationProfilePage() {
                   <div>
                     <p className="text-sm font-bold text-ur-navy">{listing.title}</p>
                     <p className="flex items-center gap-1 text-xs text-ur-text-secondary">
-                      <MapPin className="h-3 w-3" />
+                      <Icon name="location_on" size={12} />
                       {listing.location}
                     </p>
                   </div>
@@ -224,9 +212,9 @@ export default function AgentVerificationProfilePage() {
               <div key={check.label} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-ur-text-secondary">
                   {check.verified ? (
-                    <CheckCircle2 className="h-4 w-4 text-ur-primary" />
+                    <Icon name="check_circle" size={16} className="text-ur-primary" />
                   ) : (
-                    <IdCard className="h-4 w-4 text-ur-text-muted" />
+                    <Icon name="badge" size={16} className="text-ur-text-muted" />
                   )}
                   {check.label}
                 </span>
@@ -243,13 +231,13 @@ export default function AgentVerificationProfilePage() {
 }
 
 function StatCard({
-  icon: Icon,
+  icon,
   label,
   value,
   sub,
   color,
 }: {
-  icon: typeof ShieldCheck;
+  icon: IconName;
   label: string;
   value: string;
   sub?: string;
@@ -257,7 +245,7 @@ function StatCard({
 }) {
   return (
     <div className="ur-card p-4">
-      <Icon className={`h-4 w-4 ${color}`} />
+      <Icon name={icon} size={16} className={`${color}`} />
       <p className="mt-2 text-xs text-ur-text-secondary">{label}</p>
       <p className="text-xl font-black text-ur-navy">{value}</p>
       {sub ? <p className="mt-0.5 text-xs text-ur-text-muted">{sub}</p> : null}
