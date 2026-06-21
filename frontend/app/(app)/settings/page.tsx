@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Lock } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Icon } from "@/components/ui/icon";
 
 export default function SettingsPage() {
   const { token, user } = useAuth();
@@ -53,7 +53,7 @@ export default function SettingsPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <form onSubmit={handleSubmit} className="ur-card space-y-4 p-6">
           <div className="flex items-center gap-2">
-            <Lock className="h-4 w-4 text-ur-primary" />
+            <Icon name="lock" size={16} className="text-ur-primary" />
             <p className="text-sm font-bold text-ur-navy">Change Password</p>
           </div>
 

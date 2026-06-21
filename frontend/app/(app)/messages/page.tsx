@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, MessageSquare, Send } from "lucide-react";
 import { api, type MessageItem, type MessageThread } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 export default function MessagesPage() {
   const { token, user } = useAuth();
@@ -64,7 +64,7 @@ export default function MessagesPage() {
           {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
           {!loading && threads.length === 0 ? (
             <div className="flex flex-col items-center gap-3 p-10 text-center">
-              <Mail className="h-8 w-8 text-ur-text-muted" />
+              <Icon name="mail" size={32} className="text-ur-text-muted" />
               <p className="text-sm text-ur-text-muted">No conversations yet.</p>
               <p className="text-xs text-ur-text-muted">
                 Messages appear once you start a conversation about a viewing request.
@@ -92,7 +92,7 @@ export default function MessagesPage() {
         <div className="ur-card flex min-h-[480px] flex-col">
           {!activeThread ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-              <MessageSquare className="h-8 w-8 text-ur-text-muted" />
+              <Icon name="chat" size={32} className="text-ur-text-muted" />
               <p className="text-sm text-ur-text-muted">Select a conversation to view messages.</p>
             </div>
           ) : (
@@ -138,7 +138,7 @@ export default function MessagesPage() {
                   disabled={sending || !draft.trim()}
                   className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4" />
+                  <Icon name="send" size={16} />
                   Send
                 </button>
               </div>

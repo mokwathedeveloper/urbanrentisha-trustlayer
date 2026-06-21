@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Mail, Phone, ShieldCheck, User } from "lucide-react";
 import { ApiError, api, type UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 export default function ProfilePage() {
   const { token } = useAuth();
@@ -73,7 +73,7 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <label className="block text-xs font-semibold tracking-[0.04em] text-ur-text-secondary">Email Address</label>
             <div className="flex h-11 items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card-soft px-3 text-sm text-ur-text-muted">
-              <Mail className="h-4 w-4" />
+              <Icon name="mail" size={16} />
               {profile.email}
               <span className="ml-auto text-xs">Cannot be changed</span>
             </div>
@@ -92,16 +92,16 @@ export default function ProfilePage() {
             <p className="text-sm font-bold text-ur-navy">Account</p>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex items-center gap-2 text-ur-text-secondary">
-                <User className="h-4 w-4 text-ur-primary" />
+                <Icon name="person" size={16} className="text-ur-primary" />
                 Member since {formatDate(profile.createdAt)}
               </div>
               <div className="flex items-center gap-2 text-ur-text-secondary">
-                <ShieldCheck className="h-4 w-4 text-ur-primary" />
+                <Icon name="verified_user" size={16} className="text-ur-primary" />
                 Status: <span className="font-semibold text-ur-text">{profile.status}</span>
               </div>
               {profile.phone ? (
                 <div className="flex items-center gap-2 text-ur-text-secondary">
-                  <Phone className="h-4 w-4 text-ur-primary" />
+                  <Icon name="call" size={16} className="text-ur-primary" />
                   {profile.phone}
                 </div>
               ) : null}

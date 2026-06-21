@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { api, type Listing } from "@/lib/api";
 import { PropertyCard } from "@/components/listings/property-card";
 import {
@@ -12,6 +11,7 @@ import {
 import { FilterChips } from "@/components/listings/filter-chips";
 import { SavedSearchesPanel } from "@/components/listings/saved-searches-panel";
 import { TrustStrip } from "@/components/listings/trust-strip";
+import { Icon } from "@/components/ui/icon";
 
 export default function SearchPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -72,7 +72,7 @@ export default function SearchPage() {
       <p className="mt-1 text-sm text-ur-text-secondary">Find verified rental properties that match your preferences.</p>
 
       <div className="relative mt-5 max-w-xl">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ur-text-muted" />
+        <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ur-text-muted" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}

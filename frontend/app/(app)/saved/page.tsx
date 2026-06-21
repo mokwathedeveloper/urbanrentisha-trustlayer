@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
 import { api, type SavedListingItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PropertyCard } from "@/components/listings/property-card";
+import { Icon } from "@/components/ui/icon";
 
 export default function SavedPropertiesPage() {
   const { token } = useAuth();
@@ -33,7 +33,7 @@ export default function SavedPropertiesPage() {
 
       {!loading && saved.length === 0 ? (
         <div className="ur-card mt-6 flex flex-col items-center gap-3 p-10 text-center">
-          <Heart className="h-8 w-8 text-ur-text-muted" />
+          <Icon name="favorite" size={32} className="text-ur-text-muted" />
           <p className="text-sm text-ur-text-muted">You haven&apos;t saved any properties yet.</p>
           <Link href="/listings" className="text-sm font-semibold text-ur-primary hover:underline">
             Browse verified properties &rarr;
