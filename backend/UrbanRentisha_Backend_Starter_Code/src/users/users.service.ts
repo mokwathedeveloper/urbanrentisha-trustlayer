@@ -26,8 +26,11 @@ export class UsersService {
         phone: true,
         role: true,
         status: true,
+        avatarUrl: true,
         tenantProfile: true,
+        landlordProfile: true,
         agentProfile: true,
+        managerProfile: true,
         createdAt: true,
       },
     });
