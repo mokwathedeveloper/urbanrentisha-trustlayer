@@ -32,7 +32,33 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-export type UserRole = "TENANT" | "AGENT" | "MANAGER" | "ADMIN" | "PLATFORM";
+async function uploadRequest<T>(path: string, token: string, file: File): Promise<T> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({ message: res.statusText }));
+    throw new ApiError(payload.message ?? "Upload failed.", res.status);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export type UserRole = "TENANT" | "LANDLORD" | "AGENT" | "MANAGER" | "ADMIN" | "PLATFORM";
+
+export type VerificationStage =
+  | "PROFILE_CREATED"
+  | "DOCUMENTS_UPLOADED"
+  | "UNDER_REVIEW"
+  | "NEEDS_CORRECTION"
+  | "APPROVED"
+  | "REJECTED";
 
 export interface AuthUser {
   id: string;
@@ -40,11 +66,35 @@ export interface AuthUser {
   name: string;
   role: UserRole;
   status: string;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
+}
+
+export interface TenantProfileSummary {
+  id: string;
+  trustScore: number;
+  verificationStage: VerificationStage;
+  verifiedBadge: boolean;
+}
+
+export interface LandlordProfileSummary {
+  id: string;
+  companyName: string | null;
+  verificationStage: VerificationStage;
+  trustScore: number;
+}
+
+export interface AgentLikeProfileSummary {
+  id: string;
+  agencyName: string | null;
+  licenseNumber: string | null;
+  verificationStatus: string;
+  verificationStage: VerificationStage;
+  trustScore: number;
 }
 
 export interface UserProfile {
@@ -54,9 +104,12 @@ export interface UserProfile {
   phone: string | null;
   role: UserRole;
   status: string;
+  avatarUrl: string | null;
   createdAt: string;
-  tenantProfile: { id: string; trustScore: number } | null;
-  agentProfile: { id: string; agencyName: string | null; licenseNumber: string | null; verificationStatus: string; trustScore: number } | null;
+  tenantProfile: TenantProfileSummary | null;
+  landlordProfile: LandlordProfileSummary | null;
+  agentProfile: AgentLikeProfileSummary | null;
+  managerProfile: AgentLikeProfileSummary | null;
 }
 
 export interface Listing {
@@ -241,6 +294,19 @@ export interface AgentDashboard {
   reports: { id: string; listingTitle: string; reportType: string; status: string; createdAt: string }[];
 }
 
+export type ProfileType = "tenant" | "landlord" | "agent" | "manager";
+
+export interface VerificationItem {
+  profileType: ProfileType;
+  profileId: string;
+  name: string;
+  email: string;
+  verificationStage: VerificationStage;
+  linkedLandlordName: string | null;
+  documents: { id: string; fileName: string; status: string; createdAt: string }[];
+  createdAt: string;
+}
+
 export interface AdminOverview {
   stats: {
     pendingListings: number;
@@ -314,8 +380,14 @@ export interface AuditLogStats {
 
 export const api = {
   auth: {
-    register: (body: { email: string; name: string; password: string; role: UserRole; phone?: string }) =>
-      request<AuthResponse>("/auth/register", { method: "POST", body }),
+    register: (body: {
+      email: string;
+      name: string;
+      password: string;
+      role: UserRole;
+      phone?: string;
+      landlordEmail?: string;
+    }) => request<AuthResponse>("/auth/register", { method: "POST", body }),
     login: (body: { email: string; password: string }) =>
       request<AuthResponse>("/auth/login", { method: "POST", body }),
     me: (token: string) => request<AuthUser>("/auth/me", { token }),
@@ -407,6 +479,20 @@ export const api = {
   admin: {
     dashboard: (token: string) => request<Record<string, number>>("/admin/dashboard", { token }),
     overview: (token: string) => request<AdminOverview>("/admin/overview", { token }),
+    verifications: {
+      list: (token: string) => request<VerificationItem[]>("/admin/verifications", { token }),
+      review: (
+        token: string,
+        profileType: ProfileType,
+        profileId: string,
+        body: { decision: "APPROVED" | "REJECTED" | "NEEDS_CORRECTION"; note?: string },
+      ) =>
+        request<unknown>(`/admin/verifications/${profileType}/${profileId}/review`, {
+          method: "PATCH",
+          body,
+          token,
+        }),
+    },
   },
   agents: {
     findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
@@ -422,5 +508,15 @@ export const api = {
         body: { body },
         token,
       }),
+  },
+  uploads: {
+    avatar: (token: string, file: File) =>
+      uploadRequest<{ avatarUrl: string }>("/uploads/avatar", token, file),
+    documents: (token: string, file: File) =>
+      uploadRequest<{ id: string; fileUrl: string; fileName: string; status: string }>(
+        "/uploads/documents",
+        token,
+        file,
+      ),
   },
 };
