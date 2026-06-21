@@ -26,7 +26,8 @@ export default function NewListingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isAllowed = user?.role === "AGENT" || user?.role === "MANAGER" || user?.role === "ADMIN";
+  const isAllowed =
+    user?.role === "LANDLORD" || user?.role === "AGENT" || user?.role === "MANAGER" || user?.role === "ADMIN";
 
   function update(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
