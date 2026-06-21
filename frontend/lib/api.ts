@@ -304,7 +304,7 @@ export interface VerificationItem {
   email: string;
   verificationStage: VerificationStage;
   linkedLandlordName: string | null;
-  documents: { id: string; fileName: string; status: string; createdAt: string }[];
+  documents: { id: string; fileName: string; status: string; createdAt: string; signedUrl: string }[];
   createdAt: string;
 }
 
@@ -404,6 +404,7 @@ export const api = {
     findAll: () => request<Listing[]>("/listings"),
     findOne: (id: string) => request<Listing>(`/listings/${id}`),
     findSaved: (token: string) => request<SavedListingItem[]>("/listings/saved", { token }),
+    findMine: (token: string) => request<Listing[]>("/listings/mine", { token }),
     save: (token: string, id: string) => request<SavedListingItem>(`/listings/${id}/save`, { method: "POST", token }),
     unsave: (token: string, id: string) =>
       request<{ success: boolean }>(`/listings/${id}/save`, { method: "DELETE", token }),
