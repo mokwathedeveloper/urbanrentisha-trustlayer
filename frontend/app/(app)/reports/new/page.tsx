@@ -2,18 +2,9 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  AlertTriangle,
-  Bell,
-  CheckCircle2,
-  ChevronRight,
-  Flag,
-  Lock,
-  ShieldAlert,
-  UserX,
-} from "lucide-react";
 import { api, ApiError, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 type Category = "LISTING" | "AGENT";
 type Severity = "high" | "medium" | "low";
@@ -91,7 +82,7 @@ function ReportFormContent() {
     return (
       <div className="mx-auto mt-16 max-w-md text-center">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-ur-primary/40 bg-ur-success-bg">
-          <CheckCircle2 className="h-8 w-8 text-ur-primary" />
+          <Icon name="check_circle" size={32} className="text-ur-primary" />
         </div>
         <h1 className="mt-4 text-xl font-black text-ur-navy">Report Submitted</h1>
         <p className="mt-2 text-sm text-ur-text-secondary">
@@ -140,7 +131,7 @@ function ReportFormContent() {
                   category === "LISTING" ? "border-ur-primary bg-ur-success-bg" : "border-ur-border bg-ur-card-soft"
                 }`}
               >
-                <Flag className={`mt-0.5 h-4 w-4 ${category === "LISTING" ? "text-ur-primary" : "text-ur-text-muted"}`} />
+                <Icon name="flag" size={16} className={`mt-0.5 ${category === "LISTING" ? "text-ur-primary" : "text-ur-text-muted"}`} />
                 <span>
                   <span className="block text-sm font-bold text-ur-navy">Fake or Suspicious Listing</span>
                   <span className="block text-xs text-ur-text-secondary">
@@ -155,7 +146,7 @@ function ReportFormContent() {
                   category === "AGENT" ? "border-ur-primary bg-ur-success-bg" : "border-ur-border bg-ur-card-soft"
                 }`}
               >
-                <UserX className={`mt-0.5 h-4 w-4 ${category === "AGENT" ? "text-ur-primary" : "text-ur-text-muted"}`} />
+                <Icon name="person_off" size={16} className={`mt-0.5 ${category === "AGENT" ? "text-ur-primary" : "text-ur-text-muted"}`} />
                 <span>
                   <span className="block text-sm font-bold text-ur-navy">Suspicious Agent / Landlord</span>
                   <span className="block text-xs text-ur-text-secondary">
@@ -268,7 +259,7 @@ function ReportFormContent() {
                   !allowContact ? "border-ur-primary bg-ur-success-bg" : "border-ur-border bg-ur-card-soft"
                 }`}
               >
-                <Lock className={`mt-0.5 h-4 w-4 ${!allowContact ? "text-ur-primary" : "text-ur-text-muted"}`} />
+                <Icon name="lock" size={16} className={`mt-0.5 ${!allowContact ? "text-ur-primary" : "text-ur-text-muted"}`} />
                 <span>
                   <span className="block text-sm font-bold text-ur-navy">Keep my identity private</span>
                   <span className="block text-xs text-ur-text-secondary">Your identity will be hidden from the reported party.</span>
@@ -281,7 +272,7 @@ function ReportFormContent() {
                   allowContact ? "border-ur-primary bg-ur-success-bg" : "border-ur-border bg-ur-card-soft"
                 }`}
               >
-                <Bell className={`mt-0.5 h-4 w-4 ${allowContact ? "text-ur-primary" : "text-ur-text-muted"}`} />
+                <Icon name="notifications" size={16} className={`mt-0.5 ${allowContact ? "text-ur-primary" : "text-ur-text-muted"}`} />
                 <span>
                   <span className="block text-sm font-bold text-ur-navy">I&apos;m comfortable being contacted</span>
                   <span className="block text-xs text-ur-text-secondary">You may be contacted for more information.</span>
@@ -299,21 +290,21 @@ function ReportFormContent() {
             className="flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-3 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:opacity-60"
           >
             {submitting ? "Submitting..." : "Submit Report"}
-            <ChevronRight className="h-4 w-4" />
+            <Icon name="chevron_right" size={16} />
           </button>
         </div>
 
         <div className="space-y-4">
           <div className="ur-card border border-ur-warning/30 bg-ur-warning-bg p-4">
             <p className="flex items-center gap-2 text-sm font-bold text-ur-warning">
-              <ShieldAlert className="h-4 w-4" />
+              <Icon name="gpp_maybe" size={16} />
               Your Safety Matters
             </p>
             <p className="mt-2 text-xs text-ur-text-secondary">
               We take all reports seriously. Your report helps protect other tenants from potential fraud.
             </p>
             <div className="mt-3 flex items-start gap-2 rounded-ur border border-ur-warning/25 bg-ur-bg p-3 text-xs text-ur-text-secondary">
-              <Lock className="mt-0.5 h-3.5 w-3.5 text-ur-warning" />
+              <Icon name="lock" size={14} className="mt-0.5 text-ur-warning" />
               Your information is secure and encrypted. We never share your identity without your consent.
             </div>
           </div>
@@ -322,28 +313,28 @@ function ReportFormContent() {
             <p className="text-sm font-bold text-ur-navy">What Happens Next?</p>
             <ul className="mt-3 space-y-3 text-xs text-ur-text-secondary">
               <li className="flex gap-2">
-                <Flag className="mt-0.5 h-3.5 w-3.5 text-ur-cyan" />
+                <Icon name="flag" size={14} className="mt-0.5 text-ur-cyan" />
                 <span>
                   <span className="block font-semibold text-ur-navy">Report Submitted</span>
                   Your report is securely submitted to our trust &amp; safety team.
                 </span>
               </li>
               <li className="flex gap-2">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 text-ur-warning" />
+                <Icon name="warning" size={14} className="mt-0.5 text-ur-warning" />
                 <span>
                   <span className="block font-semibold text-ur-navy">Under Review</span>
                   We review all reports within 24-48 hours.
                 </span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 text-ur-primary" />
+                <Icon name="check_circle" size={14} className="mt-0.5 text-ur-primary" />
                 <span>
                   <span className="block font-semibold text-ur-navy">Action Taken</span>
                   If verified, the listing/agent will be removed or restricted.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Bell className="mt-0.5 h-3.5 w-3.5 text-ur-mint" />
+                <Icon name="notifications" size={14} className="mt-0.5 text-ur-mint" />
                 <span>
                   <span className="block font-semibold text-ur-navy">You&apos;ll Be Notified</span>
                   You will receive updates on the status of your report.

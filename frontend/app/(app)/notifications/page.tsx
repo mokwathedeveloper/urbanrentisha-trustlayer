@@ -2,29 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Check,
-  CheckCheck,
-  ChevronRight,
-  Copy,
-  Flag,
-  KeyRound,
-  Lock,
-  Settings,
-  ShieldCheck,
-  Wallet,
-} from "lucide-react";
 import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 type FilterType = "ALL" | "PAYMENT" | "PROOF" | "VIEWING_CODE" | "REPORT" | "SYSTEM";
 
-const typeMeta: Record<string, { label: string; icon: typeof Wallet; color: string }> = {
-  PAYMENT: { label: "Payment", icon: Wallet, color: "text-ur-primary" },
-  PROOF: { label: "Proof", icon: ShieldCheck, color: "text-ur-cyan" },
-  VIEWING_CODE: { label: "Viewing Code", icon: KeyRound, color: "text-ur-mint" },
-  REPORT: { label: "Report", icon: Flag, color: "text-ur-warning" },
-  SYSTEM: { label: "System", icon: Settings, color: "text-ur-muted" },
+const typeMeta: Record<string, { label: string; icon: IconName; color: string }> = {
+  PAYMENT: { label: "Payment", icon: "account_balance_wallet", color: "text-ur-primary" },
+  PROOF: { label: "Proof", icon: "verified_user", color: "text-ur-cyan" },
+  VIEWING_CODE: { label: "Viewing Code", icon: "key", color: "text-ur-mint" },
+  REPORT: { label: "Report", icon: "flag", color: "text-ur-warning" },
+  SYSTEM: { label: "System", icon: "settings", color: "text-ur-muted" },
 };
 
 const filters: FilterType[] = ["ALL", "PAYMENT", "PROOF", "VIEWING_CODE", "REPORT", "SYSTEM"];
@@ -116,14 +105,14 @@ export default function NotificationsPage() {
             onClick={markAllRead}
             className="flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-semibold text-ur-navy"
           >
-            <CheckCheck className="h-4 w-4" />
+            <Icon name="done_all" size={16} />
             Mark all as read
           </button>
           <button
             type="button"
             className="flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-semibold text-ur-navy"
           >
-            <Settings className="h-4 w-4" />
+            <Icon name="settings" size={16} />
             Notification Preferences
           </button>
         </div>
@@ -171,7 +160,7 @@ export default function NotificationsPage() {
                     >
                       <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${unread ? "bg-ur-cyan" : "bg-transparent"}`} />
                       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ur-card-soft ${meta.color}`}>
-                        <meta.icon className="h-4 w-4" />
+                        <Icon name={meta.icon} size={16} />
                       </span>
                       <span className="flex-1">
                         <span className="text-sm font-bold text-ur-text">{notification.title}</span>
@@ -181,7 +170,7 @@ export default function NotificationsPage() {
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.color} border-current`}>
                         {meta.label}
                       </span>
-                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-ur-text-muted" />
+                      <Icon name="chevron_right" size={16} className="mt-1 shrink-0 text-ur-text-muted" />
                     </button>
                   );
                 })}
@@ -214,7 +203,7 @@ function NotificationDetail({
     <>
       <div className="flex items-center gap-3">
         <span className={`grid h-10 w-10 place-items-center rounded-full bg-ur-card-soft ${meta.color}`}>
-          <meta.icon className="h-5 w-5" />
+          <Icon name={meta.icon} size={20} />
         </span>
         <div>
           <p className="font-bold text-ur-navy">{notification.title}</p>
@@ -286,7 +275,7 @@ function NotificationDetail({
               href={`/listings/${vr.listingId}`}
               className="mt-4 flex items-center gap-2 rounded-ur border border-ur-primary/25 bg-ur-success-bg p-3 text-sm text-ur-primary"
             >
-              <Lock className="h-4 w-4" />
+              <Icon name="lock" size={16} />
               Your access details are securely held until all verification conditions are met.
             </Link>
           ) : null}
@@ -299,7 +288,7 @@ function NotificationDetail({
         disabled={Boolean(notification.readAt)}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-ur-sm border border-ur-border px-4 py-2 text-sm font-semibold text-ur-navy disabled:opacity-50"
       >
-        <Check className="h-4 w-4" />
+        <Icon name="check" size={16} />
         {notification.readAt ? "Already Read" : "Mark as Read"}
       </button>
     </>
@@ -337,7 +326,7 @@ function DetailRow({
             onClick={() => navigator.clipboard.writeText(copy)}
             className="text-ur-text-muted hover:text-ur-primary"
           >
-            <Copy className="h-3 w-3" />
+            <Icon name="content_copy" size={12} />
           </button>
         ) : null}
       </span>

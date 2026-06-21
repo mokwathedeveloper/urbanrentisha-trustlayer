@@ -1,30 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  CreditCard,
-  Download,
-  FileText,
-  Flag,
-  KeyRound,
-  Search,
-  Settings,
-  ShieldCheck,
-  Users,
-  X,
-} from "lucide-react";
 import { api, ApiError, type AuditLogEntry, type AuditLogStats } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon, type IconName } from "@/components/ui/icon";
 
-const entityIcons: Record<string, typeof FileText> = {
-  listing: FileText,
-  viewing_request: FileText,
-  payment: CreditCard,
-  proof_verification: ShieldCheck,
-  zk_proof: ShieldCheck,
-  viewing_code: KeyRound,
-  report: Flag,
+const entityIcons: Record<string, IconName> = {
+  listing: "description",
+  viewing_request: "description",
+  payment: "credit_card",
+  proof_verification: "verified_user",
+  zk_proof: "verified_user",
+  viewing_code: "key",
+  report: "flag",
 };
 
 const severityTone: Record<string, string> = {
@@ -121,16 +109,16 @@ export default function AuditLogsPage() {
       {error ? <p className="mt-4 text-sm text-ur-error">{error}</p> : null}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <StatCard icon={FileText} label="Total Events" value={stats?.totalEvents ?? 0} color="text-ur-cyan" loading={loading} />
-        <StatCard icon={Settings} label="System Events" value={stats?.systemEvents ?? 0} color="text-ur-cyan" loading={loading} />
-        <StatCard icon={ShieldCheck} label="Trust Activity" value={stats?.trustActivity ?? 0} color="text-ur-primary" loading={loading} />
-        <StatCard icon={Users} label="User Actions" value={stats?.userActions ?? 0} color="text-ur-mint" loading={loading} />
-        <StatCard icon={AlertTriangle} label="Security Events" value={stats?.securityEvents ?? 0} color="text-ur-error" loading={loading} />
+        <StatCard icon="description" label="Total Events" value={stats?.totalEvents ?? 0} color="text-ur-cyan" loading={loading} />
+        <StatCard icon="settings" label="System Events" value={stats?.systemEvents ?? 0} color="text-ur-cyan" loading={loading} />
+        <StatCard icon="verified_user" label="Trust Activity" value={stats?.trustActivity ?? 0} color="text-ur-primary" loading={loading} />
+        <StatCard icon="groups" label="User Actions" value={stats?.userActions ?? 0} color="text-ur-mint" loading={loading} />
+        <StatCard icon="warning" label="Security Events" value={stats?.securityEvents ?? 0} color="text-ur-error" loading={loading} />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ur-text-muted" />
+          <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ur-text-muted" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -191,7 +179,7 @@ export default function AuditLogsPage() {
                 </tr>
               ) : null}
               {filtered.map((log) => {
-                const Icon = entityIcons[log.entityType] ?? FileText;
+                const entityIcon = entityIcons[log.entityType] ?? "description";
                 return (
                   <tr
                     key={log.id}
@@ -201,7 +189,7 @@ export default function AuditLogsPage() {
                     <td className="px-4 py-3 font-mono text-xs text-ur-text-muted">{formatDateTime(log.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-ur-cyan" />
+                        <Icon name={entityIcon} size={16} className="text-ur-cyan" />
                         <span className="font-semibold text-ur-text">{humanize(log.action)}</span>
                       </div>
                     </td>
@@ -227,16 +215,16 @@ export default function AuditLogsPage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-ur-navy">Event Details</p>
                 <button type="button" onClick={() => setSelected(null)} className="text-ur-text-muted hover:text-ur-navy">
-                  <X className="h-4 w-4" />
+                  <Icon name="close" size={16} />
                 </button>
               </div>
 
               <div className="mt-3 flex items-center gap-3">
                 {(() => {
-                  const Icon = entityIcons[selected.entityType] ?? FileText;
+                  const entityIcon = entityIcons[selected.entityType] ?? "description";
                   return (
                     <span className="grid h-10 w-10 place-items-center rounded-full bg-ur-card-soft text-ur-cyan">
-                      <Icon className="h-5 w-5" />
+                      <Icon name={entityIcon} size={20} />
                     </span>
                   );
                 })()}
@@ -272,7 +260,7 @@ export default function AuditLogsPage() {
                 onClick={() => exportEvent(selected)}
                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-ur-sm border border-ur-border px-4 py-2 text-sm font-semibold text-ur-navy"
               >
-                <Download className="h-4 w-4" />
+                <Icon name="download" size={16} />
                 Export Event Details
               </button>
             </>
@@ -286,13 +274,13 @@ export default function AuditLogsPage() {
 }
 
 function StatCard({
-  icon: Icon,
+  icon,
   label,
   value,
   color,
   loading,
 }: {
-  icon: typeof FileText;
+  icon: IconName;
   label: string;
   value: number;
   color: string;
@@ -300,7 +288,7 @@ function StatCard({
 }) {
   return (
     <div className="ur-card p-4">
-      <Icon className={`h-4 w-4 ${color}`} />
+      <Icon name={icon} size={16} className={`${color}`} />
       <p className="mt-2 text-xs text-ur-text-secondary">{label}</p>
       <p className="text-xl font-black text-ur-navy">{loading ? "—" : value.toLocaleString()}</p>
     </div>

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Flag, Plus } from "lucide-react";
 import { api, type ReportItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { Icon } from "@/components/ui/icon";
 
 const reportTypeLabels: Record<string, string> = {
   FAKE_LISTING: "Fake Listing",
@@ -54,7 +54,7 @@ export default function ReportsListPage() {
           href="/reports/new"
           className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
         >
-          <Plus className="h-4 w-4" />
+          <Icon name="add" size={16} />
           File a Report
         </Link>
       </div>
@@ -63,7 +63,7 @@ export default function ReportsListPage() {
         {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
         {!loading && reports.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <Flag className="h-8 w-8 text-ur-text-muted" />
+            <Icon name="flag" size={32} className="text-ur-text-muted" />
             <p className="text-sm text-ur-text-muted">You haven&apos;t filed any reports yet.</p>
             <Link href="/reports/new" className="text-sm font-semibold text-ur-primary hover:underline">
               Report a fake listing or suspicious agent &rarr;
@@ -75,7 +75,7 @@ export default function ReportsListPage() {
             <div key={report.id} className="flex items-start justify-between gap-4 p-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ur-card-soft text-ur-warning">
-                  <AlertTriangle className="h-4 w-4" />
+                  <Icon name="warning" size={16} />
                 </span>
                 <div>
                   <p className="text-sm font-bold text-ur-navy">{report.listing?.title ?? "Listing report"}</p>
