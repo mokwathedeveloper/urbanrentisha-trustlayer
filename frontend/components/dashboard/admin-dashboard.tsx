@@ -43,7 +43,7 @@ export function AdminDashboardView() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">
-            Welcome back, {user?.name?.split(" ")[0] ?? "Admin"}! 👋
+            Welcome back, {user?.name?.split(" ")[0] ?? "Admin"}!
           </h1>
           <p className="mt-1 text-sm text-ur-text-secondary">Here&apos;s what&apos;s happening across the platform.</p>
         </div>
