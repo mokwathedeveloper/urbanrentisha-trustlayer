@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ExternalLink, Lock, ShieldCheck } from "lucide-react";
+import { ArrowRight, Play, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { heroStats } from "@/lib/landing-data";
 
@@ -25,9 +26,8 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-5 max-w-xl text-base leading-7 text-ur-text-secondary">
-            Real estate rentals powered by Zero-Knowledge proofs and Stellar
-            blockchain. Pay safely, prove ownership privately, and access
-            verified properties with confidence.
+            Stop rental scams. Prove payments privately with Zero-Knowledge proofs and
+            unlock verified property access on Stellar.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -37,10 +37,10 @@ export function HeroSection() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <a href="https://stellar.org" target="_blank" rel="noopener noreferrer">
+            <a href="#trust-flow">
               <Button size="lg" variant="outline">
-                Explore on Stellar
-                <ExternalLink className="h-4 w-4" />
+                <Play className="h-4 w-4" />
+                How It Works
               </Button>
             </a>
           </div>
@@ -61,18 +61,19 @@ export function HeroSection() {
         </div>
 
         <div className="relative flex items-center justify-center">
-          <div className="absolute right-6 top-2 rounded-ur border border-ur-border bg-ur-card px-4 py-2 text-xs font-semibold text-ur-navy shadow-ur-soft">
-            Zero-Knowledge Proof
-          </div>
-          <div className="absolute bottom-6 left-2 flex items-center gap-2 rounded-ur border border-ur-border bg-ur-card px-4 py-2 text-xs font-semibold text-ur-navy shadow-ur-soft">
-            <span className="h-2 w-2 rounded-full bg-ur-mint" />
-            Stellar Blockchain
-          </div>
-          <div className="grid h-48 w-48 place-items-center rounded-full border border-ur-primary/30 bg-ur-success-bg shadow-[0_0_80px_rgba(22,163,74,0.25)]">
-            <div className="grid h-28 w-28 place-items-center rounded-full bg-ur-primary/15">
-              <Lock className="h-12 w-12 text-ur-primary" strokeWidth={1.6} />
-            </div>
-          </div>
+          <div
+            className="absolute inset-[8%] -z-10 rounded-full bg-ur-primary/20 blur-[60px]"
+            aria-hidden="true"
+          />
+          <Image
+            src="/images/hero-illustration.png"
+            alt="Zero-knowledge proof verified on Stellar blockchain, unlocking verified rental access"
+            width={640}
+            height={640}
+            priority
+            unoptimized
+            className="relative w-full max-w-md drop-shadow-[0_0_35px_rgba(34,197,94,0.22)]"
+          />
         </div>
       </div>
     </section>
