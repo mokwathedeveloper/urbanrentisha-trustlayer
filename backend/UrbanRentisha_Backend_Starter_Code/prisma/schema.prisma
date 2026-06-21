@@ -118,6 +118,7 @@ model User {
   reports       Report[]       @relation("ReportReporter")
   notifications Notification[]
   auditLogs     AuditLog[]     @relation("AuditActor")
+  savedListings SavedListing[]
 }
 
 model TenantProfile {
@@ -170,6 +171,18 @@ model Listing {
 
   viewingRequests ViewingRequest[]
   reports         Report[]
+  savedBy         SavedListing[]
+}
+
+model SavedListing {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
 }
 
 model ViewingRequest {
