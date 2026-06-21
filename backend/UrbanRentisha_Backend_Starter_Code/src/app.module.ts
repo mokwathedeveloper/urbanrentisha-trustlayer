@@ -18,6 +18,7 @@ import { ExternalApiModule } from "./external-api/external-api.module";
 import { WebhooksModule } from "./webhooks/webhooks.module";
 import { AdminModule } from "./admin/admin.module";
 import { AgentsModule } from "./agents/agents.module";
+import { MessagesModule } from "./messages/messages.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AgentsModule } from "./agents/agents.module";
     WebhooksModule,
     AdminModule,
     AgentsModule,
+    MessagesModule,
   ],
 })
 export class AppModule {}
