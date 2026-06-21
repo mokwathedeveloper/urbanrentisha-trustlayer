@@ -1,7 +1,7 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 
 export interface SearchFilters {
   location: string;
@@ -52,7 +52,7 @@ export function SearchFilterPanel({
           onClick={() => onChange(DEFAULT_SEARCH_FILTERS)}
           className="flex items-center gap-1 text-sm font-semibold text-ur-text-secondary hover:text-ur-navy"
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          <Icon name="restart_alt" size={14} />
           Reset
         </button>
       </div>

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bath, BedDouble, Heart, MapPin, Maximize, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 export function PropertyCard({
   listing,
@@ -57,7 +57,7 @@ export function PropertyCard({
           disabled={pending}
           className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/40 text-white backdrop-blur disabled:opacity-60"
         >
-          <Heart className={`h-4 w-4 ${saved ? "fill-ur-error text-ur-error" : ""}`} />
+          <Icon name="favorite" size={16} className={`${saved ? "fill-ur-error text-ur-error" : ""}`} />
         </button>
         {listing.verificationStatus === "VERIFIED" ? (
           <Badge variant="verified" className="absolute bottom-3 left-3">
@@ -70,11 +70,11 @@ export function PropertyCard({
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-bold text-ur-navy">{listing.title}</h3>
           <button type="button" aria-label="More options" className="text-ur-text-muted hover:text-ur-navy">
-            <MoreVertical className="h-4 w-4" />
+            <Icon name="more_vert" size={16} />
           </button>
         </div>
         <p className="mt-1 flex items-center gap-1 text-sm text-ur-text-secondary">
-          <MapPin className="h-3.5 w-3.5" />
+          <Icon name="location_on" size={14} />
           {listing.location}
         </p>
         <p className="mt-2 text-lg font-black text-ur-navy">
@@ -85,18 +85,18 @@ export function PropertyCard({
         <div className="mt-3 flex items-center gap-4 text-sm text-ur-text-secondary">
           {listing.bedrooms != null ? (
             <span className="flex items-center gap-1">
-              <BedDouble className="h-4 w-4" />
+              <Icon name="bed" size={16} />
               {listing.bedrooms} Beds
             </span>
           ) : null}
           {listing.bathrooms != null ? (
             <span className="flex items-center gap-1">
-              <Bath className="h-4 w-4" />
+              <Icon name="bathtub" size={16} />
               {listing.bathrooms} Baths
             </span>
           ) : null}
           <span className="flex items-center gap-1">
-            <Maximize className="h-4 w-4" />
+            <Icon name="open_in_full" size={16} />
             {listing.propertyType}
           </span>
         </div>
@@ -111,7 +111,7 @@ export function PropertyCard({
               className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
             >
               View Details
-              <ArrowRight className="h-3.5 w-3.5" />
+              <Icon name="arrow_forward" size={14} />
             </Link>
           </div>
         ) : (

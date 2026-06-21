@@ -1,7 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
 import { DEFAULT_SEARCH_FILTERS, type SearchFilters } from "./search-filter-panel";
+import { Icon } from "@/components/ui/icon";
 
 export function FilterChips({
   filters,
@@ -57,7 +57,7 @@ export function FilterChips({
         >
           {chip.label}
           <button type="button" onClick={chip.clear} aria-label={`Remove ${chip.label}`}>
-            <X className="h-3 w-3" />
+            <Icon name="close" size={12} />
           </button>
         </span>
       ))}

@@ -1,5 +1,5 @@
-import { Bookmark, Heart, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 
 const savedSearches = [
   { title: "Lekki 2-3 Beds", criteria: "500K - 2M • 2-3 Beds", note: "Verified Only • Up to 10K", count: 12 },
@@ -29,7 +29,7 @@ export function SavedSearchesPanel() {
             <div key={search.title} className="rounded-ur border border-ur-border bg-ur-card-soft p-3">
               <div className="flex items-start justify-between">
                 <p className="text-sm font-bold text-ur-navy">{search.title}</p>
-                <Heart className="h-4 w-4 fill-ur-primary text-ur-primary" />
+                <Icon name="favorite" size={16} className="fill-ur-primary text-ur-primary" />
               </div>
               <p className="mt-1 text-xs text-ur-text-secondary">{search.criteria}</p>
               <p className="text-xs text-ur-text-secondary">{search.note}</p>
@@ -39,14 +39,14 @@ export function SavedSearchesPanel() {
         </div>
 
         <Button variant="outline" className="mt-4 w-full">
-          <Bookmark className="h-4 w-4" />
+          <Icon name="bookmark" size={16} />
           Save Current Search
         </Button>
       </div>
 
       <div className="ur-card p-5">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-ur-warning" />
+          <Icon name="lightbulb" size={16} className="text-ur-warning" />
           <h2 className="font-bold text-ur-navy">Tips for better results</h2>
         </div>
         <ul className="mt-3 space-y-2">
