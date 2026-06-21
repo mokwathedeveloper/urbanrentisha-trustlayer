@@ -35,7 +35,7 @@ export class AuthService {
         tenantProfile:
           dto.role === UserRole.TENANT ? { create: {} } : undefined,
         agentProfile:
-          dto.role === UserRole.AGENT
+          dto.role === UserRole.AGENT || dto.role === UserRole.MANAGER
             ? { create: { verificationStatus: "pending" } }
             : undefined,
       },
