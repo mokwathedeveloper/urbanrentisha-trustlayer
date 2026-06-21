@@ -22,6 +22,45 @@ export function StatusBadge({ status }: { status: string }) {
   return <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.tone}`}>{meta.label}</span>;
 }
 
+export const activeStatuses = ["CREATED", "AWAITING_PAYMENT", "PAYMENT_RECEIVED", "PROOF_GENERATING", "PROOF_READY", "PROOF_VERIFIED"];
+
+export function nextStepHref(requestId: string, status: string): string {
+  switch (status) {
+    case "CREATED":
+    case "AWAITING_PAYMENT":
+      return `/requests/${requestId}/payment`;
+    case "PAYMENT_RECEIVED":
+      return `/requests/${requestId}/proof`;
+    case "PROOF_GENERATING":
+    case "PROOF_READY":
+      return `/requests/${requestId}/proof`;
+    case "PROOF_VERIFIED":
+      return `/requests/${requestId}/verify`;
+    case "ACCESS_UNLOCKED":
+      return `/requests/${requestId}/code`;
+    default:
+      return `/requests/${requestId}/escrow`;
+  }
+}
+
+export function nextStepLabel(status: string): string {
+  switch (status) {
+    case "CREATED":
+    case "AWAITING_PAYMENT":
+      return "Complete Payment";
+    case "PAYMENT_RECEIVED":
+    case "PROOF_GENERATING":
+    case "PROOF_READY":
+      return "Generate Proof";
+    case "PROOF_VERIFIED":
+      return "Verify Proof";
+    case "ACCESS_UNLOCKED":
+      return "View Code";
+    default:
+      return "View Details";
+  }
+}
+
 export function Panel({
   title,
   viewAllHref,
