@@ -19,6 +19,8 @@ import { WebhooksModule } from "./webhooks/webhooks.module";
 import { AdminModule } from "./admin/admin.module";
 import { AgentsModule } from "./agents/agents.module";
 import { MessagesModule } from "./messages/messages.module";
+import { StorageModule } from "./storage/storage.module";
+import { UploadsModule } from "./uploads/uploads.module";
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { MessagesModule } from "./messages/messages.module";
     AdminModule,
     AgentsModule,
     MessagesModule,
+    StorageModule,
+    UploadsModule,
   ],
 })
 export class AppModule {}
