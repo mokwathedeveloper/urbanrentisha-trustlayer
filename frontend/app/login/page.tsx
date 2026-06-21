@@ -31,6 +31,7 @@ export default function LoginPage() {
     password: "",
     confirmPassword: "",
     role: "TENANT" as UserRole,
+    landlordEmail: "",
   });
 
   async function handleSignIn(e: FormEvent) {
@@ -61,6 +62,10 @@ export default function LoginPage() {
         email: signupForm.email,
         password: signupForm.password,
         role: signupForm.role,
+        landlordEmail:
+          signupForm.role === "AGENT" || signupForm.role === "MANAGER"
+            ? signupForm.landlordEmail || undefined
+            : undefined,
       });
       router.push("/dashboard");
     } catch (err) {
@@ -281,13 +286,27 @@ export default function LoginPage() {
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <RoleCard
                       icon="person"
-                      title="Individual"
-                      description="Manage my properties"
+                      title="Tenant"
+                      description="Search and view properties"
                       selected={signupForm.role === "TENANT"}
                       onClick={() => setSignupForm((f) => ({ ...f, role: "TENANT" }))}
                     />
                     <RoleCard
                       icon="apartment"
+                      title="Landlord"
+                      description="List my own properties"
+                      selected={signupForm.role === "LANDLORD"}
+                      onClick={() => setSignupForm((f) => ({ ...f, role: "LANDLORD" }))}
+                    />
+                    <RoleCard
+                      icon="badge"
+                      title="Agent"
+                      description="Represent a landlord's property"
+                      selected={signupForm.role === "AGENT"}
+                      onClick={() => setSignupForm((f) => ({ ...f, role: "AGENT" }))}
+                    />
+                    <RoleCard
+                      icon="groups"
                       title="Property Manager"
                       description="Manage properties for others"
                       selected={signupForm.role === "MANAGER"}
@@ -295,6 +314,25 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
+
+                {signupForm.role === "AGENT" || signupForm.role === "MANAGER" ? (
+                  <div className="relative">
+                    <Icon name="mail" size={16} className="pointer-events-none absolute left-3 top-9 text-ur-text-muted" />
+                    <Input
+                      label="Landlord's email (optional)"
+                      name="landlordEmail"
+                      type="email"
+                      placeholder="landlord@example.com"
+                      className="pl-9"
+                      value={signupForm.landlordEmail}
+                      onChange={(e) => setSignupForm((f) => ({ ...f, landlordEmail: e.target.value }))}
+                    />
+                    <p className="mt-1 text-xs text-ur-text-muted">
+                      If you already know the landlord or property you represent, enter their email so an
+                      admin can confirm the connection during review. You can also add this later.
+                    </p>
+                  </div>
+                ) : null}
 
                 <label className="flex items-start gap-2 text-xs text-ur-text-secondary">
                   <input type="checkbox" required className="mt-0.5" />I agree to the{" "}
