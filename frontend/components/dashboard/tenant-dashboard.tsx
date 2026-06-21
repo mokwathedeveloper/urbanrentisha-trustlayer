@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type NotificationItem, type ReportItem, type ViewingRequest } from "@/lib/api";
+import { api, type NotificationItem, type ReportItem, type UserProfile, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { VerificationProgress } from "@/components/verification/verification-progress";
 
 export function TenantDashboardView() {
   const { token, user } = useAuth();
   const [requests, setRequests] = useState<ViewingRequest[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,11 +22,13 @@ export function TenantDashboardView() {
       api.viewingRequests.findMine(token),
       api.notifications.findMine(token),
       api.reports.findMine(token),
+      api.users.me(token),
     ])
-      .then(([req, notif, rep]) => {
+      .then(([req, notif, rep, me]) => {
         setRequests(req);
         setNotifications(notif);
         setReports(rep);
+        setProfile(me);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -49,8 +53,11 @@ export function TenantDashboardView() {
     <div className="px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">
-            Welcome back, {user?.name?.split(" ")[0] ?? "Tenant"}! 👋
+          <h1 className="flex items-center gap-2 text-2xl font-black tracking-[-0.02em] text-ur-navy">
+            Welcome back, {user?.name?.split(" ")[0] ?? "Tenant"}!
+            {profile?.tenantProfile?.verifiedBadge ? (
+              <Icon name="verified" size={20} className="text-ur-primary" />
+            ) : null}
           </h1>
           <p className="mt-1 text-sm text-ur-text-secondary">Here&apos;s what&apos;s happening with your rentals and requests.</p>
         </div>
@@ -76,6 +83,12 @@ export function TenantDashboardView() {
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
       </div>
+
+      {profile?.tenantProfile && profile.tenantProfile.verificationStage !== "APPROVED" ? (
+        <div className="mt-6">
+          <VerificationProgress stage={profile.tenantProfile.verificationStage} />
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
