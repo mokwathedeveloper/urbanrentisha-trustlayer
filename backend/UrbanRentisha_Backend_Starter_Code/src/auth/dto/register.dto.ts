@@ -24,4 +24,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  landlordEmail?: string;
 }
