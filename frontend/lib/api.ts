@@ -267,6 +267,14 @@ export interface AdminOverview {
   recentAuditLogs: { id: string; action: string; actorName: string; severity: string; createdAt: string }[];
 }
 
+export interface SavedListingItem {
+  id: string;
+  userId: string;
+  listingId: string;
+  createdAt: string;
+  listing: Listing;
+}
+
 export interface AuditLogEntry {
   id: string;
   actorId: string | null;
@@ -305,6 +313,10 @@ export const api = {
   listings: {
     findAll: () => request<Listing[]>("/listings"),
     findOne: (id: string) => request<Listing>(`/listings/${id}`),
+    findSaved: (token: string) => request<SavedListingItem[]>("/listings/saved", { token }),
+    save: (token: string, id: string) => request<SavedListingItem>(`/listings/${id}/save`, { method: "POST", token }),
+    unsave: (token: string, id: string) =>
+      request<{ success: boolean }>(`/listings/${id}/save`, { method: "DELETE", token }),
   },
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
