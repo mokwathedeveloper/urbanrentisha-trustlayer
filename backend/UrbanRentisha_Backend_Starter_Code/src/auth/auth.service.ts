@@ -4,9 +4,10 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { UserRole, UserStatus } from "@prisma/client";
+import { NotificationType, UserRole, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 
@@ -15,6 +16,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -46,6 +48,12 @@ export class AuthService {
         avatarUrl: true,
         mustChangePassword: true,
       },
+    });
+
+    await this.notifications.notifyAdmins({
+      type: NotificationType.SYSTEM,
+      title: "New Signup",
+      message: `${user.name} signed up as a ${user.role.toLowerCase()}.`,
     });
 
     return {
