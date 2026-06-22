@@ -71,6 +71,7 @@ enum PaymentStatus {
   CREATED
   AWAITING_PAYMENT
   RECEIVED
+  RELEASED
   FAILED
   REFUNDED
   EXPIRED
@@ -126,18 +127,18 @@ enum AuditSeverity {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String
-  name         String
-  phone        String?
-  avatarUrl    String?
-  role         UserRole
-  status       UserStatus @default(ACTIVE)
-  mustChangePassword Boolean @default(false)
-  walletAddress String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                 String     @id @default(cuid())
+  email              String     @unique
+  passwordHash       String
+  name               String
+  phone              String?
+  avatarUrl          String?
+  role               UserRole
+  status             UserStatus @default(ACTIVE)
+  mustChangePassword Boolean    @default(false)
+  walletAddress      String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   tenantProfile     TenantProfile?
   landlordProfile   LandlordProfile?
@@ -183,48 +184,48 @@ model LandlordProfile {
 }
 
 model AgentProfile {
-  id                 String            @id @default(cuid())
-  userId             String            @unique
-  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agencyName         String?
-  licenseNumber      String?
-  verificationStatus String            @default("pending")
-  verificationStage  VerificationStage @default(PROFILE_CREATED)
-  trustScore         Int               @default(70)
-  reportCount        Int               @default(0)
-  landlordId         String?
-  landlord           LandlordProfile?  @relation(fields: [landlordId], references: [id])
+  id                      String            @id @default(cuid())
+  userId                  String            @unique
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyName              String?
+  licenseNumber           String?
+  verificationStatus      String            @default("pending")
+  verificationStage       VerificationStage @default(PROFILE_CREATED)
+  trustScore              Int               @default(70)
+  reportCount             Int               @default(0)
+  landlordId              String?
+  landlord                LandlordProfile?  @relation(fields: [landlordId], references: [id])
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   activatedAt             DateTime?
   attestationTxHash       String?
   attestedAt              DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   listings  Listing[]
   documents Document[]
 }
 
 model ManagerProfile {
-  id                 String            @id @default(cuid())
-  userId             String            @unique
-  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agencyName         String?
-  licenseNumber      String?
-  verificationStatus String            @default("pending")
-  verificationStage  VerificationStage @default(PROFILE_CREATED)
-  trustScore         Int               @default(70)
-  reportCount        Int               @default(0)
-  landlordId         String?
-  landlord           LandlordProfile?  @relation(fields: [landlordId], references: [id])
+  id                      String            @id @default(cuid())
+  userId                  String            @unique
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyName              String?
+  licenseNumber           String?
+  verificationStatus      String            @default("pending")
+  verificationStage       VerificationStage @default(PROFILE_CREATED)
+  trustScore              Int               @default(70)
+  reportCount             Int               @default(0)
+  landlordId              String?
+  landlord                LandlordProfile?  @relation(fields: [landlordId], references: [id])
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   activatedAt             DateTime?
   attestationTxHash       String?
   attestedAt              DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   listings  Listing[]
   documents Document[]
@@ -325,20 +326,23 @@ model Message {
 }
 
 model Payment {
-  id                String         @id @default(cuid())
-  viewingRequestId  String         @unique
-  viewingRequest    ViewingRequest @relation(fields: [viewingRequestId], references: [id])
-  amount            Int
-  currency          String         @default("KES")
-  stellarAsset      String         @default("XLM_TEST")
-  destinationWallet String
-  payerWallet       String?
-  stellarMemo       String
-  txHash            String?
-  status            PaymentStatus  @default(CREATED)
-  paidAt            DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                  String         @id @default(cuid())
+  viewingRequestId    String         @unique
+  viewingRequest      ViewingRequest @relation(fields: [viewingRequestId], references: [id])
+  amount              Int
+  currency            String         @default("KES")
+  stellarAsset        String         @default("XLM_TEST")
+  destinationWallet   String
+  payerWallet         String?
+  stellarMemo         String
+  txHash              String?
+  status              PaymentStatus  @default(CREATED)
+  paidAt              DateTime?
+  escrowDepositTxHash String?
+  escrowReleaseTxHash String?
+  escrowReleasedAt    DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 }
 
 model ZkProof {
