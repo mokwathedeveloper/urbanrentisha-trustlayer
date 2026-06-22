@@ -139,6 +139,14 @@ export interface ListingImage {
   createdAt: string;
 }
 
+export interface ListingContact {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  lastActiveAt: string | null;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -157,19 +165,20 @@ export interface Listing {
   ownerId: string;
   agentId: string | null;
   managerId: string | null;
+  owner: ListingContact;
   agent?: {
     id: string;
     agencyName: string;
     trustScore: number;
     verificationStatus: string;
-    user: { id: string; name: string; email: string; phone: string | null };
+    user: ListingContact;
   };
   manager?: {
     id: string;
     agencyName: string;
     trustScore: number;
     verificationStatus: string;
-    user: { id: string; name: string; email: string; phone: string | null };
+    user: ListingContact;
   };
 }
 
@@ -247,7 +256,8 @@ export interface NotificationItem {
 }
 
 export interface MessageThread {
-  viewingRequestId: string;
+  kind: "viewing_request" | "listing_thread";
+  id: string;
   listingTitle: string;
   otherParty: string;
   lastMessage: string;
@@ -256,11 +266,36 @@ export interface MessageThread {
 
 export interface MessageItem {
   id: string;
-  viewingRequestId: string;
+  viewingRequestId: string | null;
+  listingThreadId: string | null;
   senderId: string;
   body: string;
   createdAt: string;
   sender: { id: string; name: string; role: string };
+}
+
+export interface ListingThread {
+  id: string;
+  listingId: string;
+  tenantId: string;
+  createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  targetUserId: string;
+  reviewerId: string;
+  rating: number;
+  comment: string | null;
+  listingId: string | null;
+  createdAt: string;
+  reviewer: { id: string; name: string };
+}
+
+export interface ReviewSummary {
+  reviews: Review[];
+  average: number;
+  count: number;
 }
 
 export interface ReportItem {
@@ -284,7 +319,14 @@ export interface AgentProfile {
   trustScore: number;
   reportCount: number;
   createdAt: string;
-  user: { id: string; name: string; email: string; phone: string | null; createdAt: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    createdAt: string;
+    lastActiveAt: string | null;
+  };
   stats: {
     totalListings: number;
     activeListings: number;
@@ -677,6 +719,27 @@ export const api = {
         body: { body },
         token,
       }),
+  },
+  listingThreads: {
+    getOrCreate: (token: string, listingId: string) =>
+      request<ListingThread>(`/listings/${listingId}/thread`, { method: "POST", token }),
+    findMessages: (token: string, threadId: string) =>
+      request<MessageItem[]>(`/listing-threads/${threadId}/messages`, { token }),
+    send: (token: string, threadId: string, body: string) =>
+      request<MessageItem>(`/listing-threads/${threadId}/messages`, {
+        method: "POST",
+        body: { body },
+        token,
+      }),
+  },
+  reviews: {
+    create: (
+      token: string,
+      targetUserId: string,
+      body: { rating: number; comment?: string; listingId?: string },
+    ) => request<Review>(`/users/${targetUserId}/reviews`, { method: "POST", body, token }),
+    findForUser: (targetUserId: string) =>
+      request<ReviewSummary>(`/users/${targetUserId}/reviews`),
   },
   uploads: {
     avatar: (token: string, file: File) =>
