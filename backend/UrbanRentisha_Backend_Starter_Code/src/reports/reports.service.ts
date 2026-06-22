@@ -45,6 +45,13 @@ export class ReportsService {
       viewingRequestId: dto.viewingRequestId,
     });
 
+    await this.notifications.notifyAdmins({
+      type: NotificationType.REPORT,
+      title: "New Report Filed",
+      message: `A ${report.severity}-severity ${report.reportType.toLowerCase().replace(/_/g, " ")} report was filed and needs review.`,
+      viewingRequestId: dto.viewingRequestId,
+    });
+
     return report;
   }
 
