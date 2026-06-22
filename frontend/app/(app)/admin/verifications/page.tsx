@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ApiError, api, type ProfileType, type VerificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
@@ -124,6 +125,14 @@ export default function AdminVerificationsPage() {
                     >
                       {item.verificationStage.replace(/_/g, " ")}
                     </span>
+                    {item.profileType === "landlord" ? (
+                      <Link
+                        href={`/admin/landlords/${item.profileId}`}
+                        className="text-sm font-semibold text-ur-text-secondary hover:underline"
+                      >
+                        View Team
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setSelectedId(expanded ? null : `${item.profileType}:${item.profileId}`)}
