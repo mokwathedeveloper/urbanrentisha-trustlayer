@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api, type MessageItem, type MessageThread } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
@@ -8,6 +9,8 @@ import { Icon } from "@/components/ui/icon";
 
 export default function MessagesPage() {
   const { token, user } = useAuth();
+  const searchParams = useSearchParams();
+  const threadParam = searchParams.get("thread");
   const [threads, setThreads] = useState<MessageThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -21,10 +24,14 @@ export default function MessagesPage() {
       .findInbox(token)
       .then((data) => {
         setThreads(data);
-        if (data.length > 0) setActiveId(data[0].viewingRequestId);
+        if (threadParam && data.some((thread) => thread.viewingRequestId === threadParam)) {
+          setActiveId(threadParam);
+        } else if (data.length > 0) {
+          setActiveId(data[0].viewingRequestId);
+        }
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, threadParam]);
 
   useEffect(() => {
     if (!token || !activeId) return;
