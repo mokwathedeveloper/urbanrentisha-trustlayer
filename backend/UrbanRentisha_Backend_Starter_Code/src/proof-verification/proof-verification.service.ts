@@ -6,6 +6,7 @@ import {
 import {
   NotificationType,
   ProofStatus,
+  UserRole,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -13,6 +14,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { SorobanService } from "../soroban/soroban.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { SubmitProofVerificationDto } from "./dto/submit-proof-verification.dto";
+import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
 
 interface StoredPublicInputs {
   requestId: string;
@@ -33,9 +35,16 @@ export class ProofVerificationService {
     private readonly auditLogs: AuditLogsService,
     private readonly soroban: SorobanService,
     private readonly notifications: NotificationsService,
+    private readonly access: ViewingRequestAccessService,
   ) {}
 
-  async submit(actorId: string, dto: SubmitProofVerificationDto) {
+  async submit(
+    actorId: string,
+    role: UserRole,
+    dto: SubmitProofVerificationDto,
+  ) {
+    await this.access.assertAccess(dto.viewingRequestId, actorId, role);
+
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
       include: { zkProof: true },
@@ -151,7 +160,13 @@ export class ProofVerificationService {
     return verification;
   }
 
-  findOne(id: string) {
-    return this.prisma.proofVerification.findUnique({ where: { id } });
+  async findOne(id: string, userId: string, role: UserRole) {
+    const verification = await this.prisma.proofVerification.findUnique({
+      where: { id },
+    });
+    if (!verification)
+      throw new NotFoundException("Proof verification not found.");
+    await this.access.assertAccess(verification.viewingRequestId, userId, role);
+    return verification;
   }
 }

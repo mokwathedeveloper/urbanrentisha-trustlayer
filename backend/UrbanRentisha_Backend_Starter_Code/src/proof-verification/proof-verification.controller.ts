@@ -15,11 +15,11 @@ export class ProofVerificationController {
     @CurrentUser() user: AuthUser,
     @Body() dto: SubmitProofVerificationDto,
   ) {
-    return this.proofVerification.submit(user.sub, dto);
+    return this.proofVerification.submit(user.sub, user.role, dto);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.proofVerification.findOne(id);
+  findOne(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.proofVerification.findOne(id, user.sub, user.role);
   }
 }
