@@ -19,7 +19,13 @@ export class MessagesService {
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: viewingRequestId },
       include: {
-        listing: { include: { agent: { include: { user: true } } } },
+        listing: {
+          include: {
+            agent: { include: { user: true } },
+            manager: { include: { user: true } },
+            owner: true,
+          },
+        },
         tenant: { include: { user: true } },
       },
     });
@@ -32,13 +38,44 @@ export class MessagesService {
     request: Awaited<ReturnType<MessagesService["loadThread"]>>,
   ) {
     const isTenant = request.tenant.user.id === userId;
+    const isOwner = request.listing.owner.id === userId;
     const isAgent = request.listing.agent?.user.id === userId;
-    if (!isTenant && !isAgent) {
+    const isManager = request.listing.manager?.user.id === userId;
+    if (!isTenant && !isOwner && !isAgent && !isManager) {
       throw new ForbiddenException(
         "You do not have access to this conversation.",
       );
     }
-    return { isTenant, isAgent };
+    return { isTenant, isOwner, isAgent, isManager };
+  }
+
+  private listingContacts(
+    request: Awaited<ReturnType<MessagesService["loadThread"]>>,
+  ) {
+    const contacts = [
+      { id: request.listing.owner.id, name: request.listing.owner.name },
+      request.listing.agent
+        ? {
+            id: request.listing.agent.user.id,
+            name: request.listing.agent.user.name,
+          }
+        : null,
+      request.listing.manager
+        ? {
+            id: request.listing.manager.user.id,
+            name: request.listing.manager.user.name,
+          }
+        : null,
+    ].filter(
+      (contact): contact is { id: string; name: string } => contact !== null,
+    );
+
+    const seen = new Set<string>();
+    return contacts.filter((contact) => {
+      if (seen.has(contact.id)) return false;
+      seen.add(contact.id);
+      return true;
+    });
   }
 
   async create(
@@ -54,18 +91,23 @@ export class MessagesService {
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
 
-    const recipientId = isTenant
-      ? request.listing.agent?.user.id
-      : request.tenant.user.id;
-    if (recipientId) {
-      await this.notifications.create({
-        userId: recipientId,
-        type: NotificationType.SYSTEM,
-        title: "New Message",
-        message: `${message.sender.name} sent you a message about ${request.listing.title}.`,
-        viewingRequestId,
-      });
-    }
+    const recipientIds = isTenant
+      ? this.listingContacts(request).map((contact) => contact.id)
+      : [request.tenant.user.id];
+
+    await Promise.all(
+      recipientIds
+        .filter((recipientId) => recipientId !== senderId)
+        .map((recipientId) =>
+          this.notifications.create({
+            userId: recipientId,
+            type: NotificationType.SYSTEM,
+            title: "New Message",
+            message: `${message.sender.name} sent you a message about ${request.listing.title}.`,
+            viewingRequestId,
+          }),
+        ),
+    );
 
     return message;
   }
@@ -85,10 +127,21 @@ export class MessagesService {
     const threads = await this.prisma.viewingRequest.findMany({
       where: {
         messages: { some: {} },
-        OR: [{ tenant: { userId } }, { listing: { agent: { userId } } }],
+        OR: [
+          { tenant: { userId } },
+          { listing: { ownerId: userId } },
+          { listing: { agent: { userId } } },
+          { listing: { manager: { userId } } },
+        ],
       },
       include: {
-        listing: { include: { agent: { include: { user: true } } } },
+        listing: {
+          include: {
+            agent: { include: { user: true } },
+            manager: { include: { user: true } },
+            owner: true,
+          },
+        },
         tenant: { include: { user: true } },
         messages: {
           orderBy: { createdAt: "desc" },
@@ -99,15 +152,19 @@ export class MessagesService {
       orderBy: { updatedAt: "desc" },
     });
 
-    return threads.map((thread) => ({
-      viewingRequestId: thread.id,
-      listingTitle: thread.listing.title,
-      otherParty:
-        thread.tenant.user.id === userId
-          ? (thread.listing.agent?.user.name ?? "Agent")
+    return threads.map((thread) => {
+      const isTenantViewer = thread.tenant.user.id === userId;
+      const contacts = this.listingContacts(thread);
+      return {
+        viewingRequestId: thread.id,
+        listingTitle: thread.listing.title,
+        otherParty: isTenantViewer
+          ? (contacts.find((contact) => contact.id !== userId)?.name ??
+            "Listing Contact")
           : thread.tenant.user.name,
-      lastMessage: thread.messages[0]?.body ?? "",
-      lastMessageAt: thread.messages[0]?.createdAt ?? thread.updatedAt,
-    }));
+        lastMessage: thread.messages[0]?.body ?? "",
+        lastMessageAt: thread.messages[0]?.createdAt ?? thread.updatedAt,
+      };
+    });
   }
 }
