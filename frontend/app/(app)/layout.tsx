@@ -11,6 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isOnboarding = pathname === "/onboarding";
+  const isChangePassword = pathname === "/change-password";
 
   useEffect(() => {
     if (loading) return;
@@ -18,12 +19,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
-    if (!user.avatarUrl && !isOnboarding) {
+    if (user.mustChangePassword && !isChangePassword) {
+      router.replace("/change-password");
+      return;
+    }
+    if (!user.mustChangePassword && !user.avatarUrl && !isOnboarding) {
       router.replace("/onboarding");
     }
-  }, [loading, user, isOnboarding, router]);
+  }, [loading, user, isOnboarding, isChangePassword, router]);
 
   if (loading || !user) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-ur-bg text-ur-muted">
+        <p>Loading...</p>
+      </main>
+    );
+  }
+
+  if (isChangePassword) {
+    return <>{children}</>;
+  }
+
+  if (user.mustChangePassword) {
     return (
       <main className="grid min-h-screen place-items-center bg-ur-bg text-ur-muted">
         <p>Loading...</p>
