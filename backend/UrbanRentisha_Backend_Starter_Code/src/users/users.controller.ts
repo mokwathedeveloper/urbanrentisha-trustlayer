@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
@@ -27,5 +27,10 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.users.changePassword(user.sub, dto);
+  }
+
+  @Post("me/wallet/generate")
+  generateWallet(@CurrentUser() user: AuthUser) {
+    return this.users.generateWallet(user.sub);
   }
 }

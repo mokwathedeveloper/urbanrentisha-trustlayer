@@ -6,6 +6,7 @@ import {
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { StellarService } from "../stellar/stellar.service";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 
@@ -14,6 +15,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly stellar: StellarService,
   ) {}
 
   async me(userId: string) {
@@ -28,6 +30,7 @@ export class UsersService {
         status: true,
         avatarUrl: true,
         mustChangePassword: true,
+        walletAddress: true,
         tenantProfile: true,
         landlordProfile: true,
         agentProfile: true,
@@ -43,7 +46,11 @@ export class UsersService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { name: dto.name, phone: dto.phone },
+      data: {
+        name: dto.name,
+        phone: dto.phone,
+        walletAddress: dto.walletAddress,
+      },
       select: {
         id: true,
         email: true,
@@ -51,6 +58,7 @@ export class UsersService {
         phone: true,
         role: true,
         status: true,
+        walletAddress: true,
         createdAt: true,
       },
     });
@@ -61,10 +69,42 @@ export class UsersService {
       entityType: "user",
       entityId: userId,
       severity: "INFO",
-      metadata: { name: dto.name, phone: dto.phone },
+      metadata: {
+        name: dto.name,
+        phone: dto.phone,
+        walletAddress: dto.walletAddress,
+      },
     });
 
     return user;
+  }
+
+  async generateWallet(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found.");
+    if (user.walletAddress) {
+      throw new BadRequestException(
+        "A wallet is already linked to this account. Use the manual entry option to replace it.",
+      );
+    }
+
+    const wallet = this.stellar.generateWallet();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { walletAddress: wallet.publicKey },
+    });
+    this.stellar.fundTestnetAccount(wallet.publicKey).catch(() => undefined);
+
+    await this.auditLogs.create({
+      actorId: userId,
+      action: "user.wallet_generated",
+      entityType: "user",
+      entityId: userId,
+      severity: "INFO",
+      metadata: { publicKey: wallet.publicKey },
+    });
+
+    return wallet;
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
