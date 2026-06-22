@@ -300,8 +300,10 @@ export type ProfileType = "tenant" | "landlord" | "agent" | "manager";
 export interface VerificationItem {
   profileType: ProfileType;
   profileId: string;
+  userId: string;
   name: string;
   email: string;
+  userStatus: string;
   verificationStage: VerificationStage;
   linkedLandlordName: string | null;
   documents: { id: string; fileName: string; status: string; createdAt: string; signedUrl: string }[];
@@ -492,6 +494,14 @@ export const api = {
         request<unknown>(`/admin/verifications/${profileType}/${profileId}/review`, {
           method: "PATCH",
           body,
+          token,
+        }),
+    },
+    users: {
+      setStatus: (token: string, userId: string, status: "ACTIVE" | "SUSPENDED") =>
+        request<{ id: string; status: string }>(`/admin/users/${userId}/status`, {
+          method: "PATCH",
+          body: { status },
           token,
         }),
     },
