@@ -78,11 +78,13 @@ export interface AuthUser {
   status: string;
   avatarUrl?: string | null;
   mustChangePassword?: boolean;
+  walletAddress?: string | null;
 }
 
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
+  walletSecret?: string;
 }
 
 export interface TenantProfileSummary {
@@ -116,6 +118,7 @@ export interface UserProfile {
   role: UserRole;
   status: string;
   avatarUrl: string | null;
+  walletAddress: string | null;
   createdAt: string;
   tenantProfile: TenantProfileSummary | null;
   landlordProfile: LandlordProfileSummary | null;
@@ -461,10 +464,12 @@ export const api = {
   },
   users: {
     me: (token: string) => request<UserProfile>("/users/me", { token }),
-    updateProfile: (token: string, body: { name?: string; phone?: string }) =>
+    updateProfile: (token: string, body: { name?: string; phone?: string; walletAddress?: string }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body, token }),
     changePassword: (token: string, body: { currentPassword?: string; newPassword: string }) =>
       request<{ success: boolean }>("/users/me/password", { method: "PATCH", body, token }),
+    generateWallet: (token: string) =>
+      request<{ publicKey: string; secretKey: string }>("/users/me/wallet/generate", { method: "POST", token }),
   },
   listings: {
     findAll: () => request<Listing[]>("/listings"),
@@ -622,7 +627,12 @@ export const api = {
       body: { email: string; activationCode: string; newPassword: string },
       file: File,
     ) =>
-      uploadRequest<{ success: boolean }>("/landlord/agents/activate", null, file, body),
+      uploadRequest<{ success: boolean; walletSecret?: string }>(
+        "/landlord/agents/activate",
+        null,
+        file,
+        body,
+      ),
   },
   messages: {
     findInbox: (token: string) => request<MessageThread[]>("/messages", { token }),
