@@ -1,39 +1,97 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/ui/icon";
+import type { UserRole } from "@/lib/api";
 
-const propertiesGroup = [{ label: "All Listings", href: "/listings" }];
+type NavItem = { label: string; href: string; icon: IconName };
 
-const navItems: { label: string; href: string; icon: IconName }[] = [
-  { label: "My Bookings", href: "/bookings", icon: "description" },
-  { label: "Saved Properties", href: "/saved", icon: "favorite" },
-  { label: "Messages", href: "/messages", icon: "mail" },
-  { label: "Applications", href: "/applications", icon: "description" },
-  { label: "Payments", href: "/payments", icon: "credit_card" },
-  { label: "Escrow / Holds", href: "/escrow", icon: "lock" },
-  { label: "Verifications", href: "/verifications", icon: "verified_user" },
-  { label: "Viewing Code", href: "/viewing-code", icon: "lock" },
-  { label: "Reports", href: "/reports", icon: "flag" },
-  { label: "Report Fake Listing", href: "/reports/new", icon: "warning" },
-  { label: "Notifications", href: "/notifications", icon: "notifications" },
-  { label: "Audit Logs", href: "/audit-logs", icon: "assignment" },
-  { label: "Profile", href: "/profile", icon: "person" },
-  { label: "Settings", href: "/settings", icon: "settings" },
-];
+const ALL_LISTINGS: NavItem = { label: "All Listings", href: "/listings", icon: "apartment" };
+const MESSAGES: NavItem = { label: "Messages", href: "/messages", icon: "mail" };
+const NOTIFICATIONS: NavItem = { label: "Notifications", href: "/notifications", icon: "notifications" };
+const REPORTS: NavItem = { label: "Reports", href: "/reports", icon: "flag" };
+const REPORT_FAKE_LISTING: NavItem = { label: "Report Fake Listing", href: "/reports/new", icon: "warning" };
+const PROFILE: NavItem = { label: "Profile", href: "/profile", icon: "person" };
+const SETTINGS: NavItem = { label: "Settings", href: "/settings", icon: "settings" };
 
-const supportItems: { label: string; href: string; icon: IconName }[] = [
-  { label: "Help & Support", href: "/help", icon: "help" },
-];
+const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
+  TENANT: [
+    ALL_LISTINGS,
+    { label: "My Bookings", href: "/bookings", icon: "description" },
+    { label: "Saved Properties", href: "/saved", icon: "favorite" },
+    MESSAGES,
+    { label: "Applications", href: "/applications", icon: "description" },
+    { label: "Payments", href: "/payments", icon: "credit_card" },
+    { label: "Escrow / Holds", href: "/escrow", icon: "lock" },
+    { label: "Verifications", href: "/verifications", icon: "verified_user" },
+    { label: "Viewing Code", href: "/viewing-code", icon: "lock" },
+    REPORTS,
+    REPORT_FAKE_LISTING,
+    NOTIFICATIONS,
+    PROFILE,
+    SETTINGS,
+  ],
+  LANDLORD: [
+    ALL_LISTINGS,
+    MESSAGES,
+    REPORTS,
+    REPORT_FAKE_LISTING,
+    NOTIFICATIONS,
+    PROFILE,
+    SETTINGS,
+  ],
+  AGENT: [
+    ALL_LISTINGS,
+    MESSAGES,
+    REPORTS,
+    REPORT_FAKE_LISTING,
+    NOTIFICATIONS,
+    PROFILE,
+    SETTINGS,
+  ],
+  MANAGER: [
+    ALL_LISTINGS,
+    MESSAGES,
+    REPORTS,
+    REPORT_FAKE_LISTING,
+    NOTIFICATIONS,
+    PROFILE,
+    SETTINGS,
+  ],
+  ADMIN: [
+    ALL_LISTINGS,
+    { label: "Verification Review", href: "/admin/verifications", icon: "verified_user" },
+    { label: "Audit Logs", href: "/audit-logs", icon: "assignment" },
+    MESSAGES,
+    NOTIFICATIONS,
+    PROFILE,
+    SETTINGS,
+  ],
+  PLATFORM: [
+    ALL_LISTINGS,
+    { label: "Verification Review", href: "/admin/verifications", icon: "verified_user" },
+    { label: "Audit Logs", href: "/audit-logs", icon: "assignment" },
+    MESSAGES,
+    NOTIFICATIONS,
+    PROFILE,
+    SETTINGS,
+  ],
+};
+
+const supportItems: NavItem[] = [{ label: "Help & Support", href: "/help", icon: "help" }];
+
+const CAN_LIST_PROPERTY: UserRole[] = ["LANDLORD", "AGENT", "MANAGER", "ADMIN", "PLATFORM"];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
-  const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const { user, logout } = useAuth();
+
+  const role = user?.role ?? "TENANT";
+  const navItems = ROLE_NAV_ITEMS[role];
+  const showListPropertyCta = CAN_LIST_PROPERTY.includes(role);
 
   return (
     <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
@@ -59,37 +117,6 @@ export function Sidebar() {
           <Icon name="home" size={16} />
           Dashboard
         </Link>
-
-        <button
-          type="button"
-          onClick={() => setPropertiesOpen((open) => !open)}
-          className="flex w-full items-center gap-3 rounded-ur-sm px-3 py-2.5 text-sm font-medium text-ur-primary"
-        >
-          <Icon name="home" size={16} />
-          <span className="flex-1 text-left">Properties</span>
-          <Icon name="expand_less" className={cn("h-4 w-4 transition-transform", !propertiesOpen && "rotate-180")} />
-        </button>
-
-        {propertiesOpen
-          ? propertiesGroup.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-ur-sm px-3 py-2.5 pl-9 text-sm font-medium transition-colors",
-                    active
-                      ? "border-l-2 border-ur-primary bg-ur-success-bg text-ur-primary"
-                      : "text-ur-text-secondary hover:bg-ur-card-hover hover:text-ur-navy",
-                  )}
-                >
-                  <Icon name="home" size={14} />
-                  {item.label}
-                </Link>
-              );
-            })
-          : null}
 
         {navItems.map((item) => {
           const active = pathname === item.href;
@@ -141,19 +168,21 @@ export function Sidebar() {
         </button>
       </nav>
 
-      <div className="m-3 rounded-ur border border-ur-primary/20 bg-ur-success-bg p-4">
-        <p className="text-sm font-bold text-ur-primary">List Your Property</p>
-        <p className="mt-1 text-xs text-ur-text-secondary">
-          Reach verified tenants faster and secure reliable rentals.
-        </p>
-        <Link
-          href="/listings/new"
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
-        >
-          List a Property
-          <Icon name="arrow_forward" size={16} />
-        </Link>
-      </div>
+      {showListPropertyCta ? (
+        <div className="m-3 rounded-ur border border-ur-primary/20 bg-ur-success-bg p-4">
+          <p className="text-sm font-bold text-ur-primary">List Your Property</p>
+          <p className="mt-1 text-xs text-ur-text-secondary">
+            Reach verified tenants faster and secure reliable rentals.
+          </p>
+          <Link
+            href="/listings/new"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
+          >
+            List a Property
+            <Icon name="arrow_forward" size={16} />
+          </Link>
+        </div>
+      ) : null}
     </aside>
   );
 }
