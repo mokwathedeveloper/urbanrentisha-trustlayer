@@ -36,7 +36,7 @@ export class ListingsController {
   @UseGuards(JwtAuthGuard)
   @Get("mine")
   findMine(@CurrentUser() user: AuthUser) {
-    return this.listings.findMine(user.sub);
+    return this.listings.findMine(user.sub, user.role);
   }
 
   @Get(":id")

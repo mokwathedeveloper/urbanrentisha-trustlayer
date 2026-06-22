@@ -1,5 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { ListingStatus, NotificationType, Prisma } from "@prisma/client";
+import {
+  ListingStatus,
+  NotificationType,
+  Prisma,
+  UserRole,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -33,9 +38,35 @@ export class ListingsService {
     });
   }
 
-  findMine(ownerId: string) {
+  async findMine(userId: string, role: UserRole) {
+    if (role === UserRole.AGENT) {
+      const agentProfile = await this.prisma.agentProfile.findUnique({
+        where: { userId },
+      });
+      if (!agentProfile) return [];
+      return this.prisma.listing.findMany({
+        where: { agentId: agentProfile.id },
+        orderBy: { createdAt: "desc" },
+        include: LISTING_OWNER_INCLUDE,
+      });
+    }
+
+    if (role === UserRole.MANAGER) {
+      const managerProfile = await this.prisma.managerProfile.findUnique({
+        where: { userId },
+      });
+      if (!managerProfile) return [];
+      return this.prisma.listing.findMany({
+        where: { managerId: managerProfile.id },
+        orderBy: { createdAt: "desc" },
+        include: LISTING_OWNER_INCLUDE,
+      });
+    }
+
+    // LANDLORD (and ADMIN/PLATFORM, who own no listings but get an empty,
+    // harmless result here - they use /listings or /admin views instead).
     return this.prisma.listing.findMany({
-      where: { ownerId },
+      where: { ownerId: userId },
       orderBy: { createdAt: "desc" },
       include: LISTING_OWNER_INCLUDE,
     });
