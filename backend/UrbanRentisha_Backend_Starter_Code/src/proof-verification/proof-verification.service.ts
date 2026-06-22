@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import {
   NotificationType,
+  PaymentStatus,
   ProofStatus,
   UserRole,
   ViewingRequestStatus,
@@ -12,6 +13,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { SorobanService } from "../soroban/soroban.service";
+import { EscrowService } from "../soroban/escrow.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { SubmitProofVerificationDto } from "./dto/submit-proof-verification.dto";
 import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
@@ -34,6 +36,7 @@ export class ProofVerificationService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly soroban: SorobanService,
+    private readonly escrow: EscrowService,
     private readonly notifications: NotificationsService,
     private readonly access: ViewingRequestAccessService,
   ) {}
@@ -47,7 +50,11 @@ export class ProofVerificationService {
 
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
-      include: { zkProof: true },
+      include: {
+        zkProof: true,
+        payment: true,
+        listing: { include: { owner: true } },
+      },
     });
 
     if (!request) throw new NotFoundException("Viewing request not found.");
@@ -157,7 +164,89 @@ export class ProofVerificationService {
       );
     }
 
+    await this.releaseEscrowIfHeld(actorId, request);
+
     return verification;
+  }
+
+  /**
+   * Releases the held escrow payment to the landlord now that the proof is
+   * verified. This is intentionally non-blocking: a release failure (no
+   * landlord wallet yet, RPC hiccup, etc.) must not undo or fail proof
+   * verification - they are separate concerns. Failures are audit-logged
+   * as WARNING so an admin can release manually later.
+   */
+  private async releaseEscrowIfHeld(
+    actorId: string,
+    request: {
+      id: string;
+      payment: {
+        id: string;
+        status: PaymentStatus;
+        escrowDepositTxHash: string | null;
+      } | null;
+      listing: { owner: { walletAddress: string | null } };
+    },
+  ): Promise<void> {
+    const payment = request.payment;
+    if (
+      !payment ||
+      !payment.escrowDepositTxHash ||
+      payment.status !== PaymentStatus.RECEIVED
+    ) {
+      return;
+    }
+
+    const landlordWallet = request.listing.owner.walletAddress;
+    if (!landlordWallet) {
+      await this.auditLogs.create({
+        actorId,
+        action: "payment.escrow_release_skipped",
+        entityType: "payment",
+        entityId: payment.id,
+        severity: "WARNING",
+        metadata: {
+          reason: "Landlord has no Stellar wallet yet; release pending.",
+          viewingRequestId: request.id,
+        },
+      });
+      return;
+    }
+
+    try {
+      const releaseTxHash = await this.escrow.release(
+        payment.id,
+        landlordWallet,
+      );
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.RELEASED,
+          escrowReleaseTxHash: releaseTxHash,
+          escrowReleasedAt: new Date(),
+        },
+      });
+      await this.auditLogs.create({
+        actorId,
+        action: "payment.escrow_released",
+        entityType: "payment",
+        entityId: payment.id,
+        severity: "SUCCESS",
+        metadata: { releaseTxHash, viewingRequestId: request.id },
+      });
+    } catch (error) {
+      await this.auditLogs.create({
+        actorId,
+        action: "payment.escrow_release_failed",
+        entityType: "payment",
+        entityId: payment.id,
+        severity: "WARNING",
+        metadata: {
+          reason: (error as Error).message,
+          viewingRequestId: request.id,
+        },
+      });
+    }
   }
 
   async findOne(id: string, userId: string, role: UserRole) {
