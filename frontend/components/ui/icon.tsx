@@ -69,6 +69,7 @@ export const ICON_GLYPHS = {
   auto_awesome: "auto_awesome",
   star: "star",
   person: "person",
+  person_add: "person_add",
   person_check: "person_check",
   groups: "groups",
   person_off: "person_off",
