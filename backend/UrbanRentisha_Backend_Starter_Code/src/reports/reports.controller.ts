@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { UserRole } from "@prisma/client";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { RolesGuard } from "../common/guards/roles.guard";
+import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
 import { CreateReportDto } from "./dto/create-report.dto";
@@ -15,6 +18,8 @@ export class ReportsController {
     return this.reports.create(user.sub, dto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.PLATFORM)
   @Get()
   findAll() {
     return this.reports.findAll();
