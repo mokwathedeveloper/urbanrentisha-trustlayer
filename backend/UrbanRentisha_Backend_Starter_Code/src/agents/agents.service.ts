@@ -92,6 +92,7 @@ export class AgentsService {
             email: true,
             phone: true,
             createdAt: true,
+            lastActiveAt: true,
           },
         },
         listings: true,
