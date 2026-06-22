@@ -18,6 +18,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { StorageService } from "../storage/storage.service";
+import { StellarService } from "../stellar/stellar.service";
 
 const ACTIVATION_CODE_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ACTIVATION_CODE_TTL_MS = 1000 * 60 * 60 * 72;
@@ -40,6 +41,7 @@ export class LandlordService {
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly stellar: StellarService,
   ) {}
 
   async inviteAgent(
@@ -298,7 +300,20 @@ export class LandlordService {
       severity: "SUCCESS",
     });
 
-    return { success: true };
+    let walletSecret: string | undefined;
+    try {
+      const wallet = this.stellar.generateWallet();
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { walletAddress: wallet.publicKey },
+      });
+      this.stellar.fundTestnetAccount(wallet.publicKey).catch(() => undefined);
+      walletSecret = wallet.secretKey;
+    } catch {
+      // Non-critical: the agent can generate a wallet later from their profile.
+    }
+
+    return { success: true, walletSecret };
   }
 
   async getTeam(actorId: string, actorRole: UserRole) {

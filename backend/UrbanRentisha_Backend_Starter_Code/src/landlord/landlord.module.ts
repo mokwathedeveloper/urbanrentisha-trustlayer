@@ -4,9 +4,10 @@ import { LandlordService } from "./landlord.service";
 import { AuditLogsModule } from "../audit-logs/audit-logs.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { StorageModule } from "../storage/storage.module";
+import { StellarModule } from "../stellar/stellar.module";
 
 @Module({
-  imports: [AuditLogsModule, NotificationsModule, StorageModule],
+  imports: [AuditLogsModule, NotificationsModule, StorageModule, StellarModule],
   controllers: [LandlordController],
   providers: [LandlordService],
 })
