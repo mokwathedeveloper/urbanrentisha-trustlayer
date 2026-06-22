@@ -122,6 +122,7 @@ export class ListingsService {
       type: NotificationType.SYSTEM,
       title: "New Listing Pending Review",
       message: `"${listing.title}" was submitted and needs verification.`,
+      listingId: listing.id,
     });
 
     return listing;
