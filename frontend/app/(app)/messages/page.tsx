@@ -31,15 +31,15 @@ export default function MessagesPage() {
           setThreads(data);
           setActiveId((current) => {
             const wantsThreadParam =
-              threadParam && threadParam !== consumedThreadParam.current && data.some((thread) => thread.viewingRequestId === threadParam);
+              threadParam && threadParam !== consumedThreadParam.current && data.some((thread) => thread.id === threadParam);
             if (wantsThreadParam) {
               consumedThreadParam.current = threadParam;
               return threadParam;
             }
-            if (current && data.some((thread) => thread.viewingRequestId === current)) {
+            if (current && data.some((thread) => thread.id === current)) {
               return current;
             }
-            return data.length > 0 ? data[0].viewingRequestId : null;
+            return data.length > 0 ? data[0].id : null;
           });
         })
         .finally(() => setLoading(false));
@@ -49,29 +49,37 @@ export default function MessagesPage() {
     return () => clearInterval(interval);
   }, [token, threadParam]);
 
+  const activeThread = threads.find((thread) => thread.id === activeId);
+  const activeKind = activeThread?.kind;
+
   useEffect(() => {
-    if (!token || !activeId) return;
+    if (!token || !activeId || !activeKind) return;
     const currentToken = token;
-    const currentRequestId = activeId;
+    const currentId = activeId;
     function loadMessages() {
-      api.messages.findForRequest(currentToken, currentRequestId).then(setActiveMessages);
+      const fetcher =
+        activeKind === "listing_thread"
+          ? api.listingThreads.findMessages(currentToken, currentId)
+          : api.messages.findForRequest(currentToken, currentId);
+      fetcher.then(setActiveMessages);
     }
     loadMessages();
     const interval = setInterval(loadMessages, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [token, activeId]);
-
-  const activeThread = threads.find((thread) => thread.viewingRequestId === activeId);
+  }, [token, activeId, activeKind]);
 
   async function handleSend() {
-    if (!token || !activeId || !draft.trim()) return;
+    if (!token || !activeId || !activeKind || !draft.trim()) return;
     setSending(true);
     try {
-      const message = await api.messages.send(token, activeId, draft.trim());
+      const message =
+        activeKind === "listing_thread"
+          ? await api.listingThreads.send(token, activeId, draft.trim())
+          : await api.messages.send(token, activeId, draft.trim());
       setActiveMessages((prev) => [...prev, message]);
       setThreads((prev) =>
         prev.map((thread) =>
-          thread.viewingRequestId === activeId
+          thread.id === activeId
             ? { ...thread, lastMessage: message.body, lastMessageAt: message.createdAt }
             : thread,
         ),
@@ -104,10 +112,10 @@ export default function MessagesPage() {
           <div className="divide-y divide-ur-border">
             {threads.map((thread) => (
               <button
-                key={thread.viewingRequestId}
-                onClick={() => setActiveId(thread.viewingRequestId)}
+                key={thread.id}
+                onClick={() => setActiveId(thread.id)}
                 className={`block w-full px-4 py-3 text-left transition-colors ${
-                  thread.viewingRequestId === activeId ? "bg-ur-card-soft" : "hover:bg-ur-card-soft/60"
+                  thread.id === activeId ? "bg-ur-card-soft" : "hover:bg-ur-card-soft/60"
                 }`}
               >
                 <p className="text-sm font-bold text-ur-navy">{thread.listingTitle}</p>
