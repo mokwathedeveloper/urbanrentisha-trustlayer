@@ -34,7 +34,7 @@ async function request<T>(
 
 async function uploadRequest<T>(
   path: string,
-  token: string,
+  token: string | null,
   file: File,
   fields?: Record<string, string>,
 ): Promise<T> {
@@ -48,7 +48,7 @@ async function uploadRequest<T>(
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
   });
 
@@ -365,6 +365,8 @@ export interface LandlordTeamSummaryMember {
   profileType: "agent" | "manager";
   agencyName: string | null;
   verificationStatus: string;
+  activatedAt: string | null;
+  attestationTxHash: string | null;
   user: { id: string; name: string; email: string; status: string };
 }
 
@@ -600,11 +602,27 @@ export const api = {
   },
   landlord: {
     getTeam: (token: string) => request<LandlordTeamSummary>("/landlord/team", { token }),
-    inviteAgent: (token: string, body: { email: string; name: string; role: "AGENT" | "MANAGER" }) =>
-      request<{ user: { id: string; email: string; name: string; role: string }; temporaryPassword: string }>(
+    inviteAgent: (
+      token: string,
+      body: { name: string; email: string; role: "AGENT" | "MANAGER" },
+      file: File,
+    ) =>
+      uploadRequest<{ message: string; profileId: string }>(
         "/landlord/agents",
-        { method: "POST", body, token },
+        token,
+        file,
+        { name: body.name, email: body.email, role: body.role },
       ),
+    generateActivationCode: (token: string, profileType: "agent" | "manager", profileId: string) =>
+      request<{ activationCode: string; expiresAt: string }>(
+        `/landlord/agents/${profileType}/${profileId}/activation-code`,
+        { method: "POST", token },
+      ),
+    activate: (
+      body: { email: string; activationCode: string; newPassword: string },
+      file: File,
+    ) =>
+      uploadRequest<{ success: boolean }>("/landlord/agents/activate", null, file, body),
   },
   messages: {
     findInbox: (token: string) => request<MessageThread[]>("/messages", { token }),
