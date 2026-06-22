@@ -22,6 +22,8 @@ import { MessagesModule } from "./messages/messages.module";
 import { StorageModule } from "./storage/storage.module";
 import { UploadsModule } from "./uploads/uploads.module";
 import { LandlordModule } from "./landlord/landlord.module";
+import { ReviewsModule } from "./reviews/reviews.module";
+import { ListingThreadsModule } from "./listing-threads/listing-threads.module";
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { LandlordModule } from "./landlord/landlord.module";
     StorageModule,
     UploadsModule,
     LandlordModule,
+    ReviewsModule,
+    ListingThreadsModule,
   ],
 })
 export class AppModule {}
