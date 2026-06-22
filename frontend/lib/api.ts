@@ -426,6 +426,10 @@ export const api = {
         imageUrl?: string;
       },
     ) => request<Listing>("/listings", { method: "POST", body, token }),
+    verify: (token: string, id: string) =>
+      request<Listing>(`/listings/${id}/verify`, { method: "PATCH", token }),
+    reject: (token: string, id: string, note?: string) =>
+      request<Listing>(`/listings/${id}/reject`, { method: "PATCH", body: { note }, token }),
   },
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
