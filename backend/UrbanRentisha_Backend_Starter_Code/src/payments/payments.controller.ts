@@ -16,16 +16,16 @@ export class PaymentsController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreatePaymentIntentDto,
   ) {
-    return this.payments.createIntent(user.sub, dto);
+    return this.payments.createIntent(user.sub, user.role, dto);
   }
 
   @Post("confirm")
   confirm(@CurrentUser() user: AuthUser, @Body() dto: ConfirmPaymentDto) {
-    return this.payments.confirm(user.sub, dto);
+    return this.payments.confirm(user.sub, user.role, dto);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.payments.findOne(id);
+  findOne(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.payments.findOne(id, user.sub, user.role);
   }
 }

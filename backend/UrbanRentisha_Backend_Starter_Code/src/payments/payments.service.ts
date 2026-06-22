@@ -6,6 +6,7 @@ import {
 import {
   NotificationType,
   PaymentStatus,
+  UserRole,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -14,6 +15,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { ConfirmPaymentDto } from "./dto/confirm-payment.dto";
+import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
 
 @Injectable()
 export class PaymentsService {
@@ -22,9 +24,16 @@ export class PaymentsService {
     private readonly stellar: StellarService,
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
+    private readonly access: ViewingRequestAccessService,
   ) {}
 
-  async createIntent(actorId: string, dto: CreatePaymentIntentDto) {
+  async createIntent(
+    actorId: string,
+    role: UserRole,
+    dto: CreatePaymentIntentDto,
+  ) {
+    await this.access.assertAccess(dto.viewingRequestId, actorId, role);
+
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
       include: { listing: true, payment: true },
@@ -61,13 +70,14 @@ export class PaymentsService {
     return payment;
   }
 
-  async confirm(actorId: string, dto: ConfirmPaymentDto) {
+  async confirm(actorId: string, role: UserRole, dto: ConfirmPaymentDto) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: dto.paymentId },
       include: { viewingRequest: true },
     });
 
     if (!payment) throw new NotFoundException("Payment not found.");
+    await this.access.assertAccess(payment.viewingRequestId, actorId, role);
 
     const verification = await this.stellar.verifyPaymentReference({
       txHash: dto.txHash,
@@ -115,7 +125,10 @@ export class PaymentsService {
     return updated;
   }
 
-  findOne(id: string) {
-    return this.prisma.payment.findUnique({ where: { id } });
+  async findOne(id: string, userId: string, role: UserRole) {
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment) throw new NotFoundException("Payment not found.");
+    await this.access.assertAccess(payment.viewingRequestId, userId, role);
+    return payment;
   }
 }
