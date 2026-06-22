@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
-import { NotificationType } from "@prisma/client";
+import { NotificationType, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -14,6 +14,22 @@ export class NotificationsService {
     viewingRequestId?: string;
   }) {
     return this.prisma.notification.create({ data: input });
+  }
+
+  async notifyAdmins(input: {
+    type: NotificationType;
+    title: string;
+    message: string;
+    viewingRequestId?: string;
+  }) {
+    const admins = await this.prisma.user.findMany({
+      where: { role: { in: [UserRole.ADMIN, UserRole.PLATFORM] } },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      admins.map((admin) => this.create({ ...input, userId: admin.id })),
+    );
   }
 
   findForUser(userId: string) {
