@@ -22,7 +22,6 @@ interface AuthContextValue {
     name: string;
     password: string;
     role: UserRole;
-    landlordEmail?: string;
   }) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -72,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: string;
       password: string;
       role: UserRole;
-      landlordEmail?: string;
     }) => {
       const res = await api.auth.register(input);
       applySession(res.accessToken, res.user);
