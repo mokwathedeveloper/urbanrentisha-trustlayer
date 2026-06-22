@@ -3,23 +3,34 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from "@nestjs/common";
-import { randomInt } from "crypto";
-import { UserRole } from "@prisma/client";
+import {
+  DocumentType,
+  NotificationType,
+  UserRole,
+  UserStatus,
+  VerificationStage,
+} from "@prisma/client";
 import * as bcrypt from "bcryptjs";
+import { randomBytes, randomUUID } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
-import { InviteAgentDto } from "./dto/invite-agent.dto";
+import { NotificationsService } from "../notifications/notifications.service";
+import { StorageService } from "../storage/storage.service";
 
-const TEMP_PASSWORD_CHARSET =
-  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+const ACTIVATION_CODE_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const ACTIVATION_CODE_TTL_MS = 1000 * 60 * 60 * 72;
 
-function generateTemporaryPassword(length = 12): string {
-  let password = "";
+function generateActivationCode(length = 8): string {
+  let code = "";
   for (let i = 0; i < length; i++) {
-    password += TEMP_PASSWORD_CHARSET[randomInt(TEMP_PASSWORD_CHARSET.length)];
+    code +=
+      ACTIVATION_CODE_CHARSET[
+        randomBytes(1)[0] % ACTIVATION_CODE_CHARSET.length
+      ];
   }
-  return password;
+  return code;
 }
 
 @Injectable()
@@ -27,9 +38,21 @@ export class LandlordService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
-  async inviteAgent(actorId: string, actorRole: UserRole, dto: InviteAgentDto) {
+  async inviteAgent(
+    actorId: string,
+    actorRole: UserRole,
+    dto: {
+      email: string;
+      name: string;
+      role: "AGENT" | "MANAGER";
+      landlordProfileId?: string;
+    },
+    file: Express.Multer.File,
+  ) {
     const landlordProfileId = await this.resolveLandlordProfileId(
       actorId,
       actorRole,
@@ -43,21 +66,23 @@ export class LandlordService {
       throw new BadRequestException("Email is already registered.");
     }
 
-    const temporaryPassword = generateTemporaryPassword();
-    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+    // Unguessable placeholder: nobody is ever told this, so login is
+    // naturally impossible until the agent activates with a real code.
+    const placeholderHash = await bcrypt.hash(randomUUID(), 10);
 
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         name: dto.name,
-        passwordHash,
+        passwordHash: placeholderHash,
         role: dto.role,
-        mustChangePassword: true,
+        status: UserStatus.PENDING,
         agentProfile:
           dto.role === UserRole.AGENT
             ? {
                 create: {
                   verificationStatus: "pending",
+                  verificationStage: VerificationStage.DOCUMENTS_UPLOADED,
                   landlordId: landlordProfileId,
                 },
               }
@@ -67,24 +92,213 @@ export class LandlordService {
             ? {
                 create: {
                   verificationStatus: "pending",
+                  verificationStage: VerificationStage.DOCUMENTS_UPLOADED,
                   landlordId: landlordProfileId,
                 },
               }
             : undefined,
       },
-      select: { id: true, email: true, name: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        agentProfile: { select: { id: true } },
+        managerProfile: { select: { id: true } },
+      },
+    });
+
+    const profileId = user.agentProfile?.id ?? user.managerProfile?.id;
+    if (!profileId) {
+      throw new BadRequestException("role must be AGENT or MANAGER.");
+    }
+
+    const { fileUrl, fileName } = await this.storage.uploadDocument(
+      actorId,
+      file,
+    );
+    await this.prisma.document.create({
+      data: {
+        uploaderId: actorId,
+        fileUrl,
+        fileName,
+        documentType: DocumentType.ID_CARD,
+        agentProfileId: dto.role === UserRole.AGENT ? profileId : undefined,
+        managerProfileId: dto.role === UserRole.MANAGER ? profileId : undefined,
+      },
     });
 
     await this.auditLogs.create({
       actorId,
-      action: "agent.invited",
+      action: "agent.invite_submitted",
       entityType: "user",
       entityId: user.id,
       severity: "INFO",
       metadata: { email: user.email, role: user.role, landlordProfileId },
     });
 
-    return { user, temporaryPassword };
+    await this.notifications.notifyAdmins({
+      type: NotificationType.SYSTEM,
+      title: "New Agent Invite Pending Review",
+      message: `${dto.name} was invited as a ${dto.role.toLowerCase()} and needs document verification.`,
+    });
+
+    return {
+      message:
+        "Submitted for admin review. You'll be notified once it's approved.",
+      profileId,
+    };
+  }
+
+  async generateActivationCode(
+    actorId: string,
+    actorRole: UserRole,
+    profileType: "agent" | "manager",
+    profileId: string,
+  ) {
+    const landlordProfileId = await this.resolveLandlordProfileId(
+      actorId,
+      actorRole,
+      undefined,
+    );
+
+    const profile =
+      profileType === "agent"
+        ? await this.prisma.agentProfile.findUnique({
+            where: { id: profileId },
+          })
+        : await this.prisma.managerProfile.findUnique({
+            where: { id: profileId },
+          });
+
+    if (!profile) throw new NotFoundException("Profile not found.");
+    if (profile.landlordId !== landlordProfileId) {
+      throw new ForbiddenException(
+        "This profile does not belong to your team.",
+      );
+    }
+    if (profile.verificationStatus !== "verified") {
+      throw new BadRequestException(
+        "This profile has not been approved by an admin yet.",
+      );
+    }
+
+    const code = generateActivationCode();
+    const activationCodeHash = await bcrypt.hash(code, 10);
+    const activationCodeExpiresAt = new Date(
+      Date.now() + ACTIVATION_CODE_TTL_MS,
+    );
+
+    if (profileType === "agent") {
+      await this.prisma.agentProfile.update({
+        where: { id: profileId },
+        data: { activationCodeHash, activationCodeExpiresAt },
+      });
+    } else {
+      await this.prisma.managerProfile.update({
+        where: { id: profileId },
+        data: { activationCodeHash, activationCodeExpiresAt },
+      });
+    }
+
+    await this.auditLogs.create({
+      actorId,
+      action: "agent.activation_code_generated",
+      entityType: profileType,
+      entityId: profileId,
+      severity: "INFO",
+    });
+
+    return { activationCode: code, expiresAt: activationCodeExpiresAt };
+  }
+
+  async activate(input: {
+    email: string;
+    activationCode: string;
+    newPassword: string;
+    file: Express.Multer.File;
+  }) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: input.email },
+      include: { agentProfile: true, managerProfile: true },
+    });
+
+    if (!user || (!user.agentProfile && !user.managerProfile)) {
+      throw new UnauthorizedException("Invalid activation request.");
+    }
+
+    const profile = user.agentProfile ?? user.managerProfile;
+    const profileType: "agent" | "manager" = user.agentProfile
+      ? "agent"
+      : "manager";
+
+    if (
+      !profile?.activationCodeHash ||
+      !profile.activationCodeExpiresAt ||
+      profile.activationCodeExpiresAt.getTime() < Date.now()
+    ) {
+      throw new UnauthorizedException(
+        "This activation code is invalid or has expired.",
+      );
+    }
+
+    const codeOk = await bcrypt.compare(
+      input.activationCode,
+      profile.activationCodeHash,
+    );
+    if (!codeOk) {
+      throw new UnauthorizedException("Invalid activation code.");
+    }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, 10);
+    const { fileUrl, fileName } = await this.storage.uploadDocument(
+      user.id,
+      input.file,
+    );
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash, status: UserStatus.ACTIVE },
+      }),
+      profileType === "agent"
+        ? this.prisma.agentProfile.update({
+            where: { id: profile.id },
+            data: {
+              activationCodeHash: null,
+              activationCodeExpiresAt: null,
+              activatedAt: new Date(),
+            },
+          })
+        : this.prisma.managerProfile.update({
+            where: { id: profile.id },
+            data: {
+              activationCodeHash: null,
+              activationCodeExpiresAt: null,
+              activatedAt: new Date(),
+            },
+          }),
+      this.prisma.document.create({
+        data: {
+          uploaderId: user.id,
+          fileUrl,
+          fileName,
+          documentType: DocumentType.ID_CARD,
+          agentProfileId: profileType === "agent" ? profile.id : undefined,
+          managerProfileId: profileType === "manager" ? profile.id : undefined,
+        },
+      }),
+    ]);
+
+    await this.auditLogs.create({
+      actorId: user.id,
+      action: "agent.activated",
+      entityType: profileType,
+      entityId: profile.id,
+      severity: "SUCCESS",
+    });
+
+    return { success: true };
   }
 
   async getTeam(actorId: string, actorRole: UserRole) {
@@ -115,6 +329,8 @@ export class LandlordService {
         profileType: "agent" as const,
         agencyName: agent.agencyName,
         verificationStatus: agent.verificationStatus,
+        activatedAt: agent.activatedAt,
+        attestationTxHash: agent.attestationTxHash,
         user: agent.user,
       })),
       managers: managers.map((manager) => ({
@@ -122,6 +338,8 @@ export class LandlordService {
         profileType: "manager" as const,
         agencyName: manager.agencyName,
         verificationStatus: manager.verificationStatus,
+        activatedAt: manager.activatedAt,
+        attestationTxHash: manager.attestationTxHash,
         user: manager.user,
       })),
     };
