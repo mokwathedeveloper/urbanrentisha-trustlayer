@@ -126,12 +126,15 @@ export interface Listing {
   propertyType: string;
   imageUrl: string | null;
   verificationStatus: string;
+  ownerId: string;
+  agentId: string | null;
+  managerId: string | null;
   agent?: {
     id: string;
     agencyName: string;
     trustScore: number;
     verificationStatus: string;
-    user: { name: string; email: string; phone: string | null };
+    user: { id: string; name: string; email: string; phone: string | null };
   };
 }
 
