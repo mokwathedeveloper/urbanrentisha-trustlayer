@@ -26,6 +26,11 @@ export class PaymentsController {
     return this.payments.confirm(user.sub, user.role, dto);
   }
 
+  @Get(":id/poll")
+  pollStatus(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.payments.pollStatus(user.sub, user.role, id);
+  }
+
   @Post(":id/escrow/prepare-deposit")
   prepareEscrowDeposit(
     @CurrentUser() user: AuthUser,
