@@ -43,6 +43,7 @@ export class ReportsService {
       title: "Report Received",
       message: "Your fake listing report has been submitted for review.",
       viewingRequestId: dto.viewingRequestId,
+      listingId: dto.listingId,
     });
 
     await this.notifications.notifyAdmins({
@@ -50,6 +51,7 @@ export class ReportsService {
       title: "New Report Filed",
       message: `A ${report.severity}-severity ${report.reportType.toLowerCase().replace(/_/g, " ")} report was filed and needs review.`,
       viewingRequestId: dto.viewingRequestId,
+      listingId: dto.listingId,
     });
 
     return report;
