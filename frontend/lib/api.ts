@@ -126,6 +126,19 @@ export interface UserProfile {
   managerProfile: AgentLikeProfileSummary | null;
 }
 
+export interface ListingImage {
+  id: string;
+  listingId: string;
+  url: string;
+  order: number;
+  latitude: number | null;
+  longitude: number | null;
+  capturedAt: string | null;
+  device: string | null;
+  gpsPresent: boolean;
+  createdAt: string;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -139,6 +152,7 @@ export interface Listing {
   bathrooms: number | null;
   propertyType: string;
   imageUrl: string | null;
+  images: ListingImage[];
   verificationStatus: string;
   ownerId: string;
   agentId: string | null;
@@ -499,6 +513,23 @@ export const api = {
       request<Listing>(`/listings/${id}/verify`, { method: "PATCH", token }),
     reject: (token: string, id: string, note?: string) =>
       request<Listing>(`/listings/${id}/reject`, { method: "PATCH", body: { note }, token }),
+    addImage: (
+      token: string,
+      listingId: string,
+      body: {
+        url: string;
+        latitude?: number;
+        longitude?: number;
+        capturedAt?: string;
+        device?: string;
+        gpsPresent?: boolean;
+      },
+    ) => request<ListingImage>(`/listings/${listingId}/images`, { method: "POST", body, token }),
+    deleteImage: (token: string, listingId: string, imageId: string) =>
+      request<{ success: boolean }>(`/listings/${listingId}/images/${imageId}`, {
+        method: "DELETE",
+        token,
+      }),
   },
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
