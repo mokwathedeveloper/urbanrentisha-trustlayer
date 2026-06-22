@@ -136,6 +136,13 @@ export interface Listing {
     verificationStatus: string;
     user: { id: string; name: string; email: string; phone: string | null };
   };
+  manager?: {
+    id: string;
+    agencyName: string;
+    trustScore: number;
+    verificationStatus: string;
+    user: { id: string; name: string; email: string; phone: string | null };
+  };
 }
 
 export interface ViewingRequest {
