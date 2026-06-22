@@ -39,13 +39,22 @@ export function LandlordDashboardView() {
           </h1>
           <p className="mt-1 text-sm text-ur-text-secondary">Here&apos;s an overview of your properties.</p>
         </div>
-        <Link
-          href="/listings/new"
-          className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
-        >
-          <Icon name="add_circle" size={16} />
-          Add New Listing
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/team"
+            className="flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-bold text-ur-navy hover:bg-ur-card-soft"
+          >
+            <Icon name="groups" size={16} />
+            My Team
+          </Link>
+          <Link
+            href="/listings/new"
+            className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
+          >
+            <Icon name="add_circle" size={16} />
+            Add New Listing
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
