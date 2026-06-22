@@ -310,6 +310,26 @@ export interface VerificationItem {
   createdAt: string;
 }
 
+export interface LandlordTeamMember {
+  id: string;
+  profileType: "agent" | "manager";
+  agencyName: string | null;
+  verificationStatus: string;
+  trustScore: number;
+  user: { id: string; name: string; email: string; status: string };
+  listings: { id: string; title: string; verificationStatus: string }[];
+}
+
+export interface LandlordTeam {
+  id: string;
+  companyName: string | null;
+  verificationStage: VerificationStage;
+  trustScore: number;
+  user: { id: string; name: string; email: string; status: string };
+  agents: LandlordTeamMember[];
+  managers: LandlordTeamMember[];
+}
+
 export interface AdminOverview {
   stats: {
     pendingListings: number;
@@ -508,6 +528,28 @@ export const api = {
           body: { status },
           token,
         }),
+    },
+    agents: {
+      setLandlord: (
+        token: string,
+        profileType: "agent" | "manager",
+        profileId: string,
+        landlordProfileId: string | null,
+      ) =>
+        request<unknown>(`/admin/agents/${profileType}/${profileId}/landlord`, {
+          method: "PATCH",
+          body: { landlordProfileId },
+          token,
+        }),
+    },
+    landlords: {
+      list: (token: string) =>
+        request<{ id: string; companyName: string | null; name: string; email: string }[]>(
+          "/admin/landlords",
+          { token },
+        ),
+      getTeam: (token: string, landlordProfileId: string) =>
+        request<LandlordTeam>(`/admin/landlords/${landlordProfileId}/team`, { token }),
     },
   },
   agents: {
