@@ -7,6 +7,7 @@ import {
   PaymentStatus,
   Prisma,
   ProofStatus,
+  UserRole,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
@@ -17,6 +18,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { sha256 } from "../common/utils/hash.util";
 import { addMod, fieldHash, mulMod, randomField } from "./field.util";
 import { GenerateProofDto } from "./dto/generate-proof.dto";
+import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
 
 const WASM_PATH = path.join(
   __dirname,
@@ -35,9 +37,12 @@ export class ZkProofsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly auditLogs: AuditLogsService,
+    private readonly access: ViewingRequestAccessService,
   ) {}
 
-  async generate(actorId: string, dto: GenerateProofDto) {
+  async generate(actorId: string, role: UserRole, dto: GenerateProofDto) {
+    await this.access.assertAccess(dto.viewingRequestId, actorId, role);
+
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
       include: { payment: true, listing: true },
@@ -161,9 +166,10 @@ export class ZkProofsService {
     return proofRecord;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string, role: UserRole) {
     const proof = await this.prisma.zkProof.findUnique({ where: { id } });
     if (!proof) throw new NotFoundException("ZK proof not found.");
+    await this.access.assertAccess(proof.viewingRequestId, userId, role);
     return proof;
   }
 }

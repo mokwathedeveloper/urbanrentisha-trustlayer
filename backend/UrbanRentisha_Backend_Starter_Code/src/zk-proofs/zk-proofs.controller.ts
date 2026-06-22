@@ -12,11 +12,11 @@ export class ZkProofsController {
 
   @Post("generate")
   generate(@CurrentUser() user: AuthUser, @Body() dto: GenerateProofDto) {
-    return this.zkProofs.generate(user.sub, dto);
+    return this.zkProofs.generate(user.sub, user.role, dto);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.zkProofs.findOne(id);
+  findOne(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.zkProofs.findOne(id, user.sub, user.role);
   }
 }
