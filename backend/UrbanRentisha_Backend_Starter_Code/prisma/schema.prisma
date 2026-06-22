@@ -33,6 +33,13 @@ enum DocumentStatus {
   NEEDS_CORRECTION
 }
 
+enum DocumentType {
+  ID_CARD
+  GOOD_CONDUCT
+  PERSONAL_DOCUMENT
+  ASSET_DOCUMENT
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -225,6 +232,7 @@ model Document {
   managerProfile    ManagerProfile?  @relation(fields: [managerProfileId], references: [id])
   fileUrl           String
   fileName          String
+  documentType      DocumentType?
   status            DocumentStatus   @default(PENDING)
   reviewNote        String?
   reviewedById      String?
