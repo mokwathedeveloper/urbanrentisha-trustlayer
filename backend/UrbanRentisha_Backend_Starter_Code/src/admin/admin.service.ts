@@ -6,6 +6,7 @@ import {
 import {
   DocumentType,
   ListingStatus,
+  NotificationType,
   PaymentStatus,
   ProofStatus,
   ReportStatus,
@@ -16,6 +17,8 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { StorageService } from "../storage/storage.service";
+import { StellarService } from "../stellar/stellar.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { VerificationDecision } from "./dto/review-verification.dto";
 
 @Injectable()
@@ -24,6 +27,8 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly storage: StorageService,
+    private readonly stellar: StellarService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async dashboard() {
@@ -475,7 +480,81 @@ export class AdminService {
       metadata: { note },
     });
 
+    if (
+      (profileType === "agent" || profileType === "manager") &&
+      decision === VerificationDecision.APPROVED
+    ) {
+      await this.attestAndNotifyLandlord(profileType, profileId, actorId);
+    }
+
     return updated;
+  }
+
+  private async attestAndNotifyLandlord(
+    profileType: "agent" | "manager",
+    profileId: string,
+    actorId: string,
+  ) {
+    try {
+      const { txHash } = await this.stellar.recordAttestation({
+        subjectId: profileId,
+        approvedBy: actorId,
+        role: profileType,
+      });
+
+      if (profileType === "agent") {
+        await this.prisma.agentProfile.update({
+          where: { id: profileId },
+          data: { attestationTxHash: txHash, attestedAt: new Date() },
+        });
+      } else {
+        await this.prisma.managerProfile.update({
+          where: { id: profileId },
+          data: { attestationTxHash: txHash, attestedAt: new Date() },
+        });
+      }
+
+      await this.auditLogs.create({
+        actorId,
+        action: "agent.attested",
+        entityType: profileType,
+        entityId: profileId,
+        severity: "SUCCESS",
+        metadata: { txHash },
+      });
+    } catch (error) {
+      await this.auditLogs.create({
+        actorId,
+        action: "agent.attestation_failed",
+        entityType: profileType,
+        entityId: profileId,
+        severity: "CRITICAL",
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+
+    const profile =
+      profileType === "agent"
+        ? await this.prisma.agentProfile.findUnique({
+            where: { id: profileId },
+            include: { landlord: { select: { userId: true } } },
+          })
+        : await this.prisma.managerProfile.findUnique({
+            where: { id: profileId },
+            include: { landlord: { select: { userId: true } } },
+          });
+
+    if (profile?.landlord?.userId) {
+      await this.notifications.create({
+        userId: profile.landlord.userId,
+        type: NotificationType.SYSTEM,
+        title: "Agent Invite Approved",
+        message:
+          "Your invited team member has been approved. Generate their activation code from My Team.",
+      });
+    }
   }
 
   async setUserStatus(userId: string, status: UserStatus, actorId: string) {
