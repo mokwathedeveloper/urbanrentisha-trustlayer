@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ApiError, api, type ProfileType, type VerificationItem } from "@/lib/api";
+import { ApiError, api, type DocumentType, type ProfileType, type VerificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
@@ -13,6 +13,13 @@ const profileTypeLabels: Record<ProfileType, string> = {
   landlord: "Landlord",
   agent: "Agent",
   manager: "Property Manager",
+};
+
+const documentTypeLabels: Record<DocumentType, string> = {
+  ID_CARD: "National ID / Passport",
+  GOOD_CONDUCT: "Certificate of Good Conduct",
+  PERSONAL_DOCUMENT: "Proof of Address",
+  ASSET_DOCUMENT: "Proof of Property Ownership",
 };
 
 const stageTone: Record<string, string> = {
@@ -159,7 +166,12 @@ export default function AdminVerificationsPage() {
                             className="flex items-center gap-2 rounded-ur-sm border border-ur-border bg-ur-card px-3 py-2 text-sm text-ur-primary hover:underline"
                           >
                             <Icon name="description" size={16} />
-                            {doc.fileName}
+                            <span>
+                              {doc.documentType ? documentTypeLabels[doc.documentType] : doc.fileName}
+                              {doc.documentType ? (
+                                <span className="ml-1.5 text-xs text-ur-text-muted">({doc.fileName})</span>
+                              ) : null}
+                            </span>
                             <span className="ml-auto text-xs text-ur-text-muted">{formatDate(doc.createdAt)}</span>
                           </a>
                         ))}
