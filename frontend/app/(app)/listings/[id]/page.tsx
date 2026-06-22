@@ -5,9 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApiError, api, type Listing } from "@/lib/api";
+import { ApiError, api, type Listing, type MessageItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { formatDate } from "@/components/dashboard/dashboard-ui";
+
+const CHAT_POLL_INTERVAL_MS = 5000;
 
 export default function PropertyDetailPage() {
   const params = useParams<{ id: string }>();
@@ -22,6 +25,10 @@ export default function PropertyDetailPage() {
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<MessageItem[]>([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatSending, setChatSending] = useState(false);
 
   function load() {
     api.listings
@@ -40,6 +47,30 @@ export default function PropertyDetailPage() {
       setViewingRequestId(match?.id ?? null);
     });
   }, [token, user, params.id]);
+
+  useEffect(() => {
+    if (!token || !viewingRequestId || !chatOpen) return;
+    const currentToken = token;
+    const requestId = viewingRequestId;
+    function loadMessages() {
+      api.messages.findForRequest(currentToken, requestId).then(setChatMessages);
+    }
+    loadMessages();
+    const interval = setInterval(loadMessages, CHAT_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [token, viewingRequestId, chatOpen]);
+
+  async function handleSendChat() {
+    if (!token || !viewingRequestId || !chatDraft.trim()) return;
+    setChatSending(true);
+    try {
+      const message = await api.messages.send(token, viewingRequestId, chatDraft.trim());
+      setChatMessages((prev) => [...prev, message]);
+      setChatDraft("");
+    } finally {
+      setChatSending(false);
+    }
+  }
 
   if (loading) {
     return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
@@ -352,10 +383,64 @@ export default function PropertyDetailPage() {
               </p>
 
               {viewingRequestId ? (
-                <Button className="mt-4 w-full" onClick={() => router.push(`/messages?thread=${viewingRequestId}`)}>
-                  <Icon name="chat_bubble" size={16} />
-                  Message Agent
-                </Button>
+                <>
+                  <Button className="mt-4 w-full" onClick={() => setChatOpen((open) => !open)}>
+                    <Icon name="chat_bubble" size={16} />
+                    {chatOpen ? "Hide Chat" : "Message Agent"}
+                  </Button>
+                  {chatOpen ? (
+                    <div className="mt-3 flex h-80 flex-col rounded-ur border border-ur-border bg-ur-card-soft">
+                      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                        {chatMessages.length === 0 ? (
+                          <p className="py-6 text-center text-xs text-ur-text-muted">
+                            No messages yet. Say hello!
+                          </p>
+                        ) : (
+                          chatMessages.map((message) => {
+                            const isOwn = message.senderId === user?.id;
+                            return (
+                              <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+                                <div
+                                  className={`max-w-[80%] rounded-ur-sm px-3 py-2 text-sm ${
+                                    isOwn ? "bg-ur-primary text-white" : "bg-ur-card text-ur-navy"
+                                  }`}
+                                >
+                                  <p>{message.body}</p>
+                                  <p className={`mt-1 text-xs ${isOwn ? "text-white/70" : "text-ur-text-muted"}`}>
+                                    {formatDate(message.createdAt)}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 border-t border-ur-border p-2">
+                        <input
+                          value={chatDraft}
+                          onChange={(e) => setChatDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendChat();
+                            }
+                          }}
+                          placeholder="Write a message..."
+                          className="flex-1 rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSendChat}
+                          disabled={chatSending || !chatDraft.trim()}
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-ur-sm bg-ur-primary text-white disabled:opacity-50"
+                          aria-label="Send message"
+                        >
+                          <Icon name="send" size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               <Button
                 variant="danger"
