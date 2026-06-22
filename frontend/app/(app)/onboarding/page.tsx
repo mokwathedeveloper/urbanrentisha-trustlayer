@@ -5,28 +5,39 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/lib/auth";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, type DocumentType } from "@/lib/api";
 
-const VERIFIABLE_ROLES = new Set(["LANDLORD", "AGENT", "MANAGER"]);
+const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  ID_CARD: "National ID / Passport",
+  GOOD_CONDUCT: "Certificate of Good Conduct",
+  PERSONAL_DOCUMENT: "Proof of Address",
+  ASSET_DOCUMENT: "Proof of Property Ownership",
+};
+
+const ROLE_REQUIRED_DOCUMENTS: Record<string, DocumentType[]> = {
+  LANDLORD: ["ID_CARD", "GOOD_CONDUCT", "PERSONAL_DOCUMENT", "ASSET_DOCUMENT"],
+  AGENT: ["ID_CARD", "GOOD_CONDUCT", "PERSONAL_DOCUMENT"],
+  MANAGER: ["ID_CARD", "GOOD_CONDUCT", "PERSONAL_DOCUMENT"],
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, token, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUploaded, setAvatarUploaded] = useState(Boolean(user?.avatarUrl));
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  const [documentUploaded, setDocumentUploaded] = useState(false);
-  const [uploadingDocument, setUploadingDocument] = useState(false);
-  const [documentError, setDocumentError] = useState<string | null>(null);
-  const [documentName, setDocumentName] = useState<string | null>(null);
+  const requiredDocuments = user ? ROLE_REQUIRED_DOCUMENTS[user.role] ?? [] : [];
+  const needsDocuments = requiredDocuments.length > 0;
+  const [uploadedDocuments, setUploadedDocuments] = useState<Set<DocumentType>>(new Set());
+  const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
+  const [documentErrors, setDocumentErrors] = useState<Partial<Record<DocumentType, string>>>({});
 
-  const needsDocuments = user ? VERIFIABLE_ROLES.has(user.role) : false;
-  const canContinue = avatarUploaded && (!needsDocuments || documentUploaded);
+  const allDocumentsUploaded = requiredDocuments.every((type) => uploadedDocuments.has(type));
+  const canContinue = avatarUploaded && (!needsDocuments || allDocumentsUploaded);
 
   async function handleAvatarSelect(file: File) {
     if (!token) return;
@@ -45,18 +56,20 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleDocumentSelect(file: File) {
+  async function handleDocumentSelect(documentType: DocumentType, file: File) {
     if (!token) return;
-    setDocumentError(null);
-    setUploadingDocument(true);
+    setDocumentErrors((prev) => ({ ...prev, [documentType]: undefined }));
+    setUploadingType(documentType);
     try {
-      await api.uploads.documents(token, file);
-      setDocumentUploaded(true);
-      setDocumentName(file.name);
+      await api.uploads.documents(token, file, documentType);
+      setUploadedDocuments((prev) => new Set(prev).add(documentType));
     } catch (err) {
-      setDocumentError(err instanceof ApiError ? err.message : "Could not upload document.");
+      setDocumentErrors((prev) => ({
+        ...prev,
+        [documentType]: err instanceof ApiError ? err.message : "Could not upload document.",
+      }));
     } finally {
-      setUploadingDocument(false);
+      setUploadingType(null);
     }
   }
 
@@ -116,41 +129,21 @@ export default function OnboardingPage() {
 
           {needsDocuments ? (
             <div className="mt-6 space-y-2">
-              <StepHeader done={documentUploaded} index={2} label="Verification Documents" required />
-              <div className="rounded-ur border border-ur-border bg-ur-card-soft p-4">
-                <p className="text-sm text-ur-text-secondary">
-                  {user?.role === "LANDLORD"
-                    ? "Upload proof of property ownership or a company registration document. An admin will review it before your account is fully verified."
-                    : "Upload documentation proving you're authorized to represent the landlord or property you listed (e.g. an agency license or letter of authorization). An admin will review it."}
-                </p>
-                <input
-                  ref={docInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,application/pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleDocumentSelect(file);
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="mt-3"
-                  disabled={uploadingDocument}
-                  onClick={() => docInputRef.current?.click()}
-                >
-                  <Icon name="description" size={14} />
-                  {uploadingDocument ? "Uploading..." : documentUploaded ? "Replace document" : "Upload document"}
-                </Button>
-                {documentName ? (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs text-ur-primary">
-                    <Icon name="check_circle" size={14} />
-                    {documentName}
-                  </p>
-                ) : null}
-                {documentError ? <p className="mt-1 text-xs text-ur-error">{documentError}</p> : null}
+              <StepHeader done={allDocumentsUploaded} index={2} label="Verification Documents" required />
+              <p className="text-sm text-ur-text-secondary">
+                Upload each required document below. An admin will review them before your account is fully verified.
+              </p>
+              <div className="space-y-3">
+                {requiredDocuments.map((documentType) => (
+                  <DocumentUploadRow
+                    key={documentType}
+                    documentType={documentType}
+                    uploaded={uploadedDocuments.has(documentType)}
+                    uploading={uploadingType === documentType}
+                    error={documentErrors[documentType]}
+                    onSelect={(file) => handleDocumentSelect(documentType, file)}
+                  />
+                ))}
               </div>
             </div>
           ) : null}
@@ -177,6 +170,60 @@ function StepHeader({ done, index, label, required }: { done: boolean; index: nu
       </span>
       {label}
       {required ? <span className="text-xs font-normal text-ur-text-muted">(required)</span> : null}
+    </div>
+  );
+}
+
+function DocumentUploadRow({
+  documentType,
+  uploaded,
+  uploading,
+  error,
+  onSelect,
+}: {
+  documentType: DocumentType;
+  uploaded: boolean;
+  uploading: boolean;
+  error?: string;
+  onSelect: (file: File) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="rounded-ur border border-ur-border bg-ur-card-soft p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-sm font-semibold text-ur-navy">
+          <span
+            className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs ${
+              uploaded ? "bg-ur-primary text-white" : "border border-ur-border-strong text-ur-text-muted"
+            }`}
+          >
+            {uploaded ? <Icon name="check" size={12} /> : null}
+          </span>
+          {DOCUMENT_TYPE_LABELS[documentType]}
+        </p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onSelect(file);
+          }}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          <Icon name="description" size={14} />
+          {uploading ? "Uploading..." : uploaded ? "Replace" : "Upload"}
+        </Button>
+      </div>
+      {error ? <p className="mt-2 text-xs text-ur-error">{error}</p> : null}
     </div>
   );
 }
