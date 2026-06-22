@@ -281,6 +281,21 @@ model Listing {
   viewingRequests ViewingRequest[]
   reports         Report[]
   savedBy         SavedListing[]
+  images          ListingImage[]
+}
+
+model ListingImage {
+  id         String    @id @default(cuid())
+  listingId  String
+  listing    Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url        String
+  order      Int
+  latitude   Float?
+  longitude  Float?
+  capturedAt DateTime?
+  device     String?
+  gpsPresent Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 }
 
 model SavedListing {
