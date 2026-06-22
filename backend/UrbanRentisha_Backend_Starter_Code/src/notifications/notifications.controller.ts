@@ -15,7 +15,7 @@ export class NotificationsController {
   }
 
   @Patch(":id/read")
-  markRead(@Param("id") id: string) {
-    return this.notifications.markRead(id);
+  markRead(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.notifications.markRead(id, user.sub);
   }
 }

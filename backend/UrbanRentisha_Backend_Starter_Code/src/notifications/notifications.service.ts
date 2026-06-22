@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -34,10 +34,16 @@ export class NotificationsService {
     });
   }
 
-  markRead(id: string) {
-    return this.prisma.notification.update({
-      where: { id },
+  async markRead(id: string, userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: { id, userId },
       data: { readAt: new Date() },
     });
+    if (result.count === 0) {
+      throw new ForbiddenException(
+        "You do not have access to this notification.",
+      );
+    }
+    return this.prisma.notification.findUnique({ where: { id } });
   }
 }
