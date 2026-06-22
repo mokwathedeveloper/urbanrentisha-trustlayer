@@ -143,4 +143,22 @@ export class ListingsService {
 
     return listing;
   }
+
+  async reject(id: string, actorId: string, note?: string) {
+    const listing = await this.prisma.listing.update({
+      where: { id },
+      data: { verificationStatus: ListingStatus.REJECTED },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "listing.rejected",
+      entityType: "listing",
+      entityId: id,
+      severity: "WARNING",
+      metadata: { note },
+    });
+
+    return listing;
+  }
 }
