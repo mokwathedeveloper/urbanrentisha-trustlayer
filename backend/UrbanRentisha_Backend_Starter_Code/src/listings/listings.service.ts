@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { ListingStatus, Prisma } from "@prisma/client";
+import { ListingStatus, NotificationType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateListingDto } from "./dto/create-listing.dto";
 
 const LISTING_OWNER_INCLUDE = {
@@ -22,6 +23,7 @@ export class ListingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   findAll() {
@@ -73,6 +75,12 @@ export class ListingsService {
       entityId: listing.id,
       severity: "INFO",
       metadata: { title: listing.title },
+    });
+
+    await this.notifications.notifyAdmins({
+      type: NotificationType.SYSTEM,
+      title: "New Listing Pending Review",
+      message: `"${listing.title}" was submitted and needs verification.`,
     });
 
     return listing;
