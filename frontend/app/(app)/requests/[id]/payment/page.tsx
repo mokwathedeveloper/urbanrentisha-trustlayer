@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Stepper } from "@/components/requests/stepper";
-import { api, ApiError, type Payment, type ViewingRequest } from "@/lib/api";
+import { api, type Payment, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 
+const POLL_INTERVAL_MS = 5000;
+
 const howItWorks = [
   "Send the exact amount of XLM to the address above",
-  "Wait for the transaction to be confirmed on Stellar Testnet",
-  "You'll be redirected back once payment is confirmed",
+  "We watch Stellar Testnet for your payment automatically",
+  "You'll be redirected as soon as it's confirmed - no transaction hash needed",
   "Your viewing request will be automatically confirmed",
 ];
 
@@ -26,8 +27,6 @@ export default function PaymentPage() {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [txHash, setTxHash] = useState("");
-  const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -47,21 +46,20 @@ export default function PaymentPage() {
       .finally(() => setLoading(false));
   }, [token, params.id]);
 
-  async function handleConfirm(e: FormEvent) {
-    e.preventDefault();
-    if (!token || !payment) return;
-    setError(null);
-    setConfirming(true);
-    try {
-      const updated = await api.payments.confirm(token, { paymentId: payment.id, txHash });
-      setPayment(updated);
-      router.push(`/requests/${params.id}/proof`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not confirm this payment.");
-    } finally {
-      setConfirming(false);
-    }
-  }
+  useEffect(() => {
+    if (!token || !payment || payment.status === "RECEIVED") return;
+    const currentToken = token;
+    const paymentId = payment.id;
+    const interval = setInterval(() => {
+      api.payments.pollStatus(currentToken, paymentId).then((updated) => {
+        setPayment(updated);
+        if (updated.status === "RECEIVED") {
+          router.push(`/requests/${params.id}/proof`);
+        }
+      });
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [token, payment, params.id, router]);
 
   function copyAddress() {
     if (!payment) return;
@@ -162,30 +160,14 @@ export default function PaymentPage() {
                       : "Send the exact amount to the address above."}
                   </p>
                   {!received ? (
-                    <p className="text-xs text-ur-text-secondary">
-                      Once received, your transaction will be processed automatically.
+                    <p className="flex items-center gap-1.5 text-xs text-ur-text-secondary">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ur-cyan" />
+                      We&apos;re watching Stellar Testnet for your payment - this page updates automatically.
                     </p>
                   ) : null}
                 </div>
               </div>
             </div>
-
-            <form onSubmit={handleConfirm} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex-1">
-                <Input
-                  label="Transaction Hash"
-                  name="txHash"
-                  placeholder="Paste your Stellar testnet transaction hash"
-                  value={txHash}
-                  onChange={(e) => setTxHash(e.target.value)}
-                  disabled={received}
-                  required
-                />
-              </div>
-              <Button type="submit" disabled={confirming || received}>
-                {received ? "Confirmed" : confirming ? "Confirming..." : "Confirm Payment"}
-              </Button>
-            </form>
             {error ? <p className="mt-2 text-sm text-ur-error">{error}</p> : null}
           </div>
 
