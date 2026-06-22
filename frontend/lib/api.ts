@@ -77,6 +77,7 @@ export interface AuthUser {
   role: UserRole;
   status: string;
   avatarUrl?: string | null;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthResponse {
@@ -359,6 +360,19 @@ export interface LandlordTeam {
   managers: LandlordTeamMember[];
 }
 
+export interface LandlordTeamSummaryMember {
+  id: string;
+  profileType: "agent" | "manager";
+  agencyName: string | null;
+  verificationStatus: string;
+  user: { id: string; name: string; email: string; status: string };
+}
+
+export interface LandlordTeamSummary {
+  agents: LandlordTeamSummaryMember[];
+  managers: LandlordTeamSummaryMember[];
+}
+
 export interface AdminOverview {
   stats: {
     pendingListings: number;
@@ -438,7 +452,6 @@ export const api = {
       password: string;
       role: UserRole;
       phone?: string;
-      landlordEmail?: string;
     }) => request<AuthResponse>("/auth/register", { method: "POST", body }),
     login: (body: { email: string; password: string }) =>
       request<AuthResponse>("/auth/login", { method: "POST", body }),
@@ -448,7 +461,7 @@ export const api = {
     me: (token: string) => request<UserProfile>("/users/me", { token }),
     updateProfile: (token: string, body: { name?: string; phone?: string }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body, token }),
-    changePassword: (token: string, body: { currentPassword: string; newPassword: string }) =>
+    changePassword: (token: string, body: { currentPassword?: string; newPassword: string }) =>
       request<{ success: boolean }>("/users/me/password", { method: "PATCH", body, token }),
   },
   listings: {
@@ -584,6 +597,14 @@ export const api = {
   agents: {
     findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
     myDashboard: (token: string) => request<AgentDashboard>("/agents/me/dashboard", { token }),
+  },
+  landlord: {
+    getTeam: (token: string) => request<LandlordTeamSummary>("/landlord/team", { token }),
+    inviteAgent: (token: string, body: { email: string; name: string; role: "AGENT" | "MANAGER" }) =>
+      request<{ user: { id: string; email: string; name: string; role: string }; temporaryPassword: string }>(
+        "/landlord/agents",
+        { method: "POST", body, token },
+      ),
   },
   messages: {
     findInbox: (token: string) => request<MessageThread[]>("/messages", { token }),
