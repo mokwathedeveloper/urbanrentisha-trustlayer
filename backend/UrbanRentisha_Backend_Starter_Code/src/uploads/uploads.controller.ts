@@ -13,8 +13,14 @@ import { AuthUser } from "../common/types/auth-user.type";
 import { UploadsService } from "./uploads.service";
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const LISTING_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 const AVATAR_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const LISTING_IMAGE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
 const DOCUMENT_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -49,6 +55,31 @@ export class UploadsController {
   ) {
     if (!file) throw new BadRequestException("No file was provided.");
     return this.uploads.uploadAvatar(user.sub, file);
+  }
+
+  @Post("listing-image")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: LISTING_IMAGE_MAX_BYTES },
+      fileFilter: (_req, file, callback) => {
+        if (!LISTING_IMAGE_MIME_TYPES.has(file.mimetype)) {
+          return callback(
+            new BadRequestException(
+              "Listing image must be a PNG, JPEG, or WEBP image.",
+            ),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  uploadListingImage(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException("No file was provided.");
+    return this.uploads.uploadListingImage(user.sub, file);
   }
 
   @Post("documents")
