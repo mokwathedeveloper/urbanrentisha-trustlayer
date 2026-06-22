@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { broadcastNotificationsChanged, getNotificationLink } from "@/lib/notifications";
 
 type FilterType = "ALL" | "PAYMENT" | "PROOF" | "VIEWING_CODE" | "REPORT" | "SYSTEM";
 
@@ -39,6 +41,7 @@ function truncate(value: string, head = 10, tail = 6): string {
 
 export default function NotificationsPage() {
   const { token } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("ALL");
@@ -81,6 +84,15 @@ export default function NotificationsPage() {
     if (!token) return;
     const updated = await api.notifications.markRead(token, id);
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, ...updated } : n)));
+    broadcastNotificationsChanged();
+  }
+
+  function handleSelect(notification: NotificationItem) {
+    setSelectedId(notification.id);
+    if (!notification.readAt) markRead(notification.id);
+
+    const link = getNotificationLink(notification);
+    if (link) router.push(link);
   }
 
   async function markAllRead() {
@@ -88,6 +100,7 @@ export default function NotificationsPage() {
     await Promise.all(notifications.filter((n) => !n.readAt).map((n) => api.notifications.markRead(token, n.id)));
     const refreshed = await api.notifications.findMine(token);
     setNotifications(refreshed);
+    broadcastNotificationsChanged();
   }
 
   return (
@@ -153,7 +166,7 @@ export default function NotificationsPage() {
                     <button
                       key={notification.id}
                       type="button"
-                      onClick={() => setSelectedId(notification.id)}
+                      onClick={() => handleSelect(notification)}
                       className={`flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-ur-card-hover ${
                         selectedId === notification.id ? "bg-ur-card-hover" : ""
                       }`}
