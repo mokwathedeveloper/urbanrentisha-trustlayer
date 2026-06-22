@@ -15,6 +15,7 @@ import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
 import { CreateListingDto } from "./dto/create-listing.dto";
+import { RejectListingDto } from "./dto/reject-listing.dto";
 import { ListingsService } from "./listings.service";
 
 @Controller("listings")
@@ -67,5 +68,16 @@ export class ListingsController {
   @Patch(":id/verify")
   verify(@CurrentUser() user: AuthUser, @Param("id") id: string) {
     return this.listings.markVerified(id, user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch(":id/reject")
+  reject(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Body() dto: RejectListingDto,
+  ) {
+    return this.listings.reject(id, user.sub, dto.note);
   }
 }
