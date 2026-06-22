@@ -282,6 +282,7 @@ model Listing {
   reports         Report[]
   savedBy         SavedListing[]
   images          ListingImage[]
+  notifications   Notification[]
 }
 
 model ListingImage {
@@ -424,6 +425,8 @@ model Notification {
   message          String
   viewingRequestId String?
   viewingRequest   ViewingRequest?  @relation(fields: [viewingRequestId], references: [id])
+  listingId        String?
+  listing          Listing?         @relation(fields: [listingId], references: [id])
   readAt           DateTime?
   createdAt        DateTime         @default(now())
 }
