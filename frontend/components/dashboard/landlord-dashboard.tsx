@@ -77,7 +77,7 @@ export function LandlordDashboardView() {
       ) : null}
 
       <div className="mt-6">
-        <Panel title={`My Listings (${activeListings.length} Active)`} viewAllHref="/listings">
+        <Panel title={`My Listings (${activeListings.length} Active)`} viewAllHref="/listings/mine">
           {listings.length === 0 ? (
             <EmptyRow text="No listings yet. Add your first property to get started." />
           ) : (

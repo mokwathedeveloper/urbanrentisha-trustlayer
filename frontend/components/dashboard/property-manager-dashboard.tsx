@@ -84,7 +84,7 @@ export function PropertyManagerDashboardView() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
-          <Panel title={`My Listings (${dashboard?.stats.activeListings ?? 0} Active)`} viewAllHref="/listings">
+          <Panel title={`My Listings (${dashboard?.stats.activeListings ?? 0} Active)`} viewAllHref="/listings/mine">
             {!dashboard || dashboard.listings.length === 0 ? (
               <EmptyRow text="No listings yet." />
             ) : (
