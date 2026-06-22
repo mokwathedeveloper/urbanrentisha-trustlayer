@@ -10,6 +10,8 @@ import type { UserRole } from "@/lib/api";
 type NavItem = { label: string; href: string; icon: IconName };
 
 const ALL_LISTINGS: NavItem = { label: "All Listings", href: "/listings", icon: "apartment" };
+const MY_LANDLORD_PROPERTIES: NavItem = { label: "My Properties", href: "/listings/mine", icon: "apartment" };
+const MY_ASSIGNED_PROPERTIES: NavItem = { label: "Properties Assigned To Me", href: "/listings/mine", icon: "apartment" };
 const MESSAGES: NavItem = { label: "Messages", href: "/messages", icon: "mail" };
 const NOTIFICATIONS: NavItem = { label: "Notifications", href: "/notifications", icon: "notifications" };
 const REPORTS: NavItem = { label: "Reports", href: "/reports", icon: "flag" };
@@ -35,6 +37,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     SETTINGS,
   ],
   LANDLORD: [
+    MY_LANDLORD_PROPERTIES,
     ALL_LISTINGS,
     MESSAGES,
     REPORTS,
@@ -44,6 +47,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     SETTINGS,
   ],
   AGENT: [
+    MY_ASSIGNED_PROPERTIES,
     ALL_LISTINGS,
     MESSAGES,
     REPORTS,
@@ -53,6 +57,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     SETTINGS,
   ],
   MANAGER: [
+    MY_ASSIGNED_PROPERTIES,
     ALL_LISTINGS,
     MESSAGES,
     REPORTS,
