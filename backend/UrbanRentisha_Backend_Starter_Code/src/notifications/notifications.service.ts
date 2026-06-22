@@ -12,6 +12,7 @@ export class NotificationsService {
     title: string;
     message: string;
     viewingRequestId?: string;
+    listingId?: string;
   }) {
     return this.prisma.notification.create({ data: input });
   }
@@ -21,6 +22,7 @@ export class NotificationsService {
     title: string;
     message: string;
     viewingRequestId?: string;
+    listingId?: string;
   }) {
     const admins = await this.prisma.user.findMany({
       where: { role: { in: [UserRole.ADMIN, UserRole.PLATFORM] } },
@@ -46,6 +48,7 @@ export class NotificationsService {
             viewingCode: true,
           },
         },
+        listing: true,
       },
     });
   }
