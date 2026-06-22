@@ -75,6 +75,12 @@ export class PaymentsService {
     return payment;
   }
 
+  /**
+   * Manual fallback for confirming a payment by a known transaction hash.
+   * Not used by the tenant-facing flow anymore (see pollStatus) - kept for
+   * admin/support reconciliation if automatic memo detection ever misses a
+   * real payment.
+   */
   async confirm(actorId: string, role: UserRole, dto: ConfirmPaymentDto) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: dto.paymentId },
@@ -93,10 +99,48 @@ export class PaymentsService {
       throw new BadRequestException(verification.reason);
     }
 
+    return this.markReceived(actorId, payment, dto.txHash);
+  }
+
+  /**
+   * Polled by the tenant-facing payment page while waiting - checks Stellar
+   * testnet for an incoming payment matching this Payment's memo and
+   * auto-confirms it if found. The tenant never sees or provides a
+   * transaction hash; the backend finds it for them.
+   */
+  async pollStatus(actorId: string, role: UserRole, paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new NotFoundException("Payment not found.");
+    await this.access.assertAccess(payment.viewingRequestId, actorId, role);
+
+    if (payment.status !== PaymentStatus.AWAITING_PAYMENT) {
+      return payment;
+    }
+
+    const txHash = await this.stellar.findIncomingPaymentByMemo(
+      payment.stellarMemo,
+    );
+    if (!txHash) return payment;
+
+    return this.markReceived(actorId, payment, txHash);
+  }
+
+  private async markReceived(
+    actorId: string,
+    payment: {
+      id: string;
+      viewingRequestId: string;
+      amount: number;
+      stellarAsset: string;
+    },
+    txHash: string,
+  ) {
     const updated = await this.prisma.payment.update({
       where: { id: payment.id },
       data: {
-        txHash: dto.txHash,
+        txHash,
         status: PaymentStatus.RECEIVED,
         paidAt: new Date(),
       },
@@ -114,7 +158,7 @@ export class PaymentsService {
       entityId: payment.id,
       severity: "SUCCESS",
       metadata: {
-        txHash: dto.txHash,
+        txHash,
         viewingRequestId: payment.viewingRequestId,
       },
     });
