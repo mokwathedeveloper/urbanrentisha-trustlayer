@@ -144,4 +144,30 @@ export class StellarService {
       memo: tx.memo,
     };
   }
+
+  /**
+   * Looks for an incoming payment to the platform's own destination wallet
+   * whose memo matches a given viewing request, without requiring the payer
+   * to find or paste a transaction hash themselves. The memo is derived
+   * from the viewing request's cuid (see createMemoForRequest), which is
+   * effectively unique, so a memo match is a safe way to identify the
+   * payment automatically.
+   */
+  async findIncomingPaymentByMemo(memo: string): Promise<string | null> {
+    try {
+      const page = await this.server
+        .transactions()
+        .forAccount(this.getDestinationWallet())
+        .order("desc")
+        .limit(50)
+        .call();
+
+      const match = page.records.find(
+        (tx) => tx.successful && tx.memo === memo,
+      );
+      return match?.hash ?? null;
+    } catch {
+      return null;
+    }
+  }
 }
