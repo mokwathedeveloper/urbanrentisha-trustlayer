@@ -589,6 +589,8 @@ export const api = {
       request<Payment>("/payments/confirm", { method: "POST", body, token }),
     findOne: (token: string, id: string) => request<Payment>(`/payments/${id}`, { token }),
     pollStatus: (token: string, id: string) => request<Payment>(`/payments/${id}/poll`, { token }),
+    payNow: (token: string, id: string) =>
+      request<Payment>(`/payments/${id}/pay-now`, { method: "POST", token }),
   },
   zkProofs: {
     generate: (token: string, body: { viewingRequestId: string }) =>
