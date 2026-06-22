@@ -127,6 +127,33 @@ export class PaymentsService {
     return this.markReceived(actorId, payment, txHash);
   }
 
+  /**
+   * Demo-only one-click payment: the tenant clicks "Pay Viewing Fee" and
+   * the backend itself sends a real testnet payment from a platform-funded
+   * treasury (see StellarService.payFromTreasury) - no address, memo, or
+   * wallet knowledge required from the tenant at all. Not a production
+   * payment method.
+   */
+  async payNow(actorId: string, role: UserRole, paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new NotFoundException("Payment not found.");
+    await this.access.assertAccess(payment.viewingRequestId, actorId, role);
+
+    if (payment.status === PaymentStatus.RECEIVED) return payment;
+    if (payment.status !== PaymentStatus.AWAITING_PAYMENT) {
+      throw new BadRequestException("This payment can no longer be paid.");
+    }
+
+    const txHash = await this.stellar.payFromTreasury(
+      payment.amount,
+      payment.stellarMemo,
+    );
+
+    return this.markReceived(actorId, payment, txHash);
+  }
+
   private async markReceived(
     actorId: string,
     payment: {
