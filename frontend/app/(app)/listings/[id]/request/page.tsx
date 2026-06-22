@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
+import { TimePicker } from "@/components/ui/time-picker";
 import { api, ApiError, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
@@ -143,13 +144,7 @@ export default function RequestViewingPage() {
             <h3 className="mt-5 text-sm font-bold text-ur-navy">Preferred Viewing Schedule</h3>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <Calendar label="Select Date" value={preferredDate} onChange={setPreferredDate} />
-              <Input
-                label="Select Time"
-                name="preferredTime"
-                type="time"
-                value={preferredTime}
-                onChange={(e) => setPreferredTime(e.target.value)}
-              />
+              <TimePicker label="Select Time" value={preferredTime} onChange={setPreferredTime} />
             </div>
 
             <label className="mt-4 block text-xs font-semibold tracking-[0.04em] text-white/78" htmlFor="message">
