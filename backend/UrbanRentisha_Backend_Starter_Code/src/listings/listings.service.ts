@@ -223,7 +223,7 @@ export class ListingsService {
         longitude: dto.longitude,
         capturedAt: dto.capturedAt ? new Date(dto.capturedAt) : undefined,
         device: dto.device,
-        gpsPresent: dto.gpsPresent ?? false,
+        gpsPresent: dto.gpsPresent,
       },
     });
 
