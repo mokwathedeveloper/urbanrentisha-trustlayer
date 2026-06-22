@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { sha256 } from "../common/utils/hash.util";
 import { RegisterWebhookDto } from "./dto/register-webhook.dto";
@@ -7,7 +7,13 @@ import { RegisterWebhookDto } from "./dto/register-webhook.dto";
 export class WebhooksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  register(dto: RegisterWebhookDto) {
+  register(callerClientId: string, dto: RegisterWebhookDto) {
+    if (callerClientId !== dto.apiClientId) {
+      throw new ForbiddenException(
+        "You can only register webhooks for your own API client.",
+      );
+    }
+
     return this.prisma.webhookEvent.create({
       data: {
         apiClientId: dto.apiClientId,
@@ -21,7 +27,15 @@ export class WebhooksService {
   list() {
     return this.prisma.webhookEvent.findMany({
       orderBy: { createdAt: "desc" },
-      include: { apiClient: true },
+      select: {
+        id: true,
+        event: true,
+        targetUrl: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        apiClient: { select: { id: true, name: true, status: true } },
+      },
     });
   }
 }
