@@ -32,9 +32,19 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-async function uploadRequest<T>(path: string, token: string, file: File): Promise<T> {
+async function uploadRequest<T>(
+  path: string,
+  token: string,
+  file: File,
+  fields?: Record<string, string>,
+): Promise<T> {
   const formData = new FormData();
   formData.append("file", file);
+  if (fields) {
+    for (const [key, value] of Object.entries(fields)) {
+      formData.append(key, value);
+    }
+  }
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
@@ -307,6 +317,8 @@ export interface AgentDashboard {
 
 export type ProfileType = "tenant" | "landlord" | "agent" | "manager";
 
+export type DocumentType = "ID_CARD" | "GOOD_CONDUCT" | "PERSONAL_DOCUMENT" | "ASSET_DOCUMENT";
+
 export interface VerificationItem {
   profileType: ProfileType;
   profileId: string;
@@ -316,7 +328,14 @@ export interface VerificationItem {
   userStatus: string;
   verificationStage: VerificationStage;
   linkedLandlordName: string | null;
-  documents: { id: string; fileName: string; status: string; createdAt: string; signedUrl: string }[];
+  documents: {
+    id: string;
+    fileName: string;
+    documentType: DocumentType | null;
+    status: string;
+    createdAt: string;
+    signedUrl: string;
+  }[];
   createdAt: string;
 }
 
@@ -582,11 +601,12 @@ export const api = {
       uploadRequest<{ avatarUrl: string }>("/uploads/avatar", token, file),
     listingImage: (token: string, file: File) =>
       uploadRequest<{ imageUrl: string }>("/uploads/listing-image", token, file),
-    documents: (token: string, file: File) =>
-      uploadRequest<{ id: string; fileUrl: string; fileName: string; status: string }>(
+    documents: (token: string, file: File, documentType: DocumentType) =>
+      uploadRequest<{ id: string; fileUrl: string; fileName: string; documentType: DocumentType; status: string }>(
         "/uploads/documents",
         token,
         file,
+        { documentType },
       ),
   },
 };
