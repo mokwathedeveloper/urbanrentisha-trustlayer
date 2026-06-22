@@ -49,22 +49,18 @@ export class MessagesService {
     return { isTenant, isOwner, isAgent, isManager };
   }
 
-  private listingContacts(
-    request: Awaited<ReturnType<MessagesService["loadThread"]>>,
-  ) {
+  private listingContacts(listing: {
+    owner: { id: string; name: string };
+    agent: { user: { id: string; name: string } } | null;
+    manager: { user: { id: string; name: string } } | null;
+  }) {
     const contacts = [
-      { id: request.listing.owner.id, name: request.listing.owner.name },
-      request.listing.agent
-        ? {
-            id: request.listing.agent.user.id,
-            name: request.listing.agent.user.name,
-          }
+      { id: listing.owner.id, name: listing.owner.name },
+      listing.agent
+        ? { id: listing.agent.user.id, name: listing.agent.user.name }
         : null,
-      request.listing.manager
-        ? {
-            id: request.listing.manager.user.id,
-            name: request.listing.manager.user.name,
-          }
+      listing.manager
+        ? { id: listing.manager.user.id, name: listing.manager.user.name }
         : null,
     ].filter(
       (contact): contact is { id: string; name: string } => contact !== null,
@@ -92,7 +88,7 @@ export class MessagesService {
     });
 
     const recipientIds = isTenant
-      ? this.listingContacts(request).map((contact) => contact.id)
+      ? this.listingContacts(request.listing).map((contact) => contact.id)
       : [request.tenant.user.id];
 
     await Promise.all(
@@ -124,39 +120,67 @@ export class MessagesService {
   }
 
   async findInbox(userId: string) {
-    const threads = await this.prisma.viewingRequest.findMany({
-      where: {
-        messages: { some: {} },
-        OR: [
-          { tenant: { userId } },
-          { listing: { ownerId: userId } },
-          { listing: { agent: { userId } } },
-          { listing: { manager: { userId } } },
-        ],
-      },
-      include: {
-        listing: {
-          include: {
-            agent: { include: { user: true } },
-            manager: { include: { user: true } },
-            owner: true,
+    const [viewingRequestThreads, listingThreads] = await Promise.all([
+      this.prisma.viewingRequest.findMany({
+        where: {
+          messages: { some: {} },
+          OR: [
+            { tenant: { userId } },
+            { listing: { ownerId: userId } },
+            { listing: { agent: { userId } } },
+            { listing: { manager: { userId } } },
+          ],
+        },
+        include: {
+          listing: {
+            include: {
+              agent: { include: { user: true } },
+              manager: { include: { user: true } },
+              owner: true,
+            },
+          },
+          tenant: { include: { user: true } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: { sender: { select: { name: true } } },
           },
         },
-        tenant: { include: { user: true } },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          include: { sender: { select: { name: true } } },
+      }),
+      this.prisma.listingThread.findMany({
+        where: {
+          messages: { some: {} },
+          OR: [
+            { tenantId: userId },
+            { listing: { ownerId: userId } },
+            { listing: { agent: { userId } } },
+            { listing: { manager: { userId } } },
+          ],
         },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+        include: {
+          listing: {
+            include: {
+              agent: { include: { user: true } },
+              manager: { include: { user: true } },
+              owner: true,
+            },
+          },
+          tenant: true,
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: { sender: { select: { name: true } } },
+          },
+        },
+      }),
+    ]);
 
-    return threads.map((thread) => {
+    const fromViewingRequests = viewingRequestThreads.map((thread) => {
       const isTenantViewer = thread.tenant.user.id === userId;
-      const contacts = this.listingContacts(thread);
+      const contacts = this.listingContacts(thread.listing);
       return {
-        viewingRequestId: thread.id,
+        kind: "viewing_request" as const,
+        id: thread.id,
         listingTitle: thread.listing.title,
         otherParty: isTenantViewer
           ? (contacts.find((contact) => contact.id !== userId)?.name ??
@@ -166,5 +190,27 @@ export class MessagesService {
         lastMessageAt: thread.messages[0]?.createdAt ?? thread.updatedAt,
       };
     });
+
+    const fromListingThreads = listingThreads.map((thread) => {
+      const isTenantViewer = thread.tenant.id === userId;
+      const contacts = this.listingContacts(thread.listing);
+      return {
+        kind: "listing_thread" as const,
+        id: thread.id,
+        listingTitle: thread.listing.title,
+        otherParty: isTenantViewer
+          ? (contacts.find((contact) => contact.id !== userId)?.name ??
+            "Listing Contact")
+          : thread.tenant.name,
+        lastMessage: thread.messages[0]?.body ?? "",
+        lastMessageAt: thread.messages[0]?.createdAt ?? thread.createdAt,
+      };
+    });
+
+    return [...fromViewingRequests, ...fromListingThreads].sort(
+      (a, b) =>
+        new Date(b.lastMessageAt).getTime() -
+        new Date(a.lastMessageAt).getTime(),
+    );
   }
 }
