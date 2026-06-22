@@ -4,9 +4,22 @@ import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { extractExif, type ExifResult } from "@/lib/exif/parser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
+import { Badge } from "@/components/ui/badge";
+
+const MAX_IMAGES = 6;
+
+interface ListingImageDraft {
+  id: string;
+  previewUrl: string;
+  uploading: boolean;
+  uploadedUrl: string | null;
+  error: string | null;
+  exif: ExifResult | null;
+}
 
 export default function NewListingPage() {
   const { token, user } = useAuth();
@@ -24,27 +37,52 @@ export default function NewListingPage() {
     bedrooms: "",
     bathrooms: "",
   });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
+  const [images, setImages] = useState<ListingImageDraft[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleImageSelect(file: File) {
+  const uploadedImages = images.filter((img) => img.uploadedUrl);
+  const isUploading = images.some((img) => img.uploading);
+
+  async function handleFilesSelected(files: FileList) {
     if (!token) return;
-    setImageError(null);
-    setImagePreview(URL.createObjectURL(file));
-    setUploadingImage(true);
-    try {
-      const result = await api.uploads.listingImage(token, file);
-      setImageUrl(result.imageUrl);
-    } catch (err) {
-      setImageError(err instanceof ApiError ? err.message : "Could not upload image.");
-      setImageUrl(null);
-    } finally {
-      setUploadingImage(false);
+    const remainingSlots = MAX_IMAGES - images.length;
+    const selected = Array.from(files).slice(0, Math.max(0, remainingSlots));
+
+    for (const file of selected) {
+      const draft: ListingImageDraft = {
+        id: `${file.name}-${Date.now()}-${Math.random()}`,
+        previewUrl: URL.createObjectURL(file),
+        uploading: true,
+        uploadedUrl: null,
+        error: null,
+        exif: null,
+      };
+      setImages((prev) => [...prev, draft]);
+
+      try {
+        const [uploadResult, exifResult] = await Promise.all([
+          api.uploads.listingImage(token, file),
+          extractExif(file),
+        ]);
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === draft.id
+              ? { ...img, uploading: false, uploadedUrl: uploadResult.imageUrl, exif: exifResult }
+              : img,
+          ),
+        );
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : "Could not upload image.";
+        setImages((prev) =>
+          prev.map((img) => (img.id === draft.id ? { ...img, uploading: false, error: message } : img)),
+        );
+      }
     }
+  }
+
+  function removeImage(id: string) {
+    setImages((prev) => prev.filter((img) => img.id !== id));
   }
 
   const isAllowed =
@@ -57,8 +95,8 @@ export default function NewListingPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!token) return;
-    if (!imageUrl) {
-      setError("Please upload a property image before submitting.");
+    if (uploadedImages.length === 0) {
+      setError("Please upload at least one property photo before submitting.");
       return;
     }
     setSubmitting(true);
@@ -75,8 +113,22 @@ export default function NewListingPage() {
         propertyType: form.propertyType,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-        imageUrl,
+        imageUrl: uploadedImages[0].uploadedUrl ?? undefined,
       });
+
+      await Promise.all(
+        uploadedImages.map((img) =>
+          api.listings.addImage(token, listing.id, {
+            url: img.uploadedUrl!,
+            latitude: img.exif?.lat ?? undefined,
+            longitude: img.exif?.lng ?? undefined,
+            capturedAt: img.exif?.capturedAt ? img.exif.capturedAt.toISOString() : undefined,
+            device: img.exif?.device ?? undefined,
+            gpsPresent: img.exif?.gpsPresent ?? false,
+          }),
+        ),
+      );
+
       router.push(`/listings/${listing.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create listing.");
@@ -111,46 +163,88 @@ export default function NewListingPage() {
 
         <div className="space-y-2">
           <label className="block text-xs font-semibold tracking-[0.04em] text-ur-text-secondary">
-            Property Image <span className="text-ur-error">*</span>
+            Property Photos <span className="text-ur-error">*</span>
+            <span className="ml-1 font-normal text-ur-text-muted">({images.length}/{MAX_IMAGES})</span>
           </label>
-          <div className="flex items-center gap-4 rounded-ur border border-ur-border bg-ur-card-soft p-4">
-            <div className="grid h-20 w-28 shrink-0 place-items-center overflow-hidden rounded-ur bg-ur-card text-ur-text-muted">
-              {imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="Property preview" className="h-full w-full object-cover" />
-              ) : (
-                <Icon name="apartment" size={24} />
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-ur-text-secondary">A clear photo of the property helps tenants trust this listing.</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageSelect(file);
-                }}
-              />
-              <Button
+          <p className="text-sm text-ur-text-secondary">
+            Upload real photos of this property - not screenshots or images from other listings. Photos with
+            location data embedded by the camera are flagged below; this helps tenants trust the listing.
+          </p>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) handleFilesSelected(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {images.map((img) => (
+              <div key={img.id} className="space-y-1.5 rounded-ur border border-ur-border bg-ur-card-soft p-2">
+                <div className="relative h-24 w-full overflow-hidden rounded-ur-sm bg-ur-card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.previewUrl} alt="Property photo" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(img.id)}
+                    className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white"
+                    aria-label="Remove photo"
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </div>
+
+                {img.uploading ? (
+                  <p className="text-xs text-ur-text-muted">Uploading...</p>
+                ) : img.error ? (
+                  <p className="text-xs text-ur-error">{img.error}</p>
+                ) : img.exif ? (
+                  <div className="space-y-1">
+                    {img.exif.gpsPresent ? (
+                      <a
+                        href={`https://maps.google.com/?q=${img.exif.lat},${img.exif.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-xs text-ur-primary hover:underline"
+                      >
+                        <Icon name="location_on" size={12} />
+                        GPS verified
+                      </a>
+                    ) : (
+                      <Badge variant="warning" className="px-2 py-0.5 text-[10px]">
+                        No location data
+                      </Badge>
+                    )}
+                    {img.exif.ageWarning ? (
+                      <Badge variant="warning" className="px-2 py-0.5 text-[10px]">
+                        Photo is old
+                      </Badge>
+                    ) : null}
+                    {img.exif.device ? (
+                      <p className="truncate text-[10px] text-ur-text-muted">{img.exif.device}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+
+            {images.length < MAX_IMAGES ? (
+              <button
                 type="button"
-                variant="secondary"
-                className="mt-2"
-                disabled={uploadingImage}
                 onClick={() => fileInputRef.current?.click()}
+                className="grid h-36 place-items-center rounded-ur border border-dashed border-ur-border bg-ur-card-soft text-ur-text-muted hover:border-ur-primary hover:text-ur-primary"
               >
-                {uploadingImage ? "Uploading..." : imageUrl ? "Replace Image" : "Upload Image"}
-              </Button>
-              {imageError ? <p className="mt-1 text-xs text-ur-error">{imageError}</p> : null}
-              {imageUrl ? (
-                <p className="mt-1 flex items-center gap-1 text-xs text-ur-primary">
-                  <Icon name="check_circle" size={14} />
-                  Image uploaded
-                </p>
-              ) : null}
-            </div>
+                <span className="flex flex-col items-center gap-1 text-xs">
+                  <Icon name="add_circle" size={20} />
+                  Add Photo
+                </span>
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -200,7 +294,7 @@ export default function NewListingPage() {
 
         {error ? <p className="text-sm text-ur-error">{error}</p> : null}
 
-        <Button type="submit" disabled={submitting || uploadingImage || !imageUrl}>
+        <Button type="submit" disabled={submitting || isUploading || uploadedImages.length === 0}>
           {submitting ? "Submitting..." : "Submit for Verification"}
         </Button>
       </form>
