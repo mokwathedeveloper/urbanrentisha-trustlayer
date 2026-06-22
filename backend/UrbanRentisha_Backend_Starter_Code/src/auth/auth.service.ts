@@ -8,6 +8,7 @@ import { NotificationType, UserRole, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { StellarService } from "../stellar/stellar.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 
@@ -17,6 +18,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly notifications: NotificationsService,
+    private readonly stellar: StellarService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -47,6 +49,7 @@ export class AuthService {
         status: true,
         avatarUrl: true,
         mustChangePassword: true,
+        walletAddress: true,
       },
     });
 
@@ -56,9 +59,24 @@ export class AuthService {
       message: `${user.name} signed up as a ${user.role.toLowerCase()}.`,
     });
 
+    let walletSecret: string | undefined;
+    try {
+      const wallet = this.stellar.generateWallet();
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { walletAddress: wallet.publicKey },
+      });
+      this.stellar.fundTestnetAccount(wallet.publicKey).catch(() => undefined);
+      user.walletAddress = wallet.publicKey;
+      walletSecret = wallet.secretKey;
+    } catch {
+      // Non-critical: the user can generate a wallet later from their profile.
+    }
+
     return {
       user,
       accessToken: this.sign(user.id, user.email, user.role),
+      walletSecret,
     };
   }
 
@@ -85,6 +103,7 @@ export class AuthService {
         status: user.status,
         avatarUrl: user.avatarUrl,
         mustChangePassword: user.mustChangePassword,
+        walletAddress: user.walletAddress,
       },
       accessToken: this.sign(user.id, user.email, user.role),
     };
@@ -101,6 +120,7 @@ export class AuthService {
         status: true,
         avatarUrl: true,
         mustChangePassword: true,
+        walletAddress: true,
       },
     });
     if (!user) throw new UnauthorizedException("User not found.");

@@ -6,6 +6,7 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./jwt.strategy";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { StellarModule } from "../stellar/stellar.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
       }),
     }),
     NotificationsModule,
+    StellarModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
