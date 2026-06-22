@@ -31,6 +31,20 @@ export class UploadsService {
     return { avatarUrl };
   }
 
+  async uploadListingImage(userId: string, file: Express.Multer.File) {
+    const imageUrl = await this.storage.uploadListingImage(userId, file);
+
+    await this.auditLogs.create({
+      actorId: userId,
+      action: "listing_image.uploaded",
+      entityType: "user",
+      entityId: userId,
+      severity: "INFO",
+    });
+
+    return { imageUrl };
+  }
+
   async uploadDocument(
     userId: string,
     role: UserRole,
