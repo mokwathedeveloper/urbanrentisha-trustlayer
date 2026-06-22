@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import {
   ListingStatus,
   NotificationType,
@@ -9,6 +14,10 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CreateListingDto } from "./dto/create-listing.dto";
+import { AddListingImageDto } from "./dto/add-listing-image.dto";
+
+const MAX_LISTING_IMAGES = 6;
+const ADMIN_ROLES = new Set<UserRole>([UserRole.ADMIN, UserRole.PLATFORM]);
 
 const LISTING_OWNER_INCLUDE = {
   agent: {
@@ -21,6 +30,7 @@ const LISTING_OWNER_INCLUDE = {
       user: { select: { id: true, name: true, email: true, phone: true } },
     },
   },
+  images: { orderBy: { order: "asc" } },
 } satisfies Prisma.ListingInclude;
 
 @Injectable()
@@ -176,6 +186,108 @@ export class ListingsService {
       severity: "WARNING",
       metadata: { note },
     });
+
+    return listing;
+  }
+
+  /**
+   * Attaches an already-uploaded image to a listing, along with whatever
+   * EXIF metadata the frontend extracted client-side (GPS/capture
+   * date/device). This is a real authenticity signal, not a guarantee - the
+   * backend trusts it as descriptive metadata only; a human admin still
+   * reviews the listing before it goes VERIFIED.
+   */
+  async addImage(
+    listingId: string,
+    actorId: string,
+    role: UserRole,
+    dto: AddListingImageDto,
+  ) {
+    const listing = await this.assertCanManageImages(listingId, actorId, role);
+
+    const imageCount = await this.prisma.listingImage.count({
+      where: { listingId },
+    });
+    if (imageCount >= MAX_LISTING_IMAGES) {
+      throw new BadRequestException(
+        `A listing can have at most ${MAX_LISTING_IMAGES} images.`,
+      );
+    }
+
+    const image = await this.prisma.listingImage.create({
+      data: {
+        listingId: listing.id,
+        url: dto.url,
+        order: imageCount,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        capturedAt: dto.capturedAt ? new Date(dto.capturedAt) : undefined,
+        device: dto.device,
+        gpsPresent: dto.gpsPresent ?? false,
+      },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "listing.image_added",
+      entityType: "listing",
+      entityId: listing.id,
+      severity: "INFO",
+      metadata: { imageId: image.id, gpsPresent: image.gpsPresent },
+    });
+
+    return image;
+  }
+
+  async deleteImage(
+    listingId: string,
+    imageId: string,
+    actorId: string,
+    role: UserRole,
+  ) {
+    const listing = await this.assertCanManageImages(listingId, actorId, role);
+
+    const image = await this.prisma.listingImage.findUnique({
+      where: { id: imageId },
+    });
+    if (!image || image.listingId !== listing.id) {
+      throw new NotFoundException("Listing image not found.");
+    }
+
+    await this.prisma.listingImage.delete({ where: { id: imageId } });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "listing.image_removed",
+      entityType: "listing",
+      entityId: listing.id,
+      severity: "INFO",
+      metadata: { imageId },
+    });
+
+    return { success: true };
+  }
+
+  private async assertCanManageImages(
+    listingId: string,
+    userId: string,
+    role: UserRole,
+  ) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      include: LISTING_OWNER_INCLUDE,
+    });
+    if (!listing) throw new NotFoundException("Listing not found.");
+
+    if (ADMIN_ROLES.has(role)) return listing;
+
+    const isOwner = listing.ownerId === userId;
+    const isAgent = listing.agent?.user.id === userId;
+    const isManager = listing.manager?.user.id === userId;
+
+    if (!isOwner && !isAgent && !isManager) {
+      throw new ForbiddenException("You do not have access to this listing.");
+    }
 
     return listing;
   }
