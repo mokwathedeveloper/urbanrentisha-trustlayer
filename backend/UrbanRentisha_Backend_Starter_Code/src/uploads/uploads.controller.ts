@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Post,
   UploadedFile,
@@ -7,10 +8,13 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { DocumentType } from "@prisma/client";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
 import { UploadsService } from "./uploads.service";
+
+const DOCUMENT_TYPES = new Set<string>(Object.values(DocumentType));
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const LISTING_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
@@ -102,8 +106,19 @@ export class UploadsController {
   uploadDocument(
     @CurrentUser() user: AuthUser,
     @UploadedFile() file?: Express.Multer.File,
+    @Body("documentType") documentType?: string,
   ) {
     if (!file) throw new BadRequestException("No file was provided.");
-    return this.uploads.uploadDocument(user.sub, user.role, file);
+    if (!documentType || !DOCUMENT_TYPES.has(documentType)) {
+      throw new BadRequestException(
+        `documentType must be one of: ${[...DOCUMENT_TYPES].join(", ")}.`,
+      );
+    }
+    return this.uploads.uploadDocument(
+      user.sub,
+      user.role,
+      file,
+      documentType as DocumentType,
+    );
   }
 }
