@@ -6,20 +6,23 @@ import { api, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PropertyCard } from "@/components/listings/property-card";
 import { Icon } from "@/components/ui/icon";
-import { RoleGuard } from "@/components/auth/role-guard";
+import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+
+const ALLOWED_ROLES = ["LANDLORD", "AGENT", "MANAGER"] as const;
 
 export default function MyPropertiesPage() {
   const { token, user } = useAuth();
+  const allowed = useHasRole([...ALLOWED_ROLES]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !allowed) return;
     api.listings
       .findMine(token)
       .then(setListings)
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, allowed]);
 
   const heading =
     user?.role === "LANDLORD" ? "My Properties" : "Properties Assigned To Me";
@@ -29,7 +32,7 @@ export default function MyPropertiesPage() {
       : "Properties your landlord has assigned to you. You won't see other landlords' listings here.";
 
   return (
-    <RoleGuard allow={["LANDLORD", "AGENT", "MANAGER"]}>
+    <RoleGuard allow={[...ALLOWED_ROLES]}>
       <div className="px-6 py-8">
         <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">{heading}</h1>
         <p className="mt-1 text-sm text-ur-text-secondary">{subheading}</p>

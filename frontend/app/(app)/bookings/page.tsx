@@ -6,23 +6,26 @@ import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { StatusBadge, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
-import { RoleGuard } from "@/components/auth/role-guard";
+import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+
+const ALLOWED_ROLES = ["TENANT"] as const;
 
 export default function MyBookingsPage() {
   const { token } = useAuth();
+  const allowed = useHasRole([...ALLOWED_ROLES]);
   const [requests, setRequests] = useState<ViewingRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !allowed) return;
     api.viewingRequests
       .findMine(token)
       .then(setRequests)
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, allowed]);
 
   return (
-    <RoleGuard allow={["TENANT"]}>
+    <RoleGuard allow={[...ALLOWED_ROLES]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">My Bookings</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">Full history of every viewing request you have made.</p>

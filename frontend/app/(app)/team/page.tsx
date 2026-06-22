@@ -6,10 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/lib/auth";
 import { ApiError, api, type LandlordTeamSummary, type LandlordTeamSummaryMember } from "@/lib/api";
-import { RoleGuard } from "@/components/auth/role-guard";
+import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+
+const ALLOWED_ROLES = ["LANDLORD"] as const;
 
 export default function TeamPage() {
   const { token } = useAuth();
+  const allowed = useHasRole([...ALLOWED_ROLES]);
   const [team, setTeam] = useState<LandlordTeamSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -30,14 +33,14 @@ export default function TeamPage() {
   } | null>(null);
 
   function load() {
-    if (!token) return;
+    if (!token || !allowed) return;
     api.landlord
       .getTeam(token)
       .then(setTeam)
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [token]);
+  useEffect(load, [token, allowed]);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
@@ -79,7 +82,7 @@ export default function TeamPage() {
   const members = team ? [...team.agents, ...team.managers] : [];
 
   return (
-    <RoleGuard allow={["LANDLORD"]}>
+    <RoleGuard allow={[...ALLOWED_ROLES]}>
       <div className="px-6 py-8">
         <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">My Team</h1>
         <p className="mt-1 text-sm text-ur-text-secondary">
