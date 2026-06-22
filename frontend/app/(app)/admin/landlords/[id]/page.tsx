@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ApiError, api, type LandlordTeam, type LandlordTeamMember } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { RoleGuard } from "@/components/auth/role-guard";
+import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+
+const ALLOWED_ROLES = ["ADMIN", "PLATFORM"] as const;
 
 interface LandlordOption {
   id: string;
@@ -16,6 +18,7 @@ interface LandlordOption {
 
 export default function AdminLandlordTeamPage() {
   const { token } = useAuth();
+  const allowed = useHasRole([...ALLOWED_ROLES]);
   const params = useParams<{ id: string }>();
   const [team, setTeam] = useState<LandlordTeam | null>(null);
   const [landlordOptions, setLandlordOptions] = useState<LandlordOption[]>([]);
@@ -23,19 +26,19 @@ export default function AdminLandlordTeamPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   function load() {
-    if (!token) return;
+    if (!token || !allowed) return;
     api.admin.landlords
       .getTeam(token, params.id)
       .then(setTeam)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Could not load landlord team."));
   }
 
-  useEffect(load, [token, params.id]);
+  useEffect(load, [token, allowed, params.id]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !allowed) return;
     api.admin.landlords.list(token).then(setLandlordOptions);
-  }, [token]);
+  }, [token, allowed]);
 
   async function handleChangeLandlord(member: LandlordTeamMember, landlordProfileId: string) {
     if (!token) return;
@@ -49,6 +52,10 @@ export default function AdminLandlordTeamPage() {
     } finally {
       setSavingId(null);
     }
+  }
+
+  if (!allowed) {
+    return <RoleGuard allow={[...ALLOWED_ROLES]}>{null}</RoleGuard>;
   }
 
   if (error) {
@@ -70,7 +77,7 @@ export default function AdminLandlordTeamPage() {
   const members: LandlordTeamMember[] = [...team.agents, ...team.managers];
 
   return (
-    <RoleGuard allow={["ADMIN", "PLATFORM"]}>
+    <RoleGuard allow={[...ALLOWED_ROLES]}>
       <div className="px-6 py-8">
         <Link href="/admin/verifications" className="text-sm font-semibold text-ur-primary hover:underline">
           ← Back to Verification Review
