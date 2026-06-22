@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
+  DocumentType,
   ListingStatus,
   PaymentStatus,
   ProofStatus,
@@ -369,6 +370,7 @@ export class AdminService {
         id: string;
         fileUrl: string;
         fileName: string;
+        documentType: DocumentType | null;
         status: string;
         createdAt: Date;
       }[];
@@ -387,6 +389,7 @@ export class AdminService {
         profile.documents.map(async (doc) => ({
           id: doc.id,
           fileName: doc.fileName,
+          documentType: doc.documentType,
           status: doc.status,
           createdAt: doc.createdAt,
           signedUrl: await this.storage.getDocumentSignedUrl(doc.fileUrl),
