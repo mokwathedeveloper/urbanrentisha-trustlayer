@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 
 const AVATARS_BUCKET = "avatars";
 const DOCUMENTS_BUCKET = "verification-documents";
+const LISTING_IMAGES_BUCKET = "listing-images";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 @Injectable()
@@ -41,6 +42,25 @@ export class StorageService {
       );
 
     const { data } = this.client.from(AVATARS_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async uploadListingImage(
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<string> {
+    const extension = file.originalname.split(".").pop() ?? "jpg";
+    const path = `${userId}/${randomUUID()}.${extension}`;
+
+    const { error } = await this.client
+      .from(LISTING_IMAGES_BUCKET)
+      .upload(path, file.buffer, { contentType: file.mimetype, upsert: false });
+    if (error)
+      throw new InternalServerErrorException(
+        `Listing image upload failed: ${error.message}`,
+      );
+
+    const { data } = this.client.from(LISTING_IMAGES_BUCKET).getPublicUrl(path);
     return data.publicUrl;
   }
 
