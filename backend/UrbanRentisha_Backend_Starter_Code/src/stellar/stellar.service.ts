@@ -73,6 +73,38 @@ export class StellarService {
     return { txHash: result.hash };
   }
 
+  /**
+   * Generates a fresh Stellar keypair. The secret is returned once and is
+   * NEVER persisted server-side - only the public key should be stored by
+   * the caller. This keeps wallet generation non-custodial: after this
+   * call returns, the platform has no way to sign for this account again.
+   */
+  generateWallet(): { publicKey: string; secretKey: string } {
+    const keypair = Keypair.random();
+    return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
+  }
+
+  /**
+   * Funds a testnet account via Friendbot. Fire-and-forget: never throws,
+   * always resolves to a boolean, so callers can safely ignore the result
+   * (wallet generation must succeed even if Friendbot is briefly down).
+   */
+  async fundTestnetAccount(publicKey: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const res = await fetch(
+        `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`,
+        { signal: controller.signal },
+      );
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   getDestinationWallet() {
     return (
       this.config.get<string>("STELLAR_PLATFORM_PUBLIC_KEY") ??
