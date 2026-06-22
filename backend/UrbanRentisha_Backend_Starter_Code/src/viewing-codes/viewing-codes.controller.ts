@@ -12,7 +12,7 @@ export class ViewingCodesController {
   @UseGuards(JwtAuthGuard)
   @Post("generate")
   generate(@CurrentUser() user: AuthUser, @Body() dto: GenerateViewingCodeDto) {
-    return this.viewingCodes.generate(user.sub, dto);
+    return this.viewingCodes.generate(user.sub, user.role, dto);
   }
 
   @Get(":code/verify")

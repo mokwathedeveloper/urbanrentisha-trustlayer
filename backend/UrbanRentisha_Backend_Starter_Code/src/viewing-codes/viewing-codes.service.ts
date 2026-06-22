@@ -6,6 +6,7 @@ import {
 import {
   NotificationType,
   ProofStatus,
+  UserRole,
   ViewingCodeStatus,
   ViewingRequestStatus,
 } from "@prisma/client";
@@ -14,6 +15,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { randomCode } from "../common/utils/hash.util";
 import { GenerateViewingCodeDto } from "./dto/generate-viewing-code.dto";
+import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
 
 @Injectable()
 export class ViewingCodesService {
@@ -21,9 +23,12 @@ export class ViewingCodesService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
+    private readonly access: ViewingRequestAccessService,
   ) {}
 
-  async generate(actorId: string, dto: GenerateViewingCodeDto) {
+  async generate(actorId: string, role: UserRole, dto: GenerateViewingCodeDto) {
+    await this.access.assertAccess(dto.viewingRequestId, actorId, role);
+
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id: dto.viewingRequestId },
       include: { proofVerification: true, viewingCode: true },
