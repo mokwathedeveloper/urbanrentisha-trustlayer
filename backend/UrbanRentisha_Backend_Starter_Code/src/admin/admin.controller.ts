@@ -16,10 +16,16 @@ import { AuthUser } from "../common/types/auth-user.type";
 import { AdminService } from "./admin.service";
 import { ReviewVerificationDto } from "./dto/review-verification.dto";
 import { UpdateUserStatusDto } from "./dto/update-user-status.dto";
+import { SetAgentLandlordDto } from "./dto/set-agent-landlord.dto";
 
 enum ProfileTypeParam {
   tenant = "tenant",
   landlord = "landlord",
+  agent = "agent",
+  manager = "manager",
+}
+
+enum AgentLikeProfileTypeParam {
   agent = "agent",
   manager = "manager",
 }
@@ -69,5 +75,31 @@ export class AdminController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.admin.setUserStatus(id, dto.status, user.sub);
+  }
+
+  @Get("landlords")
+  listLandlords() {
+    return this.admin.listLandlords();
+  }
+
+  @Patch("agents/:profileType/:profileId/landlord")
+  setAgentLandlord(
+    @Param("profileType", new ParseEnumPipe(AgentLikeProfileTypeParam))
+    profileType: AgentLikeProfileTypeParam,
+    @Param("profileId") profileId: string,
+    @Body() dto: SetAgentLandlordDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.admin.setAgentLandlord(
+      profileType,
+      profileId,
+      dto.landlordProfileId ?? null,
+      user.sub,
+    );
+  }
+
+  @Get("landlords/:landlordProfileId/team")
+  getLandlordTeam(@Param("landlordProfileId") landlordProfileId: string) {
+    return this.admin.getLandlordTeam(landlordProfileId);
   }
 }
