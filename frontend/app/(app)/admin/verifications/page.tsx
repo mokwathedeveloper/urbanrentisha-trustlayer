@@ -59,6 +59,22 @@ export default function AdminVerificationsPage() {
     }
   }
 
+  async function handleSetStatus(item: VerificationItem, status: "ACTIVE" | "SUSPENDED") {
+    if (!token) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.admin.users.setStatus(token, item.userId, status);
+      setItems((prev) =>
+        prev.map((row) => (row.userId === item.userId ? { ...row, userStatus: status } : row)),
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not update account status.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <RoleGuard allow={["ADMIN", "PLATFORM"]}>
     <div className="px-6 py-8">
@@ -89,6 +105,11 @@ export default function AdminVerificationsPage() {
                       <span className="rounded-full border border-ur-border px-2 py-0.5 text-xs font-semibold text-ur-text-secondary">
                         {profileTypeLabels[item.profileType]}
                       </span>
+                      {item.userStatus === "SUSPENDED" ? (
+                        <span className="rounded-full border border-ur-error/40 px-2 py-0.5 text-xs font-semibold text-ur-error">
+                          Suspended
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-xs text-ur-text-secondary">{item.email}</p>
                     {item.linkedLandlordName ? (
@@ -174,6 +195,27 @@ export default function AdminVerificationsPage() {
                         <Icon name="close" size={16} />
                         Reject
                       </button>
+                      {item.userStatus === "SUSPENDED" ? (
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => handleSetStatus(item, "ACTIVE")}
+                          className="flex items-center gap-1.5 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-bold text-ur-text-secondary hover:bg-ur-card-hover disabled:opacity-50"
+                        >
+                          <Icon name="verified_user" size={16} />
+                          Reactivate Account
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => handleSetStatus(item, "SUSPENDED")}
+                          className="flex items-center gap-1.5 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-bold text-ur-text-secondary hover:bg-ur-card-hover disabled:opacity-50"
+                        >
+                          <Icon name="gpp_maybe" size={16} />
+                          Suspend Account
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : null}
