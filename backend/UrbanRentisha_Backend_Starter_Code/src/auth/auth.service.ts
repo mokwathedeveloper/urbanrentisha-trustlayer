@@ -25,17 +25,6 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    let landlordId: string | undefined;
-    if (
-      (dto.role === UserRole.AGENT || dto.role === UserRole.MANAGER) &&
-      dto.landlordEmail
-    ) {
-      const landlord = await this.prisma.landlordProfile.findFirst({
-        where: { user: { email: dto.landlordEmail } },
-      });
-      landlordId = landlord?.id;
-    }
-
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -47,14 +36,6 @@ export class AuthService {
           dto.role === UserRole.TENANT ? { create: {} } : undefined,
         landlordProfile:
           dto.role === UserRole.LANDLORD ? { create: {} } : undefined,
-        agentProfile:
-          dto.role === UserRole.AGENT
-            ? { create: { verificationStatus: "pending", landlordId } }
-            : undefined,
-        managerProfile:
-          dto.role === UserRole.MANAGER
-            ? { create: { verificationStatus: "pending", landlordId } }
-            : undefined,
       },
       select: {
         id: true,
@@ -63,6 +44,7 @@ export class AuthService {
         role: true,
         status: true,
         avatarUrl: true,
+        mustChangePassword: true,
       },
     });
 
@@ -94,6 +76,7 @@ export class AuthService {
         role: user.role,
         status: user.status,
         avatarUrl: user.avatarUrl,
+        mustChangePassword: user.mustChangePassword,
       },
       accessToken: this.sign(user.id, user.email, user.role),
     };
@@ -109,6 +92,7 @@ export class AuthService {
         role: true,
         status: true,
         avatarUrl: true,
+        mustChangePassword: true,
       },
     });
     if (!user) throw new UnauthorizedException("User not found.");
