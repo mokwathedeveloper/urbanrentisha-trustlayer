@@ -51,7 +51,9 @@ export default function PropertyDetailPage() {
 
   const verified = listing.verificationStatus === "VERIFIED";
   const isAdmin = user?.role === "ADMIN" || user?.role === "PLATFORM";
-  const isOwner = Boolean(user) && (listing.ownerId === user?.id || listing.agent?.user.id === user?.id);
+  const isOwner =
+    Boolean(user) &&
+    (listing.ownerId === user?.id || listing.agent?.user.id === user?.id || listing.manager?.user.id === user?.id);
 
   async function handleReview(decision: "verify" | "reject") {
     if (!token) return;

@@ -38,7 +38,9 @@ export function PropertyCard({
   }, []);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "PLATFORM";
-  const isOwner = Boolean(user) && (listing.ownerId === user?.id || listing.agent?.user.id === user?.id);
+  const isOwner =
+    Boolean(user) &&
+    (listing.ownerId === user?.id || listing.agent?.user.id === user?.id || listing.manager?.user.id === user?.id);
 
   async function toggleSave(e: React.MouseEvent) {
     e.preventDefault();
