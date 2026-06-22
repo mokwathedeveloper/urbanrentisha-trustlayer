@@ -6,7 +6,9 @@ import { ApiError, api, type DocumentType, type ProfileType, type VerificationIt
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
-import { RoleGuard } from "@/components/auth/role-guard";
+import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+
+const ALLOWED_ROLES = ["ADMIN", "PLATFORM"] as const;
 
 const profileTypeLabels: Record<ProfileType, string> = {
   tenant: "Tenant",
@@ -30,6 +32,7 @@ const stageTone: Record<string, string> = {
 
 export default function AdminVerificationsPage() {
   const { token } = useAuth();
+  const allowed = useHasRole([...ALLOWED_ROLES]);
   const [items, setItems] = useState<VerificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -38,14 +41,14 @@ export default function AdminVerificationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   function load() {
-    if (!token) return;
+    if (!token || !allowed) return;
     api.admin.verifications
       .list(token)
       .then(setItems)
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [token]);
+  useEffect(load, [token, allowed]);
 
   async function handleReview(item: VerificationItem, decision: "APPROVED" | "REJECTED" | "NEEDS_CORRECTION") {
     if (!token) return;
@@ -84,7 +87,7 @@ export default function AdminVerificationsPage() {
   }
 
   return (
-    <RoleGuard allow={["ADMIN", "PLATFORM"]}>
+    <RoleGuard allow={[...ALLOWED_ROLES]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Verification Review</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">
