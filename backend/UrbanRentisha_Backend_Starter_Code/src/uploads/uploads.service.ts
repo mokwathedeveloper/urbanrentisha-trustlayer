@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { UserRole, VerificationStage } from "@prisma/client";
+import { DocumentType, UserRole, VerificationStage } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
@@ -49,6 +49,7 @@ export class UploadsService {
     userId: string,
     role: UserRole,
     file: Express.Multer.File,
+    documentType: DocumentType,
   ) {
     const { fileUrl, fileName } = await this.storage.uploadDocument(
       userId,
@@ -62,6 +63,7 @@ export class UploadsService {
         uploaderId: userId,
         fileUrl,
         fileName,
+        documentType,
         ...profileLink.documentData,
       },
     });
