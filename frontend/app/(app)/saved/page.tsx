@@ -6,6 +6,7 @@ import { api, type SavedListingItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PropertyCard } from "@/components/listings/property-card";
 import { Icon } from "@/components/ui/icon";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 export default function SavedPropertiesPage() {
   const { token } = useAuth();
@@ -25,6 +26,7 @@ export default function SavedPropertiesPage() {
   }
 
   return (
+    <RoleGuard allow={["TENANT"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Saved Properties</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">Properties you have saved to review later.</p>
@@ -47,5 +49,6 @@ export default function SavedPropertiesPage() {
         ))}
       </div>
     </div>
+  </RoleGuard>
   );
 }

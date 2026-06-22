@@ -6,6 +6,7 @@ import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 const statusTone: Record<string, string> = {
   NOT_STARTED: "border-ur-text-muted text-ur-text-muted",
@@ -32,6 +33,7 @@ export default function VerificationsPage() {
   const proofs = requests.filter((r) => r.zkProof);
 
   return (
+    <RoleGuard allow={["TENANT"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Verifications</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">
@@ -79,5 +81,6 @@ export default function VerificationsPage() {
         </div>
       </div>
     </div>
+  </RoleGuard>
   );
 }

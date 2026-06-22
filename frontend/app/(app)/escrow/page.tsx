@@ -6,6 +6,7 @@ import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 export default function EscrowPage() {
   const { token } = useAuth();
@@ -24,6 +25,7 @@ export default function EscrowPage() {
   const released = requests.filter((r) => r.payment?.status === "RECEIVED" && r.viewingCode?.status === "ACTIVE");
 
   return (
+    <RoleGuard allow={["TENANT"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Escrow / Holds</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">
@@ -77,5 +79,6 @@ export default function EscrowPage() {
         </div>
       ) : null}
     </div>
+  </RoleGuard>
   );
 }

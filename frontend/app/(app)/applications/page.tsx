@@ -6,6 +6,7 @@ import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { StatusBadge, activeStatuses, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 export default function ApplicationsPage() {
   const { token } = useAuth();
@@ -23,6 +24,7 @@ export default function ApplicationsPage() {
   const active = requests.filter((r) => activeStatuses.includes(r.status));
 
   return (
+    <RoleGuard allow={["TENANT"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Applications</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">
@@ -64,5 +66,6 @@ export default function ApplicationsPage() {
         </div>
       </div>
     </div>
+  </RoleGuard>
   );
 }

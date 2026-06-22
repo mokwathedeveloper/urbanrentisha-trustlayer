@@ -6,6 +6,7 @@ import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 const statusTone: Record<string, string> = {
   CREATED: "border-ur-text-muted text-ur-text-muted",
@@ -32,6 +33,7 @@ export default function PaymentsPage() {
   const payments = requests.filter((r) => r.payment);
 
   return (
+    <RoleGuard allow={["TENANT"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Payments</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">Every Stellar testnet payment you have made for a viewing fee.</p>
@@ -76,5 +78,6 @@ export default function PaymentsPage() {
         </div>
       </div>
     </div>
+  </RoleGuard>
   );
 }

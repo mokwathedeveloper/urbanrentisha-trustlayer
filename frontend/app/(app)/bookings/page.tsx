@@ -6,6 +6,7 @@ import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { StatusBadge, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 export default function MyBookingsPage() {
   const { token } = useAuth();
@@ -21,6 +22,7 @@ export default function MyBookingsPage() {
   }, [token]);
 
   return (
+    <RoleGuard allow={["TENANT"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">My Bookings</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">Full history of every viewing request you have made.</p>
@@ -60,5 +62,6 @@ export default function MyBookingsPage() {
         </div>
       </div>
     </div>
+    </RoleGuard>
   );
 }
