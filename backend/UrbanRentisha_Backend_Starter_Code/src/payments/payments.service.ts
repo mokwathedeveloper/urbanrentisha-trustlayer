@@ -15,7 +15,11 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { ConfirmPaymentDto } from "./dto/confirm-payment.dto";
+import { PrepareEscrowDepositDto } from "./dto/prepare-escrow-deposit.dto";
+import { ConfirmEscrowDepositDto } from "./dto/confirm-escrow-deposit.dto";
 import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
+import { EscrowService } from "../soroban/escrow.service";
+import { HoldStatus } from "../soroban/escrow.client";
 
 @Injectable()
 export class PaymentsService {
@@ -25,6 +29,7 @@ export class PaymentsService {
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
     private readonly access: ViewingRequestAccessService,
+    private readonly escrow: EscrowService,
   ) {}
 
   async createIntent(
@@ -130,5 +135,96 @@ export class PaymentsService {
     if (!payment) throw new NotFoundException("Payment not found.");
     await this.access.assertAccess(payment.viewingRequestId, userId, role);
     return payment;
+  }
+
+  /**
+   * Builds the unsigned escrow `deposit` transaction for the tenant to sign
+   * with Freighter. The backend never holds the tenant's key - only the
+   * payer's own wallet can authorize this on-chain transfer.
+   */
+  async prepareEscrowDeposit(
+    actorId: string,
+    role: UserRole,
+    paymentId: string,
+    dto: PrepareEscrowDepositDto,
+  ): Promise<{ xdr: string }> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new NotFoundException("Payment not found.");
+    await this.access.assertAccess(payment.viewingRequestId, actorId, role);
+
+    const xdr = await this.escrow.prepareDeposit(
+      dto.payerPublicKey,
+      payment.id,
+      payment.amount,
+    );
+    return { xdr };
+  }
+
+  /**
+   * Submits the tenant-signed deposit transaction, then confirms a real
+   * `Held` record now exists on-chain (rather than trusting the submitted
+   * tx hash alone) before marking the Payment as received.
+   */
+  async confirmEscrowDeposit(
+    actorId: string,
+    role: UserRole,
+    paymentId: string,
+    dto: ConfirmEscrowDepositDto,
+  ) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new NotFoundException("Payment not found.");
+    await this.access.assertAccess(payment.viewingRequestId, actorId, role);
+
+    const txHash = await this.escrow.submitSignedDeposit(dto.signedXdr);
+
+    const hold = await this.escrow.getHold(payment.id);
+    if (!hold || hold.status !== HoldStatus.Held) {
+      throw new BadRequestException(
+        "Escrow deposit transaction succeeded but no held funds were found on-chain.",
+      );
+    }
+
+    const updated = await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        txHash,
+        escrowDepositTxHash: txHash,
+        payerWallet: hold.payer,
+        status: PaymentStatus.RECEIVED,
+        paidAt: new Date(),
+      },
+    });
+
+    await this.prisma.viewingRequest.update({
+      where: { id: payment.viewingRequestId },
+      data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "payment.escrow_deposit_confirmed",
+      entityType: "payment",
+      entityId: payment.id,
+      severity: "SUCCESS",
+      metadata: {
+        txHash,
+        viewingRequestId: payment.viewingRequestId,
+        amountStroops: hold.amount.toString(),
+      },
+    });
+
+    await this.notifications.create({
+      userId: actorId,
+      type: NotificationType.PAYMENT,
+      title: "Payment Held in Escrow",
+      message: `Your payment of ${updated.amount} ${updated.stellarAsset} is now held in escrow and will be released once your viewing proof is verified.`,
+      viewingRequestId: payment.viewingRequestId,
+    });
+
+    return updated;
   }
 }
