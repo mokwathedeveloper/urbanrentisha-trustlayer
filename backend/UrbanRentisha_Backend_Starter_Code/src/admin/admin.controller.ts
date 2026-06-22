@@ -15,6 +15,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
 import { AdminService } from "./admin.service";
 import { ReviewVerificationDto } from "./dto/review-verification.dto";
+import { UpdateUserStatusDto } from "./dto/update-user-status.dto";
 
 enum ProfileTypeParam {
   tenant = "tenant",
@@ -59,5 +60,14 @@ export class AdminController {
       dto.note,
       user.sub,
     );
+  }
+
+  @Patch("users/:id/status")
+  setUserStatus(
+    @Param("id") id: string,
+    @Body() dto: UpdateUserStatusDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.admin.setUserStatus(id, dto.status, user.sub);
   }
 }
