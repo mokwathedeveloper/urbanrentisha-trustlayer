@@ -5,12 +5,57 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApiError, api, type Listing, type MessageItem } from "@/lib/api";
+import { ApiError, api, type Listing, type MessageItem, type ReviewSummary } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { isOnline, formatLastSeen } from "@/lib/presence";
 
 const CHAT_POLL_INTERVAL_MS = 5000;
+
+interface Poster {
+  userId: string;
+  name: string;
+  email: string;
+  lastActiveAt: string | null;
+  profileHref: string | null;
+  subtitle: string;
+  trustScore: number | null;
+}
+
+function resolvePoster(listing: Listing): Poster {
+  if (listing.agent) {
+    return {
+      userId: listing.agent.user.id,
+      name: listing.agent.user.name,
+      email: listing.agent.user.email,
+      lastActiveAt: listing.agent.user.lastActiveAt,
+      profileHref: `/agents/${listing.agent.id}`,
+      subtitle: listing.agent.agencyName ?? "Property Agent",
+      trustScore: listing.agent.trustScore,
+    };
+  }
+  if (listing.manager) {
+    return {
+      userId: listing.manager.user.id,
+      name: listing.manager.user.name,
+      email: listing.manager.user.email,
+      lastActiveAt: listing.manager.user.lastActiveAt,
+      profileHref: null,
+      subtitle: listing.manager.agencyName ?? "Property Manager",
+      trustScore: listing.manager.trustScore,
+    };
+  }
+  return {
+    userId: listing.owner.id,
+    name: listing.owner.name,
+    email: listing.owner.email,
+    lastActiveAt: listing.owner.lastActiveAt,
+    profileHref: null,
+    subtitle: "Landlord",
+    trustScore: null,
+  };
+}
 
 export default function PropertyDetailPage() {
   const params = useParams<{ id: string }>();
@@ -29,7 +74,14 @@ export default function PropertyDetailPage() {
   const [chatMessages, setChatMessages] = useState<MessageItem[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [chatSending, setChatSending] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [listingThreadId, setListingThreadId] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
+  const [myRating, setMyRating] = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitError, setReviewSubmitError] = useState<string | null>(null);
 
   function load() {
     api.listings
@@ -42,6 +94,12 @@ export default function PropertyDetailPage() {
   useEffect(load, [params.id]);
 
   useEffect(() => {
+    if (!listing) return;
+    const poster = resolvePoster(listing);
+    api.reviews.findForUser(poster.userId).then(setReviewSummary);
+  }, [listing]);
+
+  useEffect(() => {
     if (!token || user?.role !== "TENANT") return;
     api.viewingRequests.findMine(token).then((requests) => {
       const match = requests.find((request) => request.listingId === params.id);
@@ -49,23 +107,48 @@ export default function PropertyDetailPage() {
     });
   }, [token, user, params.id]);
 
+  const activeThreadId = viewingRequestId ?? listingThreadId;
+
   useEffect(() => {
-    if (!token || !viewingRequestId || !chatOpen) return;
+    if (!token || !activeThreadId || !chatOpen) return;
     const currentToken = token;
-    const requestId = viewingRequestId;
+    const threadId = activeThreadId;
     function loadMessages() {
-      api.messages.findForRequest(currentToken, requestId).then(setChatMessages);
+      const fetcher = viewingRequestId
+        ? api.messages.findForRequest(currentToken, threadId)
+        : api.listingThreads.findMessages(currentToken, threadId);
+      fetcher.then(setChatMessages);
     }
     loadMessages();
     const interval = setInterval(loadMessages, CHAT_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [token, viewingRequestId, chatOpen]);
+  }, [token, activeThreadId, viewingRequestId, chatOpen]);
+
+  async function handleOpenChat() {
+    if (chatOpen) {
+      setChatOpen(false);
+      return;
+    }
+    if (!token) return;
+    if (!viewingRequestId && !listingThreadId) {
+      setChatLoading(true);
+      try {
+        const thread = await api.listingThreads.getOrCreate(token, params.id);
+        setListingThreadId(thread.id);
+      } finally {
+        setChatLoading(false);
+      }
+    }
+    setChatOpen(true);
+  }
 
   async function handleSendChat() {
-    if (!token || !viewingRequestId || !chatDraft.trim()) return;
+    if (!token || !activeThreadId || !chatDraft.trim()) return;
     setChatSending(true);
     try {
-      const message = await api.messages.send(token, viewingRequestId, chatDraft.trim());
+      const message = viewingRequestId
+        ? await api.messages.send(token, activeThreadId, chatDraft.trim())
+        : await api.listingThreads.send(token, activeThreadId, chatDraft.trim());
       setChatMessages((prev) => [...prev, message]);
       setChatDraft("");
     } finally {
@@ -103,6 +186,31 @@ export default function PropertyDetailPage() {
       setReviewError(err instanceof ApiError ? err.message : "Could not submit review.");
     } finally {
       setReviewing(false);
+    }
+  }
+
+  const poster = resolvePoster(listing);
+  const canMessage = Boolean(user) && user?.role === "TENANT" && !isOwner;
+  const canReview = canMessage;
+
+  async function handleSubmitReview() {
+    if (!token || myRating === 0) return;
+    setSubmittingReview(true);
+    setReviewSubmitError(null);
+    try {
+      await api.reviews.create(token, poster.userId, {
+        rating: myRating,
+        comment: myComment.trim() || undefined,
+        listingId: listing!.id,
+      });
+      const summary = await api.reviews.findForUser(poster.userId);
+      setReviewSummary(summary);
+      setMyComment("");
+      setMyRating(0);
+    } catch (err) {
+      setReviewSubmitError(err instanceof ApiError ? err.message : "Could not submit your review.");
+    } finally {
+      setSubmittingReview(false);
     }
   }
 
@@ -382,102 +490,194 @@ export default function PropertyDetailPage() {
             {shareError ? <p className="mt-2 text-xs text-ur-error">{shareError}</p> : null}
           </div>
 
-          {listing.agent ? (
-            <div className="ur-card p-5">
-              <p className="text-sm font-bold text-ur-navy">Listed By</p>
-              <Link href={`/agents/${listing.agent.id}`} className="mt-3 flex items-center gap-3">
+          <div className="ur-card p-5">
+            <p className="text-sm font-bold text-ur-navy">Listed By</p>
+            {poster.profileHref ? (
+              <Link href={poster.profileHref} className="mt-3 flex items-center gap-3">
                 <div className="grid h-12 w-12 place-items-center rounded-full bg-ur-card-soft text-ur-primary">
-                  {listing.agent.user.name.charAt(0)}
+                  {poster.name.charAt(0)}
                 </div>
                 <div>
                   <p className="flex items-center gap-1 text-sm font-bold text-ur-navy hover:underline">
-                    {listing.agent.user.name}
+                    {poster.name}
                     <Icon name="verified_user" size={14} className="text-ur-primary" />
                   </p>
-                  <p className="text-xs text-ur-text-secondary">{listing.agent.agencyName ?? "Property Agent"}</p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-ur-warning">
-                    <Icon name="star" size={12} className="fill-ur-warning" />
-                    {listing.agent.trustScore / 20} trust score
-                  </p>
+                  <p className="text-xs text-ur-text-secondary">{poster.subtitle}</p>
+                  {poster.trustScore != null ? (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-ur-warning">
+                      <Icon name="star" size={12} className="fill-ur-warning" />
+                      {poster.trustScore / 20} trust score
+                    </p>
+                  ) : null}
                 </div>
               </Link>
-              <p className="mt-3 flex items-center gap-2 text-xs text-ur-text-secondary">
-                <Icon name="call" size={14} />
-                Contact via platform
-              </p>
-              <p className="flex items-center gap-2 text-xs text-ur-text-secondary">
-                <Icon name="mail" size={14} />
-                {listing.agent.user.email}
-              </p>
+            ) : (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-ur-card-soft text-ur-primary">
+                  {poster.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-ur-navy">{poster.name}</p>
+                  <p className="text-xs text-ur-text-secondary">{poster.subtitle}</p>
+                </div>
+              </div>
+            )}
 
-              {viewingRequestId ? (
-                <>
-                  <Button className="mt-4 w-full" onClick={() => setChatOpen((open) => !open)}>
-                    <Icon name="chat_bubble" size={16} />
-                    {chatOpen ? "Hide Chat" : "Message Agent"}
-                  </Button>
-                  {chatOpen ? (
-                    <div className="mt-3 flex h-80 flex-col rounded-ur border border-ur-border bg-ur-card-soft">
-                      <div className="flex-1 space-y-2 overflow-y-auto p-3">
-                        {chatMessages.length === 0 ? (
-                          <p className="py-6 text-center text-xs text-ur-text-muted">
-                            No messages yet. Say hello!
-                          </p>
-                        ) : (
-                          chatMessages.map((message) => {
-                            const isOwn = message.senderId === user?.id;
-                            return (
-                              <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                                <div
-                                  className={`max-w-[80%] rounded-ur-sm px-3 py-2 text-sm ${
-                                    isOwn ? "bg-ur-primary text-white" : "bg-ur-card text-ur-navy"
-                                  }`}
-                                >
-                                  <p>{message.body}</p>
-                                  <p className={`mt-1 text-xs ${isOwn ? "text-white/70" : "text-ur-text-muted"}`}>
-                                    {formatDate(message.createdAt)}
-                                  </p>
-                                </div>
+            <p className="mt-2 flex items-center gap-1.5 text-xs">
+              <span className={`h-1.5 w-1.5 rounded-full ${isOnline(poster.lastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"}`} />
+              <span className={isOnline(poster.lastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
+                {formatLastSeen(poster.lastActiveAt)}
+              </span>
+            </p>
+
+            {reviewSummary ? (
+              <p className="mt-2 flex items-center gap-1 text-xs text-ur-text-secondary">
+                <Icon name="star" size={12} className="fill-ur-warning text-ur-warning" />
+                {reviewSummary.count > 0
+                  ? `${reviewSummary.average} (${reviewSummary.count} review${reviewSummary.count === 1 ? "" : "s"})`
+                  : "No reviews yet"}
+              </p>
+            ) : null}
+
+            <p className="mt-3 flex items-center gap-2 text-xs text-ur-text-secondary">
+              <Icon name="call" size={14} />
+              Contact via platform
+            </p>
+            <p className="flex items-center gap-2 text-xs text-ur-text-secondary">
+              <Icon name="mail" size={14} />
+              {poster.email}
+            </p>
+
+            {canMessage ? (
+              <>
+                <Button className="mt-4 w-full" disabled={chatLoading} onClick={handleOpenChat}>
+                  <Icon name="chat_bubble" size={16} />
+                  {chatLoading ? "Loading..." : chatOpen ? "Hide Chat" : "Message"}
+                </Button>
+                {chatOpen ? (
+                  <div className="mt-3 flex h-80 flex-col rounded-ur border border-ur-border bg-ur-card-soft">
+                    <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                      {chatMessages.length === 0 ? (
+                        <p className="py-6 text-center text-xs text-ur-text-muted">
+                          No messages yet. Say hello!
+                        </p>
+                      ) : (
+                        chatMessages.map((message) => {
+                          const isOwn = message.senderId === user?.id;
+                          return (
+                            <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+                              <div
+                                className={`max-w-[80%] rounded-ur-sm px-3 py-2 text-sm ${
+                                  isOwn ? "bg-ur-primary text-white" : "bg-ur-card text-ur-navy"
+                                }`}
+                              >
+                                <p>{message.body}</p>
+                                <p className={`mt-1 text-xs ${isOwn ? "text-white/70" : "text-ur-text-muted"}`}>
+                                  {formatDate(message.createdAt)}
+                                </p>
                               </div>
-                            );
-                          })
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 border-t border-ur-border p-2">
-                        <input
-                          value={chatDraft}
-                          onChange={(e) => setChatDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendChat();
-                            }
-                          }}
-                          placeholder="Write a message..."
-                          className="flex-1 rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSendChat}
-                          disabled={chatSending || !chatDraft.trim()}
-                          className="grid h-9 w-9 shrink-0 place-items-center rounded-ur-sm bg-ur-primary text-white disabled:opacity-50"
-                          aria-label="Send message"
-                        >
-                          <Icon name="send" size={16} />
-                        </button>
-                      </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
-                  ) : null}
-                </>
+                    <div className="flex items-center gap-2 border-t border-ur-border p-2">
+                      <input
+                        value={chatDraft}
+                        onChange={(e) => setChatDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendChat();
+                          }
+                        }}
+                        placeholder="Write a message..."
+                        className="flex-1 rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendChat}
+                        disabled={chatSending || !chatDraft.trim()}
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-ur-sm bg-ur-primary text-white disabled:opacity-50"
+                        aria-label="Send message"
+                      >
+                        <Icon name="send" size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            <Button
+              variant="danger"
+              className="mt-2 w-full"
+              onClick={() => router.push(`/reports/new?listingId=${params.id}`)}
+            >
+              <Icon name="flag" size={16} />
+              Report Listing
+            </Button>
+          </div>
+
+          {reviewSummary ? (
+            <div className="ur-card p-5">
+              <p className="text-sm font-bold text-ur-navy">
+                Reviews of {poster.name} <span className="text-ur-text-muted">({reviewSummary.count})</span>
+              </p>
+              <div className="mt-3 max-h-56 space-y-3 overflow-y-auto">
+                {reviewSummary.reviews.length === 0 ? (
+                  <p className="text-sm text-ur-text-muted">No reviews yet.</p>
+                ) : (
+                  reviewSummary.reviews.map((review) => (
+                    <div key={review.id} className="border-b border-ur-border pb-2 last:border-0">
+                      <p className="flex items-center gap-1 text-xs font-semibold text-ur-navy">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Icon
+                            key={i}
+                            name="star"
+                            size={12}
+                            className={i < review.rating ? "fill-ur-warning text-ur-warning" : "text-ur-text-muted"}
+                          />
+                        ))}
+                      </p>
+                      {review.comment ? (
+                        <p className="mt-1 text-sm text-ur-text-secondary">{review.comment}</p>
+                      ) : null}
+                      <p className="mt-1 text-xs text-ur-text-muted">{review.reviewer.name}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {canReview ? (
+                <div className="mt-4 border-t border-ur-border pt-3">
+                  <p className="text-xs font-semibold text-ur-text-secondary">Leave a Review</p>
+                  <div className="mt-2 flex gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <button key={i} type="button" onClick={() => setMyRating(i + 1)} aria-label={`Rate ${i + 1} stars`}>
+                        <Icon
+                          name="star"
+                          size={18}
+                          className={i < myRating ? "fill-ur-warning text-ur-warning" : "text-ur-text-muted"}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={myComment}
+                    onChange={(e) => setMyComment(e.target.value)}
+                    placeholder="Share your experience (optional)"
+                    className="mt-2 h-16 w-full rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
+                  />
+                  {reviewSubmitError ? <p className="mt-1 text-xs text-ur-error">{reviewSubmitError}</p> : null}
+                  <Button
+                    className="mt-2 w-full"
+                    disabled={submittingReview || myRating === 0}
+                    onClick={handleSubmitReview}
+                  >
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </div>
               ) : null}
-              <Button
-                variant="danger"
-                className="mt-2 w-full"
-                onClick={() => router.push(`/reports/new?listingId=${params.id}`)}
-              >
-                <Icon name="flag" size={16} />
-                Report Listing
-              </Button>
             </div>
           ) : null}
         </div>
