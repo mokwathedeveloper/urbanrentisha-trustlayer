@@ -5,9 +5,16 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
 import { StorageModule } from "../storage/storage.module";
 import { StellarModule } from "../stellar/stellar.module";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { SorobanModule } from "../soroban/soroban.module";
 
 @Module({
-  imports: [AuditLogsModule, StorageModule, StellarModule, NotificationsModule],
+  imports: [
+    AuditLogsModule,
+    StorageModule,
+    StellarModule,
+    NotificationsModule,
+    SorobanModule,
+  ],
   controllers: [AdminController],
   providers: [AdminService],
 })

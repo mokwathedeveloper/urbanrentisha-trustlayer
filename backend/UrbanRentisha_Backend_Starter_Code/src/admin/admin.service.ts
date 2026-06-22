@@ -18,6 +18,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { StorageService } from "../storage/storage.service";
 import { StellarService } from "../stellar/stellar.service";
+import { EscrowService } from "../soroban/escrow.service";
+import { HoldStatus } from "../soroban/escrow.client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { VerificationDecision } from "./dto/review-verification.dto";
 
@@ -28,6 +30,7 @@ export class AdminService {
     private readonly auditLogs: AuditLogsService,
     private readonly storage: StorageService,
     private readonly stellar: StellarService,
+    private readonly escrow: EscrowService,
     private readonly notifications: NotificationsService,
   ) {}
 
@@ -704,5 +707,65 @@ export class AdminService {
         listings: manager.listings,
       })),
     };
+  }
+
+  /**
+   * Refunds a held escrow payment back to the tenant. Manual admin action
+   * for disputes/cancellations - this codebase has no automated
+   * cancellation flow to hook a refund into yet.
+   */
+  async refundPayment(paymentId: string, adminId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { viewingRequest: { include: { tenant: true } } },
+    });
+    if (!payment) throw new NotFoundException("Payment not found.");
+    if (
+      payment.status !== PaymentStatus.RECEIVED ||
+      !payment.escrowDepositTxHash
+    ) {
+      throw new BadRequestException(
+        "Only a payment held in escrow can be refunded.",
+      );
+    }
+
+    const hold = await this.escrow.getHold(payment.id);
+    if (!hold || hold.status !== HoldStatus.Held) {
+      throw new BadRequestException(
+        "No held funds were found on-chain for this payment.",
+      );
+    }
+
+    const refundTxHash = await this.escrow.refund(payment.id);
+
+    const updated = await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: PaymentStatus.REFUNDED,
+        escrowReleaseTxHash: refundTxHash,
+      },
+    });
+
+    await this.auditLogs.create({
+      actorId: adminId,
+      action: "payment.escrow_refunded",
+      entityType: "payment",
+      entityId: payment.id,
+      severity: "SUCCESS",
+      metadata: {
+        refundTxHash,
+        viewingRequestId: payment.viewingRequestId,
+      },
+    });
+
+    await this.notifications.create({
+      userId: payment.viewingRequest.tenant.userId,
+      type: NotificationType.PAYMENT,
+      title: "Payment Refunded",
+      message: `Your payment of ${updated.amount} ${updated.stellarAsset} has been refunded.`,
+      viewingRequestId: payment.viewingRequestId,
+    });
+
+    return updated;
   }
 }

@@ -5,6 +5,7 @@ import {
   Param,
   ParseEnumPipe,
   Patch,
+  Post,
   UseGuards,
 } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
@@ -101,5 +102,10 @@ export class AdminController {
   @Get("landlords/:landlordProfileId/team")
   getLandlordTeam(@Param("landlordProfileId") landlordProfileId: string) {
     return this.admin.getLandlordTeam(landlordProfileId);
+  }
+
+  @Post("payments/:id/refund")
+  refundPayment(@Param("id") id: string, @CurrentUser() user: AuthUser) {
+    return this.admin.refundPayment(id, user.sub);
   }
 }
