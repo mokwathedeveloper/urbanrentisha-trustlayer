@@ -518,11 +518,11 @@ export const api = {
       listingId: string,
       body: {
         url: string;
-        latitude?: number;
-        longitude?: number;
+        latitude: number;
+        longitude: number;
         capturedAt?: string;
         device?: string;
-        gpsPresent?: boolean;
+        gpsPresent: true;
       },
     ) => request<ListingImage>(`/listings/${listingId}/images`, { method: "POST", body, token }),
     deleteImage: (token: string, listingId: string, imageId: string) =>
