@@ -1,9 +1,11 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
+  Asset,
   BASE_FEE,
   Horizon,
   Keypair,
+  Memo,
   Networks,
   Operation,
   TransactionBuilder,
@@ -169,5 +171,48 @@ export class StellarService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Demo-only: pays the viewing fee into the platform's own wallet from a
+   * platform-funded testnet treasury, standing in for the tenant's own
+   * payment source. This only exists because testnet XLM is free via
+   * Friendbot - it is NOT a production payment method. A real deployment
+   * would need an actual fiat/crypto on-ramp here (M-Pesa, card, etc.); the
+   * platform cannot "spot" tenants real money. Returns the real, on-chain
+   * testnet transaction hash.
+   */
+  async payFromTreasury(amount: number, memo: string): Promise<string> {
+    const secret = this.config.get<string>("STELLAR_DEMO_TREASURY_SECRET_KEY");
+    if (!secret) {
+      throw new InternalServerErrorException(
+        "STELLAR_DEMO_TREASURY_SECRET_KEY is not configured.",
+      );
+    }
+
+    const keypair = Keypair.fromSecret(secret);
+    const account = await this.server.loadAccount(keypair.publicKey());
+
+    const transaction = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase:
+        this.config.get<string>("STELLAR_NETWORK_PASSPHRASE") ??
+        Networks.TESTNET,
+    })
+      .addOperation(
+        Operation.payment({
+          destination: this.getDestinationWallet(),
+          asset: Asset.native(),
+          amount: amount.toString(),
+        }),
+      )
+      .addMemo(Memo.text(memo))
+      .setTimeout(30)
+      .build();
+
+    transaction.sign(keypair);
+
+    const result = await this.server.submitTransaction(transaction);
+    return result.hash;
   }
 }
