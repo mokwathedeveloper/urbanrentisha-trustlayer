@@ -72,7 +72,9 @@ export function AdminDashboardView() {
             overview.pendingApprovals.listings.map((listing) => (
               <Row key={listing.id}>
                 <div>
-                  <p className="text-sm font-bold text-ur-navy">{listing.title}</p>
+                  <Link href={`/listings/${listing.id}`} className="text-sm font-bold text-ur-navy hover:underline">
+                    {listing.title}
+                  </Link>
                   <p className="text-xs text-ur-text-secondary">Listed by {listing.agencyName}</p>
                 </div>
                 <span className="text-xs text-ur-text-muted">{formatDate(listing.createdAt)}</span>
