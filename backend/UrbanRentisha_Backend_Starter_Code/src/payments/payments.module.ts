@@ -5,6 +5,7 @@ import { StellarModule } from "../stellar/stellar.module";
 import { AuditLogsModule } from "../audit-logs/audit-logs.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { ViewingRequestsModule } from "../viewing-requests/viewing-requests.module";
+import { SorobanModule } from "../soroban/soroban.module";
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ViewingRequestsModule } from "../viewing-requests/viewing-requests.modu
     AuditLogsModule,
     NotificationsModule,
     ViewingRequestsModule,
+    SorobanModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
