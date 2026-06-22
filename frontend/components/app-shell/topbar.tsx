@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notifications";
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -21,7 +22,11 @@ export function Topbar() {
     const load = () => api.notifications.findMine(token).then(setNotifications);
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
+    };
   }, [token]);
 
   useEffect(() => {
@@ -34,7 +39,7 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const hasUnread = notifications.some((n) => !n.readAt);
+  const unreadCount = notifications.filter((n) => !n.readAt).length;
 
   return (
     <header className="flex h-16 items-center justify-end gap-4 border-b border-ur-border bg-ur-bg px-6">
@@ -45,7 +50,11 @@ export function Topbar() {
         aria-label="Notifications"
       >
         <Icon name="notifications" size={20} />
-        {hasUnread ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-ur-mint" /> : null}
+        {unreadCount > 0 ? (
+          <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-ur-mint px-1 text-[10px] font-bold text-ur-bg">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
       </button>
 
       <div className="relative" ref={menuRef}>
