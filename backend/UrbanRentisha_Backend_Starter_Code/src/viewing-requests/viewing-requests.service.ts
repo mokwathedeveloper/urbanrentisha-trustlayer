@@ -3,16 +3,18 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { ViewingRequestStatus } from "@prisma/client";
+import { UserRole, ViewingRequestStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
+import { ViewingRequestAccessService } from "./viewing-request-access.service";
 
 @Injectable()
 export class ViewingRequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
+    private readonly access: ViewingRequestAccessService,
   ) {}
 
   async create(userId: string, dto: CreateViewingRequestDto) {
@@ -80,7 +82,9 @@ export class ViewingRequestsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string, role: UserRole) {
+    await this.access.assertAccess(id, userId, role);
+
     const request = await this.prisma.viewingRequest.findUnique({
       where: { id },
       include: {
@@ -96,8 +100,8 @@ export class ViewingRequestsService {
     return request;
   }
 
-  async status(id: string) {
-    const request = await this.findOne(id);
+  async status(id: string, userId: string, role: UserRole) {
+    const request = await this.findOne(id, userId, role);
     return {
       id: request.id,
       status: request.status,

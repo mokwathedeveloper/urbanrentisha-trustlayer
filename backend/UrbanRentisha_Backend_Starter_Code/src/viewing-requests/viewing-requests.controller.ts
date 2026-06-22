@@ -21,12 +21,12 @@ export class ViewingRequestsController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.viewingRequests.findOne(id);
+  findOne(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.viewingRequests.findOne(id, user.sub, user.role);
   }
 
   @Get(":id/status")
-  status(@Param("id") id: string) {
-    return this.viewingRequests.status(id);
+  status(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.viewingRequests.status(id, user.sub, user.role);
   }
 }
