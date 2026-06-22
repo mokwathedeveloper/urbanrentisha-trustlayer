@@ -27,6 +27,7 @@ export class UsersService {
         role: true,
         status: true,
         avatarUrl: true,
+        mustChangePassword: true,
         tenantProfile: true,
         landlordProfile: true,
         agentProfile: true,
@@ -70,17 +71,22 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("User not found.");
 
-    const currentOk = await bcrypt.compare(
-      dto.currentPassword,
-      user.passwordHash,
-    );
-    if (!currentOk)
-      throw new BadRequestException("Current password is incorrect.");
+    if (!user.mustChangePassword) {
+      if (!dto.currentPassword) {
+        throw new BadRequestException("Current password is required.");
+      }
+      const currentOk = await bcrypt.compare(
+        dto.currentPassword,
+        user.passwordHash,
+      );
+      if (!currentOk)
+        throw new BadRequestException("Current password is incorrect.");
+    }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash },
+      data: { passwordHash, mustChangePassword: false },
     });
 
     await this.auditLogs.create({
