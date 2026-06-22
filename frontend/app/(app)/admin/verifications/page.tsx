@@ -5,6 +5,7 @@ import { ApiError, api, type ProfileType, type VerificationItem } from "@/lib/ap
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 const profileTypeLabels: Record<ProfileType, string> = {
   tenant: "Tenant",
@@ -59,6 +60,7 @@ export default function AdminVerificationsPage() {
   }
 
   return (
+    <RoleGuard allow={["ADMIN", "PLATFORM"]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Verification Review</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">
@@ -181,5 +183,6 @@ export default function AdminVerificationsPage() {
         </div>
       </div>
     </div>
+    </RoleGuard>
   );
 }
