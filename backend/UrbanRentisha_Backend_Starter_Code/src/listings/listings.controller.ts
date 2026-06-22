@@ -16,6 +16,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { RejectListingDto } from "./dto/reject-listing.dto";
+import { AddListingImageDto } from "./dto/add-listing-image.dto";
 import { ListingsService } from "./listings.service";
 
 @Controller("listings")
@@ -79,5 +80,25 @@ export class ListingsController {
     @Body() dto: RejectListingDto,
   ) {
     return this.listings.reject(id, user.sub, dto.note);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/images")
+  addImage(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Body() dto: AddListingImageDto,
+  ) {
+    return this.listings.addImage(id, user.sub, user.role, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(":id/images/:imageId")
+  deleteImage(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Param("imageId") imageId: string,
+  ) {
+    return this.listings.deleteImage(id, imageId, user.sub, user.role);
   }
 }
