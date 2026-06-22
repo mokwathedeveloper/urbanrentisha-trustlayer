@@ -1,8 +1,21 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { ListingStatus } from "@prisma/client";
+import { ListingStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { CreateListingDto } from "./dto/create-listing.dto";
+
+const LISTING_OWNER_INCLUDE = {
+  agent: {
+    include: {
+      user: { select: { id: true, name: true, email: true, phone: true } },
+    },
+  },
+  manager: {
+    include: {
+      user: { select: { id: true, name: true, email: true, phone: true } },
+    },
+  },
+} satisfies Prisma.ListingInclude;
 
 @Injectable()
 export class ListingsService {
@@ -14,15 +27,7 @@ export class ListingsService {
   findAll() {
     return this.prisma.listing.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        agent: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, phone: true },
-            },
-          },
-        },
-      },
+      include: LISTING_OWNER_INCLUDE,
     });
   }
 
@@ -30,30 +35,14 @@ export class ListingsService {
     return this.prisma.listing.findMany({
       where: { ownerId },
       orderBy: { createdAt: "desc" },
-      include: {
-        agent: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, phone: true },
-            },
-          },
-        },
-      },
+      include: LISTING_OWNER_INCLUDE,
     });
   }
 
   async findOne(id: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
-      include: {
-        agent: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, phone: true },
-            },
-          },
-        },
-      },
+      include: LISTING_OWNER_INCLUDE,
     });
 
     if (!listing) throw new NotFoundException("Listing not found.");
@@ -112,17 +101,7 @@ export class ListingsService {
       where: { userId },
       orderBy: { createdAt: "desc" },
       include: {
-        listing: {
-          include: {
-            agent: {
-              include: {
-                user: {
-                  select: { id: true, name: true, email: true, phone: true },
-                },
-              },
-            },
-          },
-        },
+        listing: { include: LISTING_OWNER_INCLUDE },
       },
     });
   }
