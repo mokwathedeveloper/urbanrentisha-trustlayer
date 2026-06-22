@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api, type Listing } from "@/lib/api";
@@ -19,9 +20,25 @@ export function PropertyCard({
   initialSaved?: boolean;
   onUnsave?: (listingId: string) => void;
 }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [pending, setPending] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const isAdmin = user?.role === "ADMIN" || user?.role === "PLATFORM";
+  const isOwner = Boolean(user) && (listing.ownerId === user?.id || listing.agent?.user.id === user?.id);
 
   async function toggleSave(e: React.MouseEvent) {
     e.preventDefault();
@@ -69,9 +86,50 @@ export function PropertyCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-bold text-ur-navy">{listing.title}</h3>
-          <button type="button" aria-label="More options" className="text-ur-text-muted hover:text-ur-navy">
-            <Icon name="more_vert" size={16} />
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              aria-label="More options"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="text-ur-text-muted hover:text-ur-navy"
+            >
+              <Icon name="more_vert" size={16} />
+            </button>
+            {menuOpen ? (
+              <div className="absolute right-0 top-full z-10 mt-1 w-44 overflow-hidden rounded-ur-sm border border-ur-border bg-ur-card shadow-lg">
+                <Link
+                  href={`/listings/${listing.id}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-ur-text-secondary hover:bg-ur-card-soft"
+                >
+                  <Icon name="visibility" size={14} />
+                  View Details
+                </Link>
+                {isAdmin ? (
+                  <Link
+                    href={`/listings/${listing.id}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-ur-text-secondary hover:bg-ur-card-soft"
+                  >
+                    <Icon name="verified_user" size={14} />
+                    Review Listing
+                  </Link>
+                ) : !isOwner ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push(`/reports/new?listingId=${listing.id}`);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ur-error hover:bg-ur-card-soft"
+                  >
+                    <Icon name="flag" size={14} />
+                    Report Listing
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
         <p className="mt-1 flex items-center gap-1 text-sm text-ur-text-secondary">
           <Icon name="location_on" size={14} />
@@ -114,6 +172,18 @@ export function PropertyCard({
               <Icon name="arrow_forward" size={14} />
             </Link>
           </div>
+        ) : isOwner ? (
+          <Link href={`/listings/${listing.id}`}>
+            <Button variant="secondary" className="mt-4 w-full">
+              This is your listing
+            </Button>
+          </Link>
+        ) : isAdmin ? (
+          <Link href={`/listings/${listing.id}`}>
+            <Button variant="secondary" className="mt-4 w-full">
+              Review Listing
+            </Button>
+          </Link>
         ) : (
           <Link href={`/listings/${listing.id}`}>
             <Button className="mt-4 w-full">Request Viewing</Button>
