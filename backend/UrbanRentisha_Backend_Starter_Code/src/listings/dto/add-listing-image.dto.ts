@@ -1,7 +1,8 @@
 import {
-  IsBoolean,
+  Equals,
   IsDateString,
-  IsNumber,
+  IsLatitude,
+  IsLongitude,
   IsOptional,
   IsString,
 } from "class-validator";
@@ -10,13 +11,13 @@ export class AddListingImageDto {
   @IsString()
   url!: string;
 
-  @IsOptional()
-  @IsNumber()
-  latitude?: number;
+  // Required, not optional: a photo with no GPS EXIF data is rejected
+  // outright, so latitude/longitude must always be present here.
+  @IsLatitude()
+  latitude!: number;
 
-  @IsOptional()
-  @IsNumber()
-  longitude?: number;
+  @IsLongitude()
+  longitude!: number;
 
   @IsOptional()
   @IsDateString()
@@ -26,7 +27,8 @@ export class AddListingImageDto {
   @IsString()
   device?: string;
 
-  @IsOptional()
-  @IsBoolean()
-  gpsPresent?: boolean;
+  // Must be exactly `true` - the frontend only reaches this endpoint after
+  // confirming real GPS EXIF data was found in the photo.
+  @Equals(true)
+  gpsPresent!: boolean;
 }
