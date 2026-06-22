@@ -580,6 +580,8 @@ export const api = {
   uploads: {
     avatar: (token: string, file: File) =>
       uploadRequest<{ avatarUrl: string }>("/uploads/avatar", token, file),
+    listingImage: (token: string, file: File) =>
+      uploadRequest<{ imageUrl: string }>("/uploads/listing-image", token, file),
     documents: (token: string, file: File) =>
       uploadRequest<{ id: string; fileUrl: string; fileName: string; status: string }>(
         "/uploads/documents",
