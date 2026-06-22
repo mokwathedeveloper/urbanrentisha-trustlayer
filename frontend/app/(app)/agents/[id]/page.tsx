@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError, type AgentProfile } from "@/lib/api";
+import { ApiError, api, type AgentProfile, type ReviewSummary } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { isOnline, formatLastSeen } from "@/lib/presence";
+import { Button } from "@/components/ui/button";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -18,10 +20,15 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AgentVerificationProfilePage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const params = useParams<{ id: string }>();
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
+  const [myRating, setMyRating] = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitError, setReviewSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -30,6 +37,31 @@ export default function AgentVerificationProfilePage() {
       .then(setAgent)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Could not load agent profile."));
   }, [token, params.id]);
+
+  useEffect(() => {
+    if (!agent) return;
+    api.reviews.findForUser(agent.user.id).then(setReviewSummary);
+  }, [agent]);
+
+  async function handleSubmitReview() {
+    if (!token || !agent || myRating === 0) return;
+    setSubmittingReview(true);
+    setReviewSubmitError(null);
+    try {
+      await api.reviews.create(token, agent.user.id, {
+        rating: myRating,
+        comment: myComment.trim() || undefined,
+      });
+      const summary = await api.reviews.findForUser(agent.user.id);
+      setReviewSummary(summary);
+      setMyComment("");
+      setMyRating(0);
+    } catch (err) {
+      setReviewSubmitError(err instanceof ApiError ? err.message : "Could not submit your review.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  }
 
   if (error) {
     return <p className="p-8 text-sm text-ur-error">{error}</p>;
@@ -77,10 +109,22 @@ export default function AgentVerificationProfilePage() {
                 {agent.user.name}
                 <Icon name="verified" size={16} className="text-ur-cyan" />
               </p>
-              <p className="text-sm text-ur-text-secondary">
-                Verified Agent · <span className="text-ur-primary">Active</span>
+              <p className="flex items-center gap-1.5 text-sm text-ur-text-secondary">
+                Verified Agent ·
+                <span className={`flex items-center gap-1 ${isOnline(agent.user.lastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${isOnline(agent.user.lastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"}`} />
+                  {formatLastSeen(agent.user.lastActiveAt)}
+                </span>
               </p>
               <p className="text-sm text-ur-text-muted">Member since {formatDate(agent.createdAt)}</p>
+              {reviewSummary ? (
+                <p className="mt-1 flex items-center gap-1 text-sm text-ur-text-secondary">
+                  <Icon name="star" size={14} className="fill-ur-warning text-ur-warning" />
+                  {reviewSummary.count > 0
+                    ? `${reviewSummary.average} (${reviewSummary.count} review${reviewSummary.count === 1 ? "" : "s"})`
+                    : "No reviews yet"}
+                </p>
+              ) : null}
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-ur-text-secondary">
                 {agent.user.phone ? (
                   <span className="flex items-center gap-1.5">
@@ -226,6 +270,63 @@ export default function AgentVerificationProfilePage() {
           </div>
         </div>
       </div>
+
+      {reviewSummary ? (
+        <div className="mt-6 ur-card p-5">
+          <p className="text-sm font-bold text-ur-navy">
+            Reviews <span className="text-ur-text-muted">({reviewSummary.count})</span>
+          </p>
+          <div className="mt-3 max-h-64 space-y-3 overflow-y-auto">
+            {reviewSummary.reviews.length === 0 ? (
+              <p className="text-sm text-ur-text-muted">No reviews yet.</p>
+            ) : (
+              reviewSummary.reviews.map((review) => (
+                <div key={review.id} className="border-b border-ur-border pb-2 last:border-0">
+                  <p className="flex items-center gap-1 text-xs font-semibold text-ur-navy">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Icon
+                        key={i}
+                        name="star"
+                        size={12}
+                        className={i < review.rating ? "fill-ur-warning text-ur-warning" : "text-ur-text-muted"}
+                      />
+                    ))}
+                  </p>
+                  {review.comment ? <p className="mt-1 text-sm text-ur-text-secondary">{review.comment}</p> : null}
+                  <p className="mt-1 text-xs text-ur-text-muted">{review.reviewer.name}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {user?.role === "TENANT" ? (
+            <div className="mt-4 border-t border-ur-border pt-3">
+              <p className="text-xs font-semibold text-ur-text-secondary">Leave a Review</p>
+              <div className="mt-2 flex gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button key={i} type="button" onClick={() => setMyRating(i + 1)} aria-label={`Rate ${i + 1} stars`}>
+                    <Icon
+                      name="star"
+                      size={18}
+                      className={i < myRating ? "fill-ur-warning text-ur-warning" : "text-ur-text-muted"}
+                    />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={myComment}
+                onChange={(e) => setMyComment(e.target.value)}
+                placeholder="Share your experience (optional)"
+                className="mt-2 h-16 w-full rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
+              />
+              {reviewSubmitError ? <p className="mt-1 text-xs text-ur-error">{reviewSubmitError}</p> : null}
+              <Button className="mt-2 w-full" disabled={submittingReview || myRating === 0} onClick={handleSubmitReview}>
+                {submittingReview ? "Submitting..." : "Submit Review"}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
