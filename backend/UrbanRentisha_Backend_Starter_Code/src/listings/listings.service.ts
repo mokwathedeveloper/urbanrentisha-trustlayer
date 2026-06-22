@@ -19,16 +19,21 @@ import { AddListingImageDto } from "./dto/add-listing-image.dto";
 const MAX_LISTING_IMAGES = 6;
 const ADMIN_ROLES = new Set<UserRole>([UserRole.ADMIN, UserRole.PLATFORM]);
 
+const CONTACT_USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  lastActiveAt: true,
+} satisfies Prisma.UserSelect;
+
 const LISTING_OWNER_INCLUDE = {
+  owner: { select: CONTACT_USER_SELECT },
   agent: {
-    include: {
-      user: { select: { id: true, name: true, email: true, phone: true } },
-    },
+    include: { user: { select: CONTACT_USER_SELECT } },
   },
   manager: {
-    include: {
-      user: { select: { id: true, name: true, email: true, phone: true } },
-    },
+    include: { user: { select: CONTACT_USER_SELECT } },
   },
   images: { orderBy: { order: "asc" } },
 } satisfies Prisma.ListingInclude;
