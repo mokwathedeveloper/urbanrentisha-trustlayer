@@ -21,6 +21,7 @@ import { AgentsModule } from "./agents/agents.module";
 import { MessagesModule } from "./messages/messages.module";
 import { StorageModule } from "./storage/storage.module";
 import { UploadsModule } from "./uploads/uploads.module";
+import { LandlordModule } from "./landlord/landlord.module";
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { UploadsModule } from "./uploads/uploads.module";
     MessagesModule,
     StorageModule,
     UploadsModule,
+    LandlordModule,
   ],
 })
 export class AppModule {}
