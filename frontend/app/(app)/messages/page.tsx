@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, type MessageItem, type MessageThread } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+
+const POLL_INTERVAL_MS = 5000;
 
 export default function MessagesPage() {
   const { token, user } = useAuth();
@@ -17,25 +19,46 @@ export default function MessagesPage() {
   const [activeMessages, setActiveMessages] = useState<MessageItem[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const consumedThreadParam = useRef<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
-    api.messages
-      .findInbox(token)
-      .then((data) => {
-        setThreads(data);
-        if (threadParam && data.some((thread) => thread.viewingRequestId === threadParam)) {
-          setActiveId(threadParam);
-        } else if (data.length > 0) {
-          setActiveId(data[0].viewingRequestId);
-        }
-      })
-      .finally(() => setLoading(false));
+    const currentToken = token;
+    function loadInbox() {
+      api.messages
+        .findInbox(currentToken)
+        .then((data) => {
+          setThreads(data);
+          setActiveId((current) => {
+            const wantsThreadParam =
+              threadParam && threadParam !== consumedThreadParam.current && data.some((thread) => thread.viewingRequestId === threadParam);
+            if (wantsThreadParam) {
+              consumedThreadParam.current = threadParam;
+              return threadParam;
+            }
+            if (current && data.some((thread) => thread.viewingRequestId === current)) {
+              return current;
+            }
+            return data.length > 0 ? data[0].viewingRequestId : null;
+          });
+        })
+        .finally(() => setLoading(false));
+    }
+    loadInbox();
+    const interval = setInterval(loadInbox, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
   }, [token, threadParam]);
 
   useEffect(() => {
     if (!token || !activeId) return;
-    api.messages.findForRequest(token, activeId).then(setActiveMessages);
+    const currentToken = token;
+    const currentRequestId = activeId;
+    function loadMessages() {
+      api.messages.findForRequest(currentToken, currentRequestId).then(setActiveMessages);
+    }
+    loadMessages();
+    const interval = setInterval(loadMessages, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
   }, [token, activeId]);
 
   const activeThread = threads.find((thread) => thread.viewingRequestId === activeId);
