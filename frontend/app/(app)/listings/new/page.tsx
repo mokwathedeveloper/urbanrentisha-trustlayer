@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { extractExif, type ExifResult } from "@/lib/exif/parser";
+import { reverseGeocode } from "@/lib/geocode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
@@ -60,11 +61,28 @@ export default function NewListingPage() {
       };
       setImages((prev) => [...prev, draft]);
 
+      // Check for real GPS data before uploading anything - a photo with no
+      // location metadata (a screenshot, a downloaded image, a re-saved
+      // file) cannot be used as evidence for this property at all.
+      const exifResult = await extractExif(file);
+      if (!exifResult.gpsPresent) {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === draft.id
+              ? {
+                  ...img,
+                  uploading: false,
+                  exif: exifResult,
+                  error: "No location (GPS) data found in this photo. Enable location services on your camera and retake it.",
+                }
+              : img,
+          ),
+        );
+        continue;
+      }
+
       try {
-        const [uploadResult, exifResult] = await Promise.all([
-          api.uploads.listingImage(token, file),
-          extractExif(file),
-        ]);
+        const uploadResult = await api.uploads.listingImage(token, file);
         setImages((prev) =>
           prev.map((img) =>
             img.id === draft.id
@@ -72,6 +90,13 @@ export default function NewListingPage() {
               : img,
           ),
         );
+
+        if (exifResult.lat != null && exifResult.lng != null) {
+          reverseGeocode(exifResult.lat, exifResult.lng).then((place) => {
+            if (!place) return;
+            setForm((current) => (current.location.trim() ? current : { ...current, location: place }));
+          });
+        }
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Could not upload image.";
         setImages((prev) =>
@@ -117,14 +142,16 @@ export default function NewListingPage() {
       });
 
       await Promise.all(
+        // Only images that passed the GPS check in handleFilesSelected ever
+        // get an uploadedUrl, so exif.lat/lng/gpsPresent are always present here.
         uploadedImages.map((img) =>
           api.listings.addImage(token, listing.id, {
             url: img.uploadedUrl!,
-            latitude: img.exif?.lat ?? undefined,
-            longitude: img.exif?.lng ?? undefined,
+            latitude: img.exif!.lat!,
+            longitude: img.exif!.lng!,
             capturedAt: img.exif?.capturedAt ? img.exif.capturedAt.toISOString() : undefined,
             device: img.exif?.device ?? undefined,
-            gpsPresent: img.exif?.gpsPresent ?? false,
+            gpsPresent: true,
           }),
         ),
       );
@@ -167,8 +194,8 @@ export default function NewListingPage() {
             <span className="ml-1 font-normal text-ur-text-muted">({images.length}/{MAX_IMAGES})</span>
           </label>
           <p className="text-sm text-ur-text-secondary">
-            Upload real photos of this property - not screenshots or images from other listings. Photos with
-            location data embedded by the camera are flagged below; this helps tenants trust the listing.
+            Upload real photos of this property - not screenshots or images from other listings. Each photo must
+            have location (GPS) data embedded by the camera; photos without it are rejected automatically.
           </p>
 
           <input
@@ -200,26 +227,20 @@ export default function NewListingPage() {
                 </div>
 
                 {img.uploading ? (
-                  <p className="text-xs text-ur-text-muted">Uploading...</p>
+                  <p className="text-xs text-ur-text-muted">Checking location data...</p>
                 ) : img.error ? (
                   <p className="text-xs text-ur-error">{img.error}</p>
-                ) : img.exif ? (
+                ) : img.exif?.gpsPresent ? (
                   <div className="space-y-1">
-                    {img.exif.gpsPresent ? (
-                      <a
-                        href={`https://maps.google.com/?q=${img.exif.lat},${img.exif.lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-xs text-ur-primary hover:underline"
-                      >
-                        <Icon name="location_on" size={12} />
-                        GPS verified
-                      </a>
-                    ) : (
-                      <Badge variant="warning" className="px-2 py-0.5 text-[10px]">
-                        No location data
-                      </Badge>
-                    )}
+                    <a
+                      href={`https://maps.google.com/?q=${img.exif.lat},${img.exif.lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-xs text-ur-primary hover:underline"
+                    >
+                      <Icon name="location_on" size={12} />
+                      GPS verified
+                    </a>
                     {img.exif.ageWarning ? (
                       <Badge variant="warning" className="px-2 py-0.5 text-[10px]">
                         Photo is old
@@ -260,7 +281,14 @@ export default function NewListingPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Location" name="location" value={form.location} onChange={(e) => update("location", e.target.value)} required />
+          <Input
+            label="Location"
+            name="location"
+            value={form.location}
+            onChange={(e) => update("location", e.target.value)}
+            helperText="Auto-filled from your first photo's GPS data - edit if needed."
+            required
+          />
           <Input label="Address (optional)" name="address" value={form.address} onChange={(e) => update("address", e.target.value)} />
         </div>
 
