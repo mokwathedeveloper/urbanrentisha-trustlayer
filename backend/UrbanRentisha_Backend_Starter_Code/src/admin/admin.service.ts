@@ -1,9 +1,14 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import {
   ListingStatus,
   PaymentStatus,
   ProofStatus,
   ReportStatus,
+  UserStatus,
   VerificationStage,
   ViewingCodeStatus,
 } from "@prisma/client";
@@ -325,21 +330,21 @@ export class AdminService {
       this.prisma.tenantProfile.findMany({
         where: { verificationStage: { in: pendingStages } },
         include: {
-          user: { select: { name: true, email: true } },
+          user: { select: { id: true, name: true, email: true, status: true } },
           documents: true,
         },
       }),
       this.prisma.landlordProfile.findMany({
         where: { verificationStage: { in: pendingStages } },
         include: {
-          user: { select: { name: true, email: true } },
+          user: { select: { id: true, name: true, email: true, status: true } },
           documents: true,
         },
       }),
       this.prisma.agentProfile.findMany({
         where: { verificationStage: { in: pendingStages } },
         include: {
-          user: { select: { name: true, email: true } },
+          user: { select: { id: true, name: true, email: true, status: true } },
           documents: true,
           landlord: { include: { user: { select: { name: true } } } },
         },
@@ -347,7 +352,7 @@ export class AdminService {
       this.prisma.managerProfile.findMany({
         where: { verificationStage: { in: pendingStages } },
         include: {
-          user: { select: { name: true, email: true } },
+          user: { select: { id: true, name: true, email: true, status: true } },
           documents: true,
           landlord: { include: { user: { select: { name: true } } } },
         },
@@ -358,7 +363,7 @@ export class AdminService {
       id: string;
       createdAt: Date;
       verificationStage: VerificationStage;
-      user: { name: string; email: string };
+      user: { id: string; name: string; email: string; status: UserStatus };
       landlord?: { user: { name: string } } | null;
       documents: {
         id: string;
@@ -372,8 +377,10 @@ export class AdminService {
     const toRow = async (profile: VerifiableProfile, profileType: string) => ({
       profileType,
       profileId: profile.id,
+      userId: profile.user.id,
       name: profile.user.name,
       email: profile.user.email,
+      userStatus: profile.user.status,
       verificationStage: profile.verificationStage,
       linkedLandlordName: profile.landlord?.user.name ?? null,
       documents: await Promise.all(
@@ -463,6 +470,35 @@ export class AdminService {
       severity:
         decision === VerificationDecision.REJECTED ? "WARNING" : "SUCCESS",
       metadata: { note },
+    });
+
+    return updated;
+  }
+
+  async setUserStatus(userId: string, status: UserStatus, actorId: string) {
+    if (userId === actorId) {
+      throw new BadRequestException(
+        "You cannot change your own account status.",
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found.");
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { status },
+      select: { id: true, email: true, name: true, role: true, status: true },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action:
+        status === UserStatus.SUSPENDED ? "user.suspended" : "user.reactivated",
+      entityType: "user",
+      entityId: userId,
+      severity: status === UserStatus.SUSPENDED ? "WARNING" : "SUCCESS",
+      metadata: { email: user.email },
     });
 
     return updated;
