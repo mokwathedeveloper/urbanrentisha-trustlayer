@@ -239,9 +239,11 @@ export interface NotificationItem {
   title: string;
   message: string;
   viewingRequestId: string | null;
+  listingId: string | null;
   readAt: string | null;
   createdAt: string;
   viewingRequest?: ViewingRequest | null;
+  listing?: Listing | null;
 }
 
 export interface MessageThread {
