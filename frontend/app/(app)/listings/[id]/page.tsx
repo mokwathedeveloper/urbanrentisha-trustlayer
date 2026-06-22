@@ -29,6 +29,7 @@ export default function PropertyDetailPage() {
   const [chatMessages, setChatMessages] = useState<MessageItem[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [chatSending, setChatSending] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   function load() {
     api.listings
@@ -161,19 +162,46 @@ export default function PropertyDetailPage() {
         {verified ? <Badge variant="verified">Verified Property</Badge> : null}
       </div>
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-[2fr_1fr_1fr]">
-        <div className="h-64 rounded-ur bg-ur-card-soft sm:row-span-2 sm:h-full">
-          {listing.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={listing.imageUrl} alt={listing.title} className="h-full w-full rounded-ur object-cover" />
-          ) : (
-            <div className="grid h-full place-items-center text-ur-text-muted">No image</div>
-          )}
-        </div>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="hidden h-32 rounded-ur bg-ur-card-soft sm:block" />
-        ))}
-      </div>
+      {(() => {
+        const galleryImages = listing.images.length > 0
+          ? listing.images
+          : listing.imageUrl
+            ? [{ id: "legacy", url: listing.imageUrl, gpsPresent: false } as const]
+            : [];
+        const mainImage = galleryImages[selectedImageIndex] ?? galleryImages[0];
+
+        return (
+          <div className="mt-5 grid gap-2 sm:grid-cols-[2fr_1fr_1fr]">
+            <div className="relative h-64 rounded-ur bg-ur-card-soft sm:row-span-2 sm:h-full">
+              {mainImage ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={mainImage.url} alt={listing.title} className="h-full w-full rounded-ur object-cover" />
+                  {mainImage.gpsPresent ? (
+                    <Badge variant="success" className="absolute left-2 top-2 px-2 py-0.5 text-[10px]">
+                      <Icon name="location_on" size={11} />
+                      Location verified
+                    </Badge>
+                  ) : null}
+                </>
+              ) : (
+                <div className="grid h-full place-items-center text-ur-text-muted">No image</div>
+              )}
+            </div>
+            {galleryImages.slice(0, 4).map((img, i) => (
+              <button
+                key={img.id}
+                type="button"
+                onClick={() => setSelectedImageIndex(i)}
+                className="hidden h-32 overflow-hidden rounded-ur bg-ur-card-soft sm:block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt={listing.title} className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       <div className="mt-5 flex flex-wrap items-center gap-6 rounded-ur border border-ur-border bg-ur-card p-4">
         {listing.bedrooms != null ? (
