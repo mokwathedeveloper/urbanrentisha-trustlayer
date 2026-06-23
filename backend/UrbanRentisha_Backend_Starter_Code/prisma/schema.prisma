@@ -162,6 +162,8 @@ model User {
   listingThreads    ListingThread[]
   reviewsReceived   Review[]         @relation("ReviewTarget")
   reviewsWritten    Review[]         @relation("ReviewAuthor")
+  supportThreadsAsUser  SupportThread[] @relation("SupportThreadUser")
+  supportThreadsAsAdmin SupportThread[] @relation("SupportThreadAdmin")
 }
 
 model TenantProfile {
@@ -354,6 +356,8 @@ model Message {
   viewingRequest   ViewingRequest? @relation(fields: [viewingRequestId], references: [id], onDelete: Cascade)
   listingThreadId  String?
   listingThread    ListingThread?  @relation(fields: [listingThreadId], references: [id], onDelete: Cascade)
+  supportThreadId  String?
+  supportThread    SupportThread?  @relation(fields: [supportThreadId], references: [id], onDelete: Cascade)
   senderId         String
   sender           User            @relation(fields: [senderId], references: [id])
   body             String
@@ -372,6 +376,25 @@ model ListingThread {
   messages Message[]
 
   @@unique([listingId, tenantId])
+}
+
+/// One thread per user with the platform's human support team. Any
+/// ADMIN/PLATFORM user can see and reply to any open thread; the first
+/// admin to reply "claims" it via assignedAdminId, mirroring how a real
+/// support inbox assigns tickets without requiring upfront routing rules.
+model SupportThread {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("SupportThreadUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedAdminId String?
+  assignedAdmin   User?    @relation("SupportThreadAdmin", fields: [assignedAdminId], references: [id])
+  status          String   @default("OPEN")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  messages Message[]
+
+  @@unique([userId])
 }
 
 model Review {
