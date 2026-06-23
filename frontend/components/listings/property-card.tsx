@@ -83,6 +83,15 @@ export function PropertyCard({
             Verified
           </Badge>
         ) : null}
+        {listing.availabilityStatus === "RESERVED" ? (
+          <Badge variant="warning" className="absolute bottom-3 right-3">
+            Reserved
+          </Badge>
+        ) : listing.availabilityStatus === "RENTED" ? (
+          <Badge variant="neutral" className="absolute bottom-3 right-3">
+            Rented
+          </Badge>
+        ) : null}
       </div>
 
       <div className="p-4">
@@ -188,7 +197,13 @@ export function PropertyCard({
           </Link>
         ) : (
           <Link href={`/listings/${listing.id}`}>
-            <Button className="mt-4 w-full">Request Viewing</Button>
+            <Button className="mt-4 w-full">
+              {listing.availabilityStatus === "RESERVED"
+                ? "Reserved - View Details"
+                : listing.availabilityStatus === "RENTED"
+                  ? "Already Rented"
+                  : "Request Viewing"}
+            </Button>
           </Link>
         )}
       </div>
