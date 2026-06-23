@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { UserRole } from "@/lib/api";
+import { useUnreadNotificationsCount } from "@/lib/notifications";
 
 type NavItem = { label: string; href: string; icon: IconName };
 
@@ -92,11 +93,12 @@ const CAN_LIST_PROPERTY: UserRole[] = ["LANDLORD", "AGENT", "MANAGER", "ADMIN", 
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
 
   const role = user?.role ?? "TENANT";
   const navItems = ROLE_NAV_ITEMS[role];
   const showListPropertyCta = CAN_LIST_PROPERTY.includes(role);
+  const unreadNotifications = useUnreadNotificationsCount(token);
 
   return (
     <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
@@ -125,6 +127,7 @@ export function Sidebar() {
 
         {navItems.map((item) => {
           const active = pathname === item.href;
+          const badgeCount = item.href === "/notifications" ? unreadNotifications : 0;
           return (
             <Link
               key={item.href}
@@ -137,7 +140,12 @@ export function Sidebar() {
               )}
             >
               <Icon name={item.icon} size={16} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {badgeCount > 0 ? (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-ur-mint px-1 text-[10px] font-bold text-ur-bg">
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              ) : null}
             </Link>
           );
         })}
