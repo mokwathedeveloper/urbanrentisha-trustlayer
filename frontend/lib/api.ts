@@ -328,8 +328,14 @@ export interface ReportItem {
   status: string;
   severity: string;
   allowContact: boolean;
+  firstRespondedAt: string | null;
+  respondedById: string | null;
+  responseNote: string | null;
+  responseDeadline: string;
   createdAt: string;
   listing?: Listing | null;
+  reporter?: { id: string; email: string; name: string; role: string };
+  respondedBy?: { id: string; name: string } | null;
 }
 
 export interface AgentProfile {
@@ -647,6 +653,8 @@ export const api = {
     ) => request<ReportItem>("/reports", { method: "POST", body, token }),
     findAll: (token: string) => request<ReportItem[]>("/reports", { token }),
     findMine: (token: string) => request<ReportItem[]>("/reports/mine", { token }),
+    respond: (token: string, id: string, body: { status: string; note?: string }) =>
+      request<ReportItem>(`/reports/${id}/respond`, { method: "PATCH", body, token }),
   },
   notifications: {
     findMine: (token: string) => request<NotificationItem[]>("/notifications", { token }),
