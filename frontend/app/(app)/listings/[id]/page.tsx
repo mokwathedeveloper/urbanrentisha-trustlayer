@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { isOnline, formatLastSeen } from "@/lib/presence";
+import { useListingRealtime, useRealtimeEvent } from "@/lib/realtime";
 
 const CHAT_POLL_INTERVAL_MS = 5000;
 
@@ -82,6 +83,8 @@ export default function PropertyDetailPage() {
   const [myComment, setMyComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSubmitError, setReviewSubmitError] = useState<string | null>(null);
+  const [availabilityActionError, setAvailabilityActionError] = useState<string | null>(null);
+  const [availabilityActing, setAvailabilityActing] = useState(false);
 
   function load() {
     api.listings
@@ -92,6 +95,17 @@ export default function PropertyDetailPage() {
   }
 
   useEffect(load, [params.id]);
+
+  useListingRealtime(token, params.id);
+  useRealtimeEvent(token, "listing:reserved", (payload: { listingId: string }) => {
+    if (payload.listingId === params.id) load();
+  });
+  useRealtimeEvent(token, "listing:released", (payload: { listingId: string }) => {
+    if (payload.listingId === params.id) load();
+  });
+  useRealtimeEvent(token, "listing:rented", (payload: { listingId: string }) => {
+    if (payload.listingId === params.id) load();
+  });
 
   useEffect(() => {
     if (!listing) return;
@@ -192,6 +206,34 @@ export default function PropertyDetailPage() {
   const poster = resolvePoster(listing);
   const canMessage = Boolean(user) && user?.role === "TENANT" && !isOwner;
   const canReview = canMessage;
+
+  async function handleMarkRented() {
+    if (!token) return;
+    setAvailabilityActing(true);
+    setAvailabilityActionError(null);
+    try {
+      await api.listings.markRented(token, listing!.id);
+      load();
+    } catch (err) {
+      setAvailabilityActionError(err instanceof ApiError ? err.message : "Could not mark this listing as rented.");
+    } finally {
+      setAvailabilityActing(false);
+    }
+  }
+
+  async function handleReleaseReservation() {
+    if (!token) return;
+    setAvailabilityActing(true);
+    setAvailabilityActionError(null);
+    try {
+      await api.listings.releaseReservation(token, listing!.id);
+      load();
+    } catch (err) {
+      setAvailabilityActionError(err instanceof ApiError ? err.message : "Could not release this reservation.");
+    } finally {
+      setAvailabilityActing(false);
+    }
+  }
 
   async function handleSubmitReview() {
     if (!token || myRating === 0) return;
@@ -423,12 +465,45 @@ export default function PropertyDetailPage() {
             <p className="mt-1 text-xs text-ur-text-muted">Pay viewing fee to schedule a visit.</p>
 
             {isOwner ? (
-              <div className="mt-4 rounded-ur-sm border border-ur-border bg-ur-card-soft p-3 text-center text-sm text-ur-text-secondary">
-                This is your listing.
+              <div className="mt-4 space-y-2">
+                <div className="rounded-ur-sm border border-ur-border bg-ur-card-soft p-3 text-center text-sm text-ur-text-secondary">
+                  This is your listing -{" "}
+                  <span className="font-semibold text-ur-navy">{listing.availabilityStatus}</span>
+                </div>
+                {availabilityActionError ? (
+                  <p className="text-xs text-ur-error">{availabilityActionError}</p>
+                ) : null}
+                {listing.availabilityStatus === "RESERVED" ? (
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      disabled={availabilityActing}
+                      onClick={handleMarkRented}
+                    >
+                      Mark as Rented
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      disabled={availabilityActing}
+                      onClick={handleReleaseReservation}
+                    >
+                      Release Reservation
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ) : isAdmin ? (
               <div className="mt-4 rounded-ur-sm border border-ur-border bg-ur-card-soft p-3 text-center text-sm text-ur-text-secondary">
                 Use Admin Review to approve or reject this listing.
+              </div>
+            ) : listing.availabilityStatus === "RESERVED" ? (
+              <div className="mt-4 rounded-ur-sm border border-ur-warning/30 bg-ur-warning-bg p-3 text-center text-sm text-ur-warning">
+                Reserved by another tenant right now. Check back soon.
+              </div>
+            ) : listing.availabilityStatus === "RENTED" ? (
+              <div className="mt-4 rounded-ur-sm border border-ur-border bg-ur-card-soft p-3 text-center text-sm text-ur-text-secondary">
+                This property has already been rented.
               </div>
             ) : (
               <Link href={`/listings/${listing.id}/request`}>
