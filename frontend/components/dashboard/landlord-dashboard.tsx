@@ -2,31 +2,28 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type EscrowOverviewItem, type Listing, type UserProfile } from "@/lib/api";
+import { api, type Listing, type UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard } from "./dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { VerificationProgress } from "@/components/verification/verification-progress";
+import { EscrowSummaryCards } from "@/components/escrow/escrow-summary-cards";
 
 export function LandlordDashboardView() {
   const { token, user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [escrow, setEscrow] = useState<EscrowOverviewItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) return;
-    Promise.all([api.listings.findMine(token), api.users.me(token), api.landlord.escrowOverview(token)])
-      .then(([myListings, me, escrowOverview]) => {
+    Promise.all([api.listings.findMine(token), api.users.me(token)])
+      .then(([myListings, me]) => {
         setListings(myListings);
         setProfile(me);
-        setEscrow(escrowOverview);
       })
       .finally(() => setLoading(false));
   }, [token]);
-
-  const activeEscrowHolds = escrow.filter((item) => item.status === "RECEIVED");
 
   const activeListings = listings.filter((listing) => listing.verificationStatus === "VERIFIED");
   const pendingListings = listings.filter((listing) => listing.verificationStatus !== "VERIFIED");
@@ -74,10 +71,9 @@ export function LandlordDashboardView() {
         />
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Link href="/escrow">
-          <StatCard icon="lock" label="Active Escrow Holds" value={activeEscrowHolds.length} color="text-ur-cyan" loading={loading} />
-        </Link>
+      <p className="mt-6 text-sm font-bold text-ur-navy">Financial Overview</p>
+      <div className="mt-2">
+        <EscrowSummaryCards role="LANDLORD" />
       </div>
 
       {profile?.landlordProfile && profile.landlordProfile.verificationStage !== "APPROVED" ? (
