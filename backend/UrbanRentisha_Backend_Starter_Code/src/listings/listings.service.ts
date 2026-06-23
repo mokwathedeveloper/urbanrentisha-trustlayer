@@ -15,6 +15,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { AddListingImageDto } from "./dto/add-listing-image.dto";
 
@@ -54,6 +55,7 @@ export class ListingsService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   findAll() {
@@ -391,6 +393,11 @@ export class ListingsService {
       `"${listing.title}" now has another tenant ahead of you in the process.`,
     );
 
+    this.realtime.emitToListing(listingId, "listing:reserved", {
+      listingId,
+      availabilityStatus: ListingAvailability.RESERVED,
+    });
+
     return { conflict: false as const };
   }
 
@@ -448,6 +455,11 @@ export class ListingsService {
       "Property Available Again",
       `"${listing.title}" is available again - you can request a viewing.`,
     );
+
+    this.realtime.emitToListing(listingId, "listing:released", {
+      listingId,
+      availabilityStatus: ListingAvailability.AVAILABLE,
+    });
   }
 
   async markRented(listingId: string, actorId: string, role: UserRole) {
@@ -469,6 +481,11 @@ export class ListingsService {
       entityType: "listing",
       entityId: listingId,
       severity: "SUCCESS",
+    });
+
+    this.realtime.emitToListing(listingId, "listing:rented", {
+      listingId,
+      availabilityStatus: ListingAvailability.RENTED,
     });
 
     return updated;
