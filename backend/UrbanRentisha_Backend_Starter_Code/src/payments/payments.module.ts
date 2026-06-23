@@ -6,6 +6,7 @@ import { AuditLogsModule } from "../audit-logs/audit-logs.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { ViewingRequestsModule } from "../viewing-requests/viewing-requests.module";
 import { SorobanModule } from "../soroban/soroban.module";
+import { ListingsModule } from "../listings/listings.module";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SorobanModule } from "../soroban/soroban.module";
     NotificationsModule,
     ViewingRequestsModule,
     SorobanModule,
+    ListingsModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
