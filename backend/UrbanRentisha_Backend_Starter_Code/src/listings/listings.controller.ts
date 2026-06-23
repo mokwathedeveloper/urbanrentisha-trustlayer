@@ -101,4 +101,16 @@ export class ListingsController {
   ) {
     return this.listings.deleteImage(id, imageId, user.sub, user.role);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/mark-rented")
+  markRented(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.listings.markRented(id, user.sub, user.role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/release-reservation")
+  releaseReservation(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.listings.releaseReservation(id, user.sub, user.role);
+  }
 }
