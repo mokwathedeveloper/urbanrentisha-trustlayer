@@ -3,7 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { UserRole, ViewingRequestStatus } from "@prisma/client";
+import {
+  ListingAvailability,
+  UserRole,
+  ViewingRequestStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
@@ -27,6 +31,14 @@ export class ViewingRequestsService {
       where: { id: dto.listingId },
     });
     if (!listing) throw new NotFoundException("Listing not found.");
+    if (listing.availabilityStatus === ListingAvailability.RESERVED) {
+      throw new BadRequestException(
+        "This property is currently reserved by another tenant.",
+      );
+    }
+    if (listing.availabilityStatus === ListingAvailability.RENTED) {
+      throw new BadRequestException("This property has already been rented.");
+    }
 
     const request = await this.prisma.viewingRequest.create({
       data: {
