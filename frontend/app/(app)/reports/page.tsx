@@ -96,6 +96,8 @@ export default function ReportsListPage() {
       setReports((prev) => prev.map((r) => (r.id === reportId ? updated : r)));
       setRespondingId(null);
       setNote("");
+    } catch {
+      // Best-effort: leave the response form open so the user can retry.
     } finally {
       setSubmitting(false);
     }
