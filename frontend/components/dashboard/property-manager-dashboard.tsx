@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { VerificationProgress } from "@/components/verification/verification-progress";
+import { EscrowSummaryCards } from "@/components/escrow/escrow-summary-cards";
 
 export function PropertyManagerDashboardView() {
   const { token, user } = useAuth();
@@ -74,6 +75,11 @@ export function PropertyManagerDashboardView() {
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
         <StatCard icon="verified_user" label="Trust Score" value={`${dashboard?.trustScore ?? 0} / 100`} color="text-ur-mint" loading={loading} />
+      </div>
+
+      <p className="mt-6 text-sm font-bold text-ur-navy">Financial Overview</p>
+      <div className="mt-2">
+        <EscrowSummaryCards role={user?.role === "MANAGER" ? "MANAGER" : "AGENT"} />
       </div>
 
       {dashboard && dashboard.verificationStage !== "APPROVED" ? (
