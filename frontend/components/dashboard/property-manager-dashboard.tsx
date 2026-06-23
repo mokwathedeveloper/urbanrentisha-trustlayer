@@ -108,7 +108,7 @@ export function PropertyManagerDashboardView() {
             )}
           </Panel>
 
-          <Panel title="Escrow / Payment Hold Status">
+          <Panel title="Escrow / Payment Hold Status" viewAllHref="/escrow">
             {!dashboard || dashboard.escrowHolds.length === 0 ? (
               <EmptyRow text="No active escrow holds." />
             ) : (
