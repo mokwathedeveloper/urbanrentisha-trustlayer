@@ -34,6 +34,20 @@ export class AgentsService {
     );
   }
 
+  async findEscrowSummary(userId: string, role: UserRole) {
+    const profile =
+      role === UserRole.MANAGER
+        ? await this.prisma.managerProfile.findUnique({ where: { userId } })
+        : await this.prisma.agentProfile.findUnique({ where: { userId } });
+    if (!profile) throw new NotFoundException("Agent profile not found.");
+
+    return this.escrowReporting.summarizeForListings(
+      role === UserRole.MANAGER
+        ? { managerId: profile.id }
+        : { agentId: profile.id },
+    );
+  }
+
   private async computeStats(
     profileKey: "agentId" | "managerId",
     profileId: string,
