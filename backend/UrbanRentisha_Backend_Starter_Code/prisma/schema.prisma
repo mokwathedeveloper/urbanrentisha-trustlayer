@@ -357,6 +357,7 @@ model Message {
   senderId         String
   sender           User            @relation(fields: [senderId], references: [id])
   body             String
+  readAt           DateTime?
   createdAt        DateTime        @default(now())
 }
 
