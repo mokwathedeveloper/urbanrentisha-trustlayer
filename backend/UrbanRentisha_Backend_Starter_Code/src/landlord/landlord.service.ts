@@ -317,7 +317,7 @@ export class LandlordService {
 
     let walletSecret: string | undefined;
     try {
-      const wallet = this.stellar.generateWallet();
+      const wallet = await this.stellar.generateWallet();
       await this.prisma.user.update({
         where: { id: user.id },
         data: { walletAddress: wallet.publicKey },
