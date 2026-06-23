@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api, type EscrowOverviewItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { useRealtimeEvent } from "@/lib/realtime";
+
+const FILTER_TITLES: Record<string, string> = {
+  held: "Active Escrow Holds",
+  released: "Released",
+  refunded: "Refunded",
+};
 
 const statusTone: Record<string, string> = {
   RECEIVED: "border-ur-cyan/40 text-ur-cyan",
@@ -128,6 +135,8 @@ function Section({ title, items, emptyLabel }: { title: string; items: EscrowOve
  */
 export function EscrowManagementView({ role }: { role: "LANDLORD" | "AGENT" | "MANAGER" }) {
   const { token } = useAuth();
+  const searchParams = useSearchParams();
+  const filter = searchParams.get("filter");
   const [items, setItems] = useState<EscrowOverviewItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -150,6 +159,26 @@ export function EscrowManagementView({ role }: { role: "LANDLORD" | "AGENT" | "M
   const released = items.filter((i) => i.status === "RELEASED");
   const refunded = items.filter((i) => i.status === "REFUNDED");
   const other = items.filter((i) => !["RECEIVED", "RELEASED", "REFUNDED"].includes(i.status));
+
+  // Coming from a dashboard card - show only that section instead of
+  // everything, with a way back to the full view.
+  if (filter && FILTER_TITLES[filter]) {
+    const filteredItems = filter === "held" ? active : filter === "released" ? released : refunded;
+    return (
+      <div className="px-6 py-8">
+        <Link href="/escrow" className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline">
+          <Icon name="arrow_back" size={16} />
+          View All Escrow Activity
+        </Link>
+        <h1 className="mt-4 text-2xl font-black tracking-[-0.02em] text-ur-navy">{FILTER_TITLES[filter]}</h1>
+        {loading ? (
+          <p className="mt-6 text-sm text-ur-text-muted">Loading...</p>
+        ) : (
+          <Section title={FILTER_TITLES[filter]} items={filteredItems} emptyLabel="Nothing here yet." />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8">
