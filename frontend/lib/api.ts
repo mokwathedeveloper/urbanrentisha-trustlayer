@@ -235,6 +235,22 @@ export interface EscrowOverviewItem {
   timeline: EscrowTimelineEntry[];
 }
 
+export interface EscrowSummary {
+  currency: string;
+  totalReceived: number;
+  totalManaged: number;
+  escrowHeldAmount: number;
+  escrowHeldCount: number;
+  pendingReleaseAmount: number;
+  pendingReleaseCount: number;
+  totalReleased: number;
+  totalRefunded: number;
+  completedTransactions: number;
+  activePropertiesWithEscrow: number;
+  activeBookings: number;
+  completedBookings: number;
+}
+
 export interface ViewingRequest {
   id: string;
   listingId: string;
@@ -665,6 +681,8 @@ export const api = {
     findOne: (token: string, id: string) => request<ViewingRequest>(`/viewing-requests/${id}`, { token }),
     status: (token: string, id: string) =>
       request<ViewingRequestStatusInfo>(`/viewing-requests/${id}/status`, { token }),
+    escrowSummary: (token: string) =>
+      request<EscrowSummary>("/viewing-requests/escrow-summary", { token }),
   },
   payments: {
     create: (token: string, body: { viewingRequestId: string; payerWallet?: string }) =>
@@ -770,10 +788,14 @@ export const api = {
     myDashboard: (token: string) => request<AgentDashboard>("/agents/me/dashboard", { token }),
     escrowOverview: (token: string) =>
       request<EscrowOverviewItem[]>("/agents/me/escrow", { token }),
+    escrowSummary: (token: string) =>
+      request<EscrowSummary>("/agents/me/escrow/summary", { token }),
   },
   landlord: {
     escrowOverview: (token: string) =>
       request<EscrowOverviewItem[]>("/landlord/escrow", { token }),
+    escrowSummary: (token: string) =>
+      request<EscrowSummary>("/landlord/escrow/summary", { token }),
     getTeam: (token: string) => request<LandlordTeamSummary>("/landlord/team", { token }),
     inviteAgent: (
       token: string,
