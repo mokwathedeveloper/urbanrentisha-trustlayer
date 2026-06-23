@@ -17,6 +17,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { ViewingRequestsService } from "../viewing-requests/viewing-requests.service";
+import { computeEscrowPhase } from "../escrow-reporting/escrow-phase.util";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { AddListingImageDto } from "./dto/add-listing-image.dto";
 
@@ -68,37 +69,112 @@ export class ListingsService {
   }
 
   async findMine(userId: string, role: UserRole) {
+    let listings: Awaited<ReturnType<typeof this.prisma.listing.findMany>>;
+
     if (role === UserRole.AGENT) {
       const agentProfile = await this.prisma.agentProfile.findUnique({
         where: { userId },
       });
       if (!agentProfile) return [];
-      return this.prisma.listing.findMany({
+      listings = await this.prisma.listing.findMany({
         where: { agentId: agentProfile.id },
         orderBy: { createdAt: "desc" },
         include: LISTING_OWNER_INCLUDE,
       });
-    }
-
-    if (role === UserRole.MANAGER) {
+    } else if (role === UserRole.MANAGER) {
       const managerProfile = await this.prisma.managerProfile.findUnique({
         where: { userId },
       });
       if (!managerProfile) return [];
-      return this.prisma.listing.findMany({
+      listings = await this.prisma.listing.findMany({
         where: { managerId: managerProfile.id },
+        orderBy: { createdAt: "desc" },
+        include: LISTING_OWNER_INCLUDE,
+      });
+    } else {
+      // LANDLORD (and ADMIN/PLATFORM, who own no listings but get an empty,
+      // harmless result here - they use /listings or /admin views instead).
+      listings = await this.prisma.listing.findMany({
+        where: { ownerId: userId },
         orderBy: { createdAt: "desc" },
         include: LISTING_OWNER_INCLUDE,
       });
     }
 
-    // LANDLORD (and ADMIN/PLATFORM, who own no listings but get an empty,
-    // harmless result here - they use /listings or /admin views instead).
-    return this.prisma.listing.findMany({
-      where: { ownerId: userId },
-      orderBy: { createdAt: "desc" },
-      include: LISTING_OWNER_INCLUDE,
+    return this.attachEscrowPhase(listings);
+  }
+
+  /**
+   * Adds the current booking/escrow phase to each listing - authenticated,
+   * owner-scoped callers only (findMine, the per-listing escrow endpoint).
+   * Deliberately NOT part of LISTING_OWNER_INCLUDE, which also backs the
+   * public findAll/findOne endpoints - tenant identity and payment amounts
+   * must never leak to anonymous listing views.
+   */
+  private async attachEscrowPhase<
+    T extends { id: string; reservedByRequestId: string | null },
+  >(listings: T[]) {
+    const requestIds = listings
+      .map((l) => l.reservedByRequestId)
+      .filter((id): id is string => Boolean(id));
+    if (requestIds.length === 0) {
+      return listings.map((listing) => ({ ...listing, escrowPhase: null }));
+    }
+
+    const requests = await this.prisma.viewingRequest.findMany({
+      where: { id: { in: requestIds } },
+      include: {
+        payment: true,
+        proofVerification: true,
+        tenant: { include: { user: { select: { id: true, name: true } } } },
+      },
     });
+    const requestById = new Map(requests.map((r) => [r.id, r]));
+
+    return listings.map((listing) => {
+      const request = listing.reservedByRequestId
+        ? requestById.get(listing.reservedByRequestId)
+        : undefined;
+      return {
+        ...listing,
+        escrowPhase: request ? computeEscrowPhase(request) : null,
+      };
+    });
+  }
+
+  async getEscrowPhase(listingId: string, userId: string, role: UserRole) {
+    const listing = await this.assertCanManageListing(listingId, userId, role);
+    if (!listing.reservedByRequestId) return null;
+
+    const request = await this.prisma.viewingRequest.findUnique({
+      where: { id: listing.reservedByRequestId },
+      include: {
+        payment: true,
+        proofVerification: true,
+        tenant: { include: { user: { select: { id: true, name: true } } } },
+      },
+    });
+    return request ? computeEscrowPhase(request) : null;
+  }
+
+  /** Owner + agent + manager userIds for a listing, deduped. Used to fan
+   * out escrow notifications to everyone with a stake in the property, not
+   * just the tenant. */
+  async getEscrowContacts(listingId: string): Promise<string[]> {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      include: { agent: true, manager: true },
+    });
+    if (!listing) return [];
+    return [
+      ...new Set(
+        [
+          listing.ownerId,
+          listing.agent?.userId,
+          listing.manager?.userId,
+        ].filter((id): id is string => Boolean(id)),
+      ),
+    ];
   }
 
   async findOne(id: string) {
