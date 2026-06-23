@@ -11,6 +11,30 @@ import { Icon } from "@/components/ui/icon";
 
 const POLL_INTERVAL_MS = 5000;
 
+function useCountdown(targetIso: string | null): string | null {
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!targetIso) return;
+    const target = targetIso;
+    function tick() {
+      const remainingMs = new Date(target).getTime() - Date.now();
+      if (remainingMs <= 0) {
+        setLabel("Expired");
+        return;
+      }
+      const minutes = Math.floor(remainingMs / 60000);
+      const seconds = Math.floor((remainingMs % 60000) / 1000);
+      setLabel(`${minutes}:${seconds.toString().padStart(2, "0")}`);
+    }
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [targetIso]);
+
+  return targetIso ? label : null;
+}
+
 const howItWorks = [
   "Click \"Pay Viewing Fee\" below",
   "We process your payment automatically",
@@ -28,6 +52,12 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const [startingChat, setStartingChat] = useState(false);
+
+  const isQueued = request?.status === "QUEUED";
+  const received = payment?.status === "RECEIVED";
+  const turnCountdown = useCountdown(received ? null : request?.turnExpiresAt ?? null);
 
   useEffect(() => {
     if (!token) return;
@@ -35,6 +65,7 @@ export default function PaymentPage() {
       .findOne(token, params.id)
       .then(async (req) => {
         setRequest(req);
+        if (req.status === "QUEUED") return;
         if (req.payment) {
           setPayment(req.payment);
         } else {
@@ -45,6 +76,25 @@ export default function PaymentPage() {
       .catch(() => setError("Could not load this viewing request."))
       .finally(() => setLoading(false));
   }, [token, params.id]);
+
+  // While queued, poll for our turn instead of trying to pay - once
+  // promoted, fetch the request again so the payment flow picks up.
+  useEffect(() => {
+    if (!token || !isQueued) return;
+    const interval = setInterval(() => {
+      api.viewingRequests.status(token, params.id).then((info) => {
+        setQueuePosition(info.queuePosition);
+        if (info.status !== "QUEUED") {
+          api.viewingRequests.findOne(token, params.id).then(async (req) => {
+            setRequest(req);
+            const created = req.payment ?? (await api.payments.create(token, { viewingRequestId: params.id }));
+            setPayment(created);
+          });
+        }
+      });
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [token, isQueued, params.id]);
 
   // Safety net: if a payment somehow arrives some other way, still pick it up.
   useEffect(() => {
@@ -80,10 +130,49 @@ export default function PaymentPage() {
   }
 
   if (loading) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
-  if (error && !payment) return <p className="p-8 text-sm text-ur-error">{error}</p>;
-  if (!request || !payment) return null;
+  if (error && !payment && !isQueued) return <p className="p-8 text-sm text-ur-error">{error}</p>;
+  if (!request) return null;
 
-  const received = payment.status === "RECEIVED";
+  if (isQueued) {
+    return (
+      <div className="px-6 py-8">
+        <Link
+          href={`/listings/${request.listingId}/request`}
+          className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
+        >
+          <Icon name="arrow_back" size={16} />
+          Back to Request
+        </Link>
+
+        <div className="mx-auto mt-10 max-w-md text-center">
+          <div className="ur-card p-8">
+            <Icon name="hourglass_empty" size={32} className="mx-auto text-ur-warning" />
+            <h1 className="mt-4 text-xl font-black text-ur-navy">You&apos;re in the Queue</h1>
+            <p className="mt-2 text-sm text-ur-text-secondary">
+              Another tenant is currently paying for this property. We&apos;ll notify you the instant it&apos;s your turn.
+            </p>
+            {queuePosition ? (
+              <p className="mt-4 text-3xl font-black text-ur-primary">#{queuePosition}</p>
+            ) : null}
+            <p className="text-xs text-ur-text-muted">in line</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!payment) return null;
+
+  async function handleContactSupport() {
+    if (!token) return;
+    setStartingChat(true);
+    try {
+      const thread = await api.support.getOrCreateMyThread(token);
+      router.push(`/messages?thread=${thread.id}`);
+    } finally {
+      setStartingChat(false);
+    }
+  }
 
   return (
     <div className="px-6 py-8">
@@ -116,9 +205,17 @@ export default function PaymentPage() {
             </p>
 
             {!received ? (
-              <Button className="mt-4 w-full" size="lg" disabled={paying} onClick={handlePay}>
-                {paying ? "Processing..." : "Pay Viewing Fee"}
-              </Button>
+              <>
+                {turnCountdown ? (
+                  <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-ur-warning">
+                    <Icon name="hourglass_empty" size={14} />
+                    Pay within {turnCountdown} or your turn passes to the next tenant.
+                  </p>
+                ) : null}
+                <Button className="mt-4 w-full" size="lg" disabled={paying} onClick={handlePay}>
+                  {paying ? "Processing..." : "Pay Viewing Fee"}
+                </Button>
+              </>
             ) : (
               <div className="mt-4 flex items-center gap-3 rounded-ur border border-ur-primary/30 bg-ur-success-bg p-4">
                 <Icon name="check_circle" size={20} className="text-ur-primary" />
@@ -192,8 +289,8 @@ export default function PaymentPage() {
             <p className="mt-2 text-sm text-ur-text-secondary">
               If you have any issues with payment, our support team is here to help.
             </p>
-            <Button variant="outline" className="mt-3 w-full">
-              Contact Support
+            <Button variant="outline" className="mt-3 w-full" disabled={startingChat} onClick={handleContactSupport}>
+              {startingChat ? "Starting chat..." : "Contact Support"}
             </Button>
           </div>
         </div>
