@@ -6,6 +6,7 @@ import {
 import { NotificationType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 
 const LISTING_THREAD_PARTIES_INCLUDE = {
   agent: { include: { user: true } },
@@ -18,6 +19,7 @@ export class ListingThreadsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   /**
@@ -115,21 +117,68 @@ export class ListingThreadsService {
     const recipientIds = isTenant
       ? this.listingContacts(thread.listing).map((c) => c.id)
       : [thread.tenant.id];
+    const recipients = recipientIds.filter(
+      (recipientId) => recipientId !== userId,
+    );
 
     await Promise.all(
-      recipientIds
-        .filter((recipientId) => recipientId !== userId)
-        .map((recipientId) =>
-          this.notifications.create({
-            userId: recipientId,
-            type: NotificationType.SYSTEM,
-            title: "New Message",
-            message: `${message.sender.name} sent you a message about ${thread.listing.title}.`,
-            listingId: thread.listingId,
-          }),
-        ),
+      recipients.map((recipientId) =>
+        this.notifications.create({
+          userId: recipientId,
+          type: NotificationType.SYSTEM,
+          title: "New Message",
+          message: `${message.sender.name} sent you a message about ${thread.listing.title}.`,
+          listingId: thread.listingId,
+        }),
+      ),
+    );
+
+    recipients.forEach((recipientId) =>
+      this.realtime.emitToUser(recipientId, "message:new", {
+        threadId,
+        kind: "listing_thread",
+      }),
     );
 
     return message;
+  }
+
+  /**
+   * Marks every message in this listing thread sent by the other party as
+   * read, and pushes a `message:read` receipt to those senders.
+   */
+  async markThreadRead(userId: string, threadId: string) {
+    const thread = await this.loadThread(threadId);
+    this.assertParticipant(userId, thread);
+
+    const unread = await this.prisma.message.findMany({
+      where: {
+        listingThreadId: threadId,
+        senderId: { not: userId },
+        readAt: null,
+      },
+      select: { senderId: true },
+    });
+    if (unread.length === 0) return { updated: 0 };
+
+    const readAt = new Date();
+    await this.prisma.message.updateMany({
+      where: {
+        listingThreadId: threadId,
+        senderId: { not: userId },
+        readAt: null,
+      },
+      data: { readAt },
+    });
+
+    const senderIds = [...new Set(unread.map((m) => m.senderId))];
+    senderIds.forEach((senderId) =>
+      this.realtime.emitToUser(senderId, "message:read", {
+        threadId,
+        readAt: readAt.toISOString(),
+      }),
+    );
+
+    return { updated: unread.length };
   }
 }
