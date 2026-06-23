@@ -1,6 +1,14 @@
 import { Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, ViewingRequestStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { summarizePayments, type EscrowSummary } from "./escrow-summary.util";
+
+const NON_BOOKING_STATUSES: ViewingRequestStatus[] = [
+  ViewingRequestStatus.EXPIRED,
+  ViewingRequestStatus.REVOKED,
+  ViewingRequestStatus.CANCELLED,
+  ViewingRequestStatus.ACCESS_UNLOCKED,
+];
 
 /**
  * Full payment/escrow history for a set of listings - shared by the
@@ -77,5 +85,47 @@ export class EscrowReportingService {
         createdAt: log.createdAt,
       })),
     }));
+  }
+
+  /**
+   * The dashboard card numbers for a set of listings - reuses the same
+   * payment rows findForListings already fetches, plus one extra count
+   * query for booking status (which lives on ViewingRequest, not
+   * Payment).
+   */
+  async summarizeForListings(
+    where: Prisma.ListingWhereInput,
+  ): Promise<EscrowSummary> {
+    const items = await this.findForListings(where);
+    const listings = await this.prisma.listing.findMany({
+      where,
+      select: { id: true },
+    });
+    const listingIds = listings.map((l) => l.id);
+
+    const [activeBookings, completedBookings] = await Promise.all([
+      listingIds.length === 0
+        ? 0
+        : this.prisma.viewingRequest.count({
+            where: {
+              listingId: { in: listingIds },
+              status: { notIn: NON_BOOKING_STATUSES },
+            },
+          }),
+      listingIds.length === 0
+        ? 0
+        : this.prisma.viewingRequest.count({
+            where: {
+              listingId: { in: listingIds },
+              status: ViewingRequestStatus.ACCESS_UNLOCKED,
+            },
+          }),
+    ]);
+
+    return {
+      ...summarizePayments(items),
+      activeBookings,
+      completedBookings,
+    };
   }
 }
