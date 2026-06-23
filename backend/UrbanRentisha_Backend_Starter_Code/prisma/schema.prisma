@@ -154,6 +154,7 @@ model User {
   managerProfile    ManagerProfile?
   listings          Listing[]        @relation("ListingOwner")
   reports           Report[]         @relation("ReportReporter")
+  reportsResponded  Report[]         @relation("ReportResponder")
   notifications     Notification[]
   auditLogs         AuditLog[]       @relation("AuditActor")
   savedListings     SavedListing[]
@@ -486,6 +487,10 @@ model Report {
   status           ReportStatus    @default(OPEN)
   severity         String          @default("medium")
   allowContact     Boolean         @default(false)
+  firstRespondedAt DateTime?
+  respondedById    String?
+  respondedBy      User?           @relation("ReportResponder", fields: [respondedById], references: [id])
+  responseNote     String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 }
