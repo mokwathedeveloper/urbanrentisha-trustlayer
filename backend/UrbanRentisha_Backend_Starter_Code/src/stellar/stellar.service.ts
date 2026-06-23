@@ -1,26 +1,30 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import {
-  Asset,
-  BASE_FEE,
-  Horizon,
-  Keypair,
-  Memo,
-  Networks,
-  Operation,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
+import type { Horizon } from "@stellar/stellar-sdk";
 import { createHash } from "crypto";
 
 @Injectable()
 export class StellarService {
-  private readonly server: Horizon.Server;
+  private server: Horizon.Server | null = null;
 
-  constructor(private readonly config: ConfigService) {
-    this.server = new Horizon.Server(
-      this.config.get<string>("STELLAR_HORIZON_URL") ??
-        "https://horizon-testnet.stellar.org",
-    );
+  constructor(private readonly config: ConfigService) {}
+
+  /**
+   * The Stellar SDK's CJS build requires ESM-only @noble/* crypto packages
+   * internally, which Vercel's serverless runtime can't require()
+   * synchronously - so the SDK (and this server instance) are loaded lazily
+   * via dynamic import() on first use instead of at module/constructor
+   * time, which works in every environment.
+   */
+  private async getServer(): Promise<Horizon.Server> {
+    if (!this.server) {
+      const { Horizon: HorizonNs } = await import("@stellar/stellar-sdk");
+      this.server = new HorizonNs.Server(
+        this.config.get<string>("STELLAR_HORIZON_URL") ??
+          "https://horizon-testnet.stellar.org",
+      );
+    }
+    return this.server;
   }
 
   /**
@@ -44,8 +48,12 @@ export class StellarService {
       );
     }
 
+    const { Keypair, TransactionBuilder, BASE_FEE, Networks, Operation } =
+      await import("@stellar/stellar-sdk");
+    const server = await this.getServer();
+
     const keypair = Keypair.fromSecret(secret);
-    const account = await this.server.loadAccount(keypair.publicKey());
+    const account = await server.loadAccount(keypair.publicKey());
 
     const hash = createHash("sha256")
       .update(
@@ -71,7 +79,7 @@ export class StellarService {
 
     transaction.sign(keypair);
 
-    const result = await this.server.submitTransaction(transaction);
+    const result = await server.submitTransaction(transaction);
     return { txHash: result.hash };
   }
 
@@ -81,7 +89,8 @@ export class StellarService {
    * the caller. This keeps wallet generation non-custodial: after this
    * call returns, the platform has no way to sign for this account again.
    */
-  generateWallet(): { publicKey: string; secretKey: string } {
+  async generateWallet(): Promise<{ publicKey: string; secretKey: string }> {
+    const { Keypair } = await import("@stellar/stellar-sdk");
     const keypair = Keypair.random();
     return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
   }
@@ -120,7 +129,8 @@ export class StellarService {
 
   async findPaymentByTxHash(txHash: string) {
     try {
-      return await this.server.transactions().transaction(txHash).call();
+      const server = await this.getServer();
+      return await server.transactions().transaction(txHash).call();
     } catch {
       return null;
     }
@@ -157,7 +167,8 @@ export class StellarService {
    */
   async findIncomingPaymentByMemo(memo: string): Promise<string | null> {
     try {
-      const page = await this.server
+      const server = await this.getServer();
+      const page = await server
         .transactions()
         .forAccount(this.getDestinationWallet())
         .order("desc")
@@ -190,8 +201,19 @@ export class StellarService {
       );
     }
 
+    const {
+      Keypair,
+      TransactionBuilder,
+      BASE_FEE,
+      Networks,
+      Operation,
+      Asset,
+      Memo,
+    } = await import("@stellar/stellar-sdk");
+    const server = await this.getServer();
+
     const keypair = Keypair.fromSecret(secret);
-    const account = await this.server.loadAccount(keypair.publicKey());
+    const account = await server.loadAccount(keypair.publicKey());
 
     const transaction = new TransactionBuilder(account, {
       fee: BASE_FEE,
@@ -212,7 +234,7 @@ export class StellarService {
 
     transaction.sign(keypair);
 
-    const result = await this.server.submitTransaction(transaction);
+    const result = await server.submitTransaction(transaction);
     return result.hash;
   }
 }
