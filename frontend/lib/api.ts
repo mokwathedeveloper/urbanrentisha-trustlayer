@@ -162,6 +162,9 @@ export interface Listing {
   imageUrl: string | null;
   images: ListingImage[];
   verificationStatus: string;
+  availabilityStatus: "AVAILABLE" | "RESERVED" | "RENTED";
+  reservedByRequestId: string | null;
+  reservationExpiresAt: string | null;
   ownerId: string;
   agentId: string | null;
   managerId: string | null;
@@ -574,6 +577,10 @@ export const api = {
         method: "DELETE",
         token,
       }),
+    markRented: (token: string, id: string) =>
+      request<Listing>(`/listings/${id}/mark-rented`, { method: "POST", token }),
+    releaseReservation: (token: string, id: string) =>
+      request<Listing>(`/listings/${id}/release-reservation`, { method: "POST", token }),
   },
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
