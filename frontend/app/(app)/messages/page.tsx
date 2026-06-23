@@ -6,6 +6,7 @@ import { api, type MessageItem, type MessageThread } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { isOnline, formatLastSeen } from "@/lib/presence";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -119,7 +120,14 @@ export default function MessagesPage() {
                 }`}
               >
                 <p className="text-sm font-bold text-ur-navy">{thread.listingTitle}</p>
-                <p className="mt-0.5 text-xs text-ur-text-secondary">{thread.otherParty}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ur-text-secondary">
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      isOnline(thread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
+                    }`}
+                  />
+                  {thread.otherParty}
+                </p>
                 <p className="mt-1 truncate text-xs text-ur-text-muted">{thread.lastMessage}</p>
                 <p className="mt-1 text-xs text-ur-text-muted">{formatDate(thread.lastMessageAt)}</p>
               </button>
@@ -137,7 +145,17 @@ export default function MessagesPage() {
             <>
               <div className="border-b border-ur-border px-5 py-4">
                 <p className="text-sm font-bold text-ur-navy">{activeThread.listingTitle}</p>
-                <p className="text-xs text-ur-text-secondary">{activeThread.otherParty}</p>
+                <p className="flex items-center gap-1.5 text-xs">
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      isOnline(activeThread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
+                    }`}
+                  />
+                  <span className="text-ur-text-secondary">{activeThread.otherParty}</span>
+                  <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
+                    · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
+                  </span>
+                </p>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
                 {activeMessages.map((message) => {
