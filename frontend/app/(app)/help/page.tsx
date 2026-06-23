@@ -43,6 +43,9 @@ export default function HelpFaqPage() {
     try {
       const thread = await api.support.getOrCreateMyThread(token);
       router.push(`/messages?thread=${thread.id}`);
+    } catch {
+      // Best-effort: if the support thread can't be created, the button
+      // just stops spinning instead of surfacing an unhandled rejection.
     } finally {
       setStartingChat(false);
     }
