@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApiError, api, type Listing, type MessageItem, type ReviewSummary } from "@/lib/api";
+import { ApiError, api, type EscrowPhase, type Listing, type MessageItem, type ReviewSummary } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
@@ -85,6 +85,7 @@ export default function PropertyDetailPage() {
   const [reviewSubmitError, setReviewSubmitError] = useState<string | null>(null);
   const [availabilityActionError, setAvailabilityActionError] = useState<string | null>(null);
   const [availabilityActing, setAvailabilityActing] = useState(false);
+  const [escrowPhase, setEscrowPhase] = useState<EscrowPhase | null>(null);
 
   function load() {
     api.listings
@@ -106,12 +107,40 @@ export default function PropertyDetailPage() {
   useRealtimeEvent(token, "listing:rented", (payload: { listingId: string }) => {
     if (payload.listingId === params.id) load();
   });
+  // Escrow funded/released/refunded notifications also push in real time -
+  // refetch the escrow phase so it updates without a manual refresh. Only
+  // for users who can actually see it - everyone else would get a 403 on
+  // every unrelated payment notification.
+  useRealtimeEvent(token, "notification:new", (notification: { type: string }) => {
+    const canSeeEscrow =
+      listing &&
+      (listing.ownerId === user?.id ||
+        listing.agent?.user.id === user?.id ||
+        listing.manager?.user.id === user?.id);
+    if (notification.type === "PAYMENT" && token && canSeeEscrow) {
+      api.listings.escrowPhase(token, params.id).then(setEscrowPhase);
+    }
+  });
 
   useEffect(() => {
     if (!listing) return;
     const poster = resolvePoster(listing);
     api.reviews.findForUser(poster.userId).then(setReviewSummary);
   }, [listing]);
+
+  // Escrow detail is owner/agent/manager-only - fetched separately from a
+  // dedicated authenticated endpoint rather than baked into the public
+  // listing payload, so payment amounts and tenant identity never leak to
+  // anonymous listing views.
+  useEffect(() => {
+    if (!token || !listing) return;
+    const canSeeEscrow =
+      listing.ownerId === user?.id ||
+      listing.agent?.user.id === user?.id ||
+      listing.manager?.user.id === user?.id;
+    if (!canSeeEscrow) return;
+    api.listings.escrowPhase(token, listing.id).then(setEscrowPhase);
+  }, [token, listing, user?.id]);
 
   useEffect(() => {
     if (!token || user?.role !== "TENANT") return;
@@ -470,6 +499,20 @@ export default function PropertyDetailPage() {
                   This is your listing -{" "}
                   <span className="font-semibold text-ur-navy">{listing.availabilityStatus}</span>
                 </div>
+                {escrowPhase ? (
+                  <div className="rounded-ur-sm border border-ur-cyan/30 bg-ur-cyan/5 p-3 text-sm">
+                    <p className="flex items-center gap-1.5 font-semibold text-ur-cyan">
+                      <Icon name="lock" size={14} />
+                      {escrowPhase.label}
+                    </p>
+                    <p className="mt-1 text-xs text-ur-text-secondary">
+                      {escrowPhase.tenantName} - {escrowPhase.amount} {escrowPhase.currency}
+                    </p>
+                    <Link href="/escrow" className="mt-1 inline-block text-xs font-semibold text-ur-primary hover:underline">
+                      View in Escrow Management &rarr;
+                    </Link>
+                  </div>
+                ) : null}
                 {availabilityActionError ? (
                   <p className="text-xs text-ur-error">{availabilityActionError}</p>
                 ) : null}
