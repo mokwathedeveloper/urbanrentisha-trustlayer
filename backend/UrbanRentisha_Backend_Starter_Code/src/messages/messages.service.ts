@@ -3,11 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { NotificationType } from "@prisma/client";
+import { NotificationType, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { CreateMessageDto } from "./dto/create-message.dto";
+
+const ADMIN_ROLES = new Set<UserRole>([UserRole.ADMIN, UserRole.PLATFORM]);
 
 @Injectable()
 export class MessagesService {
@@ -181,88 +183,120 @@ export class MessagesService {
     return { updated: unread.length };
   }
 
-  async findInbox(userId: string) {
-    const [viewingRequestThreads, listingThreads] = await Promise.all([
-      this.prisma.viewingRequest.findMany({
-        where: {
-          messages: { some: {} },
-          OR: [
-            { tenant: { userId } },
-            { listing: { ownerId: userId } },
-            { listing: { agent: { userId } } },
-            { listing: { manager: { userId } } },
-          ],
-        },
-        include: {
-          listing: {
-            include: {
-              agent: { include: { user: true } },
-              manager: { include: { user: true } },
-              owner: true,
+  async findInbox(userId: string, role: UserRole) {
+    const [viewingRequestThreads, listingThreads, supportThreads] =
+      await Promise.all([
+        this.prisma.viewingRequest.findMany({
+          where: {
+            messages: { some: {} },
+            OR: [
+              { tenant: { userId } },
+              { listing: { ownerId: userId } },
+              { listing: { agent: { userId } } },
+              { listing: { manager: { userId } } },
+            ],
+          },
+          include: {
+            listing: {
+              include: {
+                agent: { include: { user: true } },
+                manager: { include: { user: true } },
+                owner: true,
+              },
+            },
+            tenant: { include: { user: true } },
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: { sender: { select: { name: true } } },
             },
           },
-          tenant: { include: { user: true } },
-          messages: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            include: { sender: { select: { name: true } } },
+        }),
+        this.prisma.listingThread.findMany({
+          where: {
+            messages: { some: {} },
+            OR: [
+              { tenantId: userId },
+              { listing: { ownerId: userId } },
+              { listing: { agent: { userId } } },
+              { listing: { manager: { userId } } },
+            ],
           },
-        },
-      }),
-      this.prisma.listingThread.findMany({
-        where: {
-          messages: { some: {} },
-          OR: [
-            { tenantId: userId },
-            { listing: { ownerId: userId } },
-            { listing: { agent: { userId } } },
-            { listing: { manager: { userId } } },
-          ],
-        },
-        include: {
-          listing: {
-            include: {
-              agent: { include: { user: true } },
-              manager: { include: { user: true } },
-              owner: true,
+          include: {
+            listing: {
+              include: {
+                agent: { include: { user: true } },
+                manager: { include: { user: true } },
+                owner: true,
+              },
+            },
+            tenant: true,
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: { sender: { select: { name: true } } },
             },
           },
-          tenant: true,
-          messages: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            include: { sender: { select: { name: true } } },
+        }),
+        this.prisma.supportThread.findMany({
+          where: {
+            messages: { some: {} },
+            ...(ADMIN_ROLES.has(role) ? {} : { userId }),
           },
-        },
-      }),
-    ]);
+          include: {
+            user: true,
+            assignedAdmin: true,
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: { sender: { select: { name: true } } },
+            },
+          },
+        }),
+      ]);
 
-    const [unreadByRequest, unreadByListingThread] = await Promise.all([
-      this.prisma.message.groupBy({
-        by: ["viewingRequestId"],
-        where: {
-          viewingRequestId: { in: viewingRequestThreads.map((t) => t.id) },
-          senderId: { not: userId },
-          readAt: null,
-        },
-        _count: { _all: true },
-      }),
-      this.prisma.message.groupBy({
-        by: ["listingThreadId"],
-        where: {
-          listingThreadId: { in: listingThreads.map((t) => t.id) },
-          senderId: { not: userId },
-          readAt: null,
-        },
-        _count: { _all: true },
-      }),
-    ]);
+    const [unreadByRequest, unreadByListingThread, unreadBySupportThread] =
+      await Promise.all([
+        this.prisma.message.groupBy({
+          by: ["viewingRequestId"],
+          where: {
+            viewingRequestId: { in: viewingRequestThreads.map((t) => t.id) },
+            senderId: { not: userId },
+            readAt: null,
+          },
+          _count: { _all: true },
+        }),
+        this.prisma.message.groupBy({
+          by: ["listingThreadId"],
+          where: {
+            listingThreadId: { in: listingThreads.map((t) => t.id) },
+            senderId: { not: userId },
+            readAt: null,
+          },
+          _count: { _all: true },
+        }),
+        this.prisma.message.groupBy({
+          by: ["supportThreadId"],
+          where: {
+            supportThreadId: { in: supportThreads.map((t) => t.id) },
+            senderId: { not: userId },
+            readAt: null,
+          },
+          _count: { _all: true },
+        }),
+      ]);
     const unreadRequestMap = new Map(
       unreadByRequest.map((row) => [row.viewingRequestId, row._count._all]),
     );
     const unreadListingThreadMap = new Map(
       unreadByListingThread.map((row) => [
         row.listingThreadId,
+        row._count._all,
+      ]),
+    );
+    const unreadSupportThreadMap = new Map(
+      unreadBySupportThread.map((row) => [
+        row.supportThreadId,
         row._count._all,
       ]),
     );
@@ -315,7 +349,37 @@ export class MessagesService {
       };
     });
 
-    return [...fromViewingRequests, ...fromListingThreads].sort(
+    const fromSupportThreads = supportThreads.map((thread) => {
+      const isRequester = thread.userId === userId;
+      const otherParty = isRequester
+        ? (thread.assignedAdmin?.name ?? "UrbanRentisha Support")
+        : thread.user.name;
+      const otherPartyId = isRequester
+        ? (thread.assignedAdminId ?? "")
+        : thread.userId;
+      const otherPartyLastActiveAt = isRequester
+        ? (thread.assignedAdmin?.lastActiveAt?.toISOString() ?? null)
+        : (thread.user.lastActiveAt?.toISOString() ?? null);
+      return {
+        kind: "support" as const,
+        id: thread.id,
+        listingId: null,
+        listingTitle: "Support",
+        listingImageUrl: null,
+        otherParty,
+        otherPartyId,
+        otherPartyLastActiveAt,
+        lastMessage: thread.messages[0]?.body ?? "",
+        lastMessageAt: thread.messages[0]?.createdAt ?? thread.createdAt,
+        unreadCount: unreadSupportThreadMap.get(thread.id) ?? 0,
+      };
+    });
+
+    return [
+      ...fromViewingRequests,
+      ...fromListingThreads,
+      ...fromSupportThreads,
+    ].sort(
       (a, b) =>
         new Date(b.lastMessageAt).getTime() -
         new Date(a.lastMessageAt).getTime(),
