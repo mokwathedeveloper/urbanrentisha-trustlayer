@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
+import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
 
 export default function SettingsPage() {
   const { token, user } = useAuth();
@@ -15,6 +16,14 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
+
+  function toggleSounds() {
+    const next = !soundsOn;
+    setSoundsOn(next);
+    setSoundEnabled(next);
+    if (next) playSound("general");
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -95,6 +104,35 @@ export default function SettingsPage() {
           <p className="text-sm font-bold text-ur-navy">Account</p>
           <p className="mt-2 text-sm text-ur-text-secondary">{user?.email}</p>
           <p className="mt-1 text-xs capitalize text-ur-text-muted">{user?.role.toLowerCase()} account</p>
+        </div>
+
+        <div className="ur-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-bold text-ur-navy">
+                <Icon name="notifications" size={16} className="text-ur-primary" />
+                Notification Sounds
+              </p>
+              <p className="mt-1 text-xs text-ur-text-secondary">
+                Play a sound for new messages, reports, and reservation updates.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={soundsOn}
+              onClick={toggleSounds}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                soundsOn ? "bg-ur-primary" : "bg-ur-border"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  soundsOn ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
     </div>
