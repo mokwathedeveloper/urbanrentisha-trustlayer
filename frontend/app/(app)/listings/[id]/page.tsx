@@ -118,14 +118,14 @@ export default function PropertyDetailPage() {
         listing.agent?.user.id === user?.id ||
         listing.manager?.user.id === user?.id);
     if (notification.type === "PAYMENT" && token && canSeeEscrow) {
-      api.listings.escrowPhase(token, params.id).then(setEscrowPhase);
+      api.listings.escrowPhase(token, params.id).then(setEscrowPhase).catch(() => {});
     }
   });
 
   useEffect(() => {
     if (!listing) return;
     const poster = resolvePoster(listing);
-    api.reviews.findForUser(poster.userId).then(setReviewSummary);
+    api.reviews.findForUser(poster.userId).then(setReviewSummary).catch(() => {});
   }, [listing]);
 
   // Escrow detail is owner/agent/manager-only - fetched separately from a
@@ -139,15 +139,18 @@ export default function PropertyDetailPage() {
       listing.agent?.user.id === user?.id ||
       listing.manager?.user.id === user?.id;
     if (!canSeeEscrow) return;
-    api.listings.escrowPhase(token, listing.id).then(setEscrowPhase);
+    api.listings.escrowPhase(token, listing.id).then(setEscrowPhase).catch(() => {});
   }, [token, listing, user?.id]);
 
   useEffect(() => {
     if (!token || user?.role !== "TENANT") return;
-    api.viewingRequests.findMine(token).then((requests) => {
-      const match = requests.find((request) => request.listingId === params.id);
-      setViewingRequestId(match?.id ?? null);
-    });
+    api.viewingRequests
+      .findMine(token)
+      .then((requests) => {
+        const match = requests.find((request) => request.listingId === params.id);
+        setViewingRequestId(match?.id ?? null);
+      })
+      .catch(() => {});
   }, [token, user, params.id]);
 
   const activeThreadId = viewingRequestId ?? listingThreadId;
@@ -160,7 +163,7 @@ export default function PropertyDetailPage() {
       const fetcher = viewingRequestId
         ? api.messages.findForRequest(currentToken, threadId)
         : api.listingThreads.findMessages(currentToken, threadId);
-      fetcher.then(setChatMessages);
+      fetcher.then(setChatMessages).catch(() => {});
     }
     loadMessages();
     const interval = setInterval(loadMessages, CHAT_POLL_INTERVAL_MS);
