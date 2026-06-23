@@ -25,11 +25,13 @@ import { UploadsModule } from "./uploads/uploads.module";
 import { LandlordModule } from "./landlord/landlord.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { ListingThreadsModule } from "./listing-threads/listing-threads.module";
+import { RealtimeModule } from "./realtime/realtime.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    RealtimeModule,
     PrismaModule,
     AuthModule,
     UsersModule,
