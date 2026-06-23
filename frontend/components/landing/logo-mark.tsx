@@ -12,7 +12,7 @@ export function LogoMark({ className }: LogoMarkProps) {
       alt="UrbanRentisha TrustLayer"
       width={2172}
       height={724}
-      className={cn("h-10 w-auto", className)}
+      className={cn("h-14 w-auto", className)}
       priority
     />
   );
