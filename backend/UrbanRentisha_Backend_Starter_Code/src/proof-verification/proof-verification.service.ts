@@ -195,12 +195,15 @@ export class ProofVerificationService {
     actorId: string,
     request: {
       id: string;
+      listingId: string;
       payment: {
         id: string;
         status: PaymentStatus;
         escrowDepositTxHash: string | null;
+        amount: number;
+        stellarAsset: string;
       } | null;
-      listing: { owner: { walletAddress: string | null } };
+      listing: { title: string; owner: { walletAddress: string | null } };
     },
   ): Promise<void> {
     const payment = request.payment;
@@ -248,6 +251,26 @@ export class ProofVerificationService {
         entityId: payment.id,
         severity: "SUCCESS",
         metadata: { releaseTxHash, viewingRequestId: request.id },
+      });
+
+      const contacts = await this.listings.getEscrowContacts(request.listingId);
+      await Promise.all(
+        contacts.map((userId) =>
+          this.notifications.create({
+            userId,
+            type: NotificationType.PAYMENT,
+            title: "Escrow Released",
+            message: `Escrow funds of ${payment.amount} ${payment.stellarAsset} for "${request.listing.title}" have been released to the landlord's wallet.`,
+            viewingRequestId: request.id,
+          }),
+        ),
+      );
+      await this.notifications.create({
+        userId: actorId,
+        type: NotificationType.PAYMENT,
+        title: "Escrow Released",
+        message: `Your escrow payment of ${payment.amount} ${payment.stellarAsset} for "${request.listing.title}" has been released to the landlord.`,
+        viewingRequestId: request.id,
       });
     } catch (error) {
       await this.auditLogs.create({
