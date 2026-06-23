@@ -6,6 +6,7 @@ import { StorageModule } from "../storage/storage.module";
 import { StellarModule } from "../stellar/stellar.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { SorobanModule } from "../soroban/soroban.module";
+import { ListingsModule } from "../listings/listings.module";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SorobanModule } from "../soroban/soroban.module";
     StellarModule,
     NotificationsModule,
     SorobanModule,
+    ListingsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],
