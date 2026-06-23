@@ -183,6 +183,56 @@ export interface Listing {
     verificationStatus: string;
     user: ListingContact;
   };
+  escrowPhase?: EscrowPhase | null;
+}
+
+export type EscrowPhaseCode =
+  | "BOOKING_PENDING"
+  | "PAYMENT_RECEIVED"
+  | "ESCROW_FUNDED"
+  | "RELEASED"
+  | "REFUNDED"
+  | "FAILED";
+
+export interface EscrowPhase {
+  phase: EscrowPhaseCode;
+  label: string;
+  isEscrow: boolean;
+  tenantId: string;
+  tenantName: string;
+  amount: number;
+  currency: string;
+  paymentId: string | null;
+}
+
+export interface EscrowTimelineEntry {
+  action: string;
+  severity: string;
+  metadata: unknown;
+  createdAt: string;
+}
+
+export interface EscrowOverviewItem {
+  paymentId: string;
+  viewingRequestId: string;
+  listingId: string;
+  listingTitle: string;
+  listingImageUrl: string | null;
+  tenantId: string;
+  tenantName: string;
+  amount: number;
+  currency: string;
+  stellarAsset: string;
+  status: string;
+  isEscrow: boolean;
+  escrowDepositTxHash: string | null;
+  escrowReleaseTxHash: string | null;
+  proofStatus: string | null;
+  paidAt: string | null;
+  escrowReleasedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  timeline: EscrowTimelineEntry[];
 }
 
 export interface ViewingRequest {
@@ -605,6 +655,8 @@ export const api = {
       request<Listing>(`/listings/${id}/mark-rented`, { method: "POST", token }),
     releaseReservation: (token: string, id: string) =>
       request<Listing>(`/listings/${id}/release-reservation`, { method: "POST", token }),
+    escrowPhase: (token: string, id: string) =>
+      request<EscrowPhase | null>(`/listings/${id}/escrow`, { token }),
   },
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
@@ -716,8 +768,12 @@ export const api = {
   agents: {
     findOne: (token: string, id: string) => request<AgentProfile>(`/agents/${id}`, { token }),
     myDashboard: (token: string) => request<AgentDashboard>("/agents/me/dashboard", { token }),
+    escrowOverview: (token: string) =>
+      request<EscrowOverviewItem[]>("/agents/me/escrow", { token }),
   },
   landlord: {
+    escrowOverview: (token: string) =>
+      request<EscrowOverviewItem[]>("/landlord/escrow", { token }),
     getTeam: (token: string) => request<LandlordTeamSummary>("/landlord/team", { token }),
     inviteAgent: (
       token: string,
