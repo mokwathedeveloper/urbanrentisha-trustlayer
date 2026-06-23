@@ -14,6 +14,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
 import { ViewingRequestAccessService } from "./viewing-request-access.service";
+import { summarizePayments } from "../escrow-reporting/escrow-summary.util";
 
 /**
  * How long a tenant has to pay once it's their turn before the slot is
@@ -21,6 +22,13 @@ import { ViewingRequestAccessService } from "./viewing-request-access.service";
  * from being stuck behind someone who never intends to pay.
  */
 const TURN_WINDOW_MS = 30 * 60 * 1000;
+
+const NON_BOOKING_STATUSES: ViewingRequestStatus[] = [
+  ViewingRequestStatus.EXPIRED,
+  ViewingRequestStatus.REVOKED,
+  ViewingRequestStatus.CANCELLED,
+  ViewingRequestStatus.ACCESS_UNLOCKED,
+];
 
 @Injectable()
 export class ViewingRequestsService {
@@ -255,6 +263,65 @@ export class ViewingRequestsService {
         viewingCode: true,
       },
     });
+  }
+
+  /** Dashboard card numbers for a tenant - amount spent, held in escrow,
+   * refunded, and booking counts, mirroring the landlord/agent summary
+   * shape so the same dashboard card components work for every role. */
+  async findEscrowSummary(userId: string) {
+    const tenant = await this.prisma.tenantProfile.findUnique({
+      where: { userId },
+    });
+    if (!tenant) {
+      return {
+        currency: "KES",
+        totalReceived: 0,
+        totalManaged: 0,
+        escrowHeldAmount: 0,
+        escrowHeldCount: 0,
+        pendingReleaseAmount: 0,
+        pendingReleaseCount: 0,
+        totalReleased: 0,
+        totalRefunded: 0,
+        completedTransactions: 0,
+        activePropertiesWithEscrow: 0,
+        activeBookings: 0,
+        completedBookings: 0,
+      };
+    }
+
+    const [requests, activeBookings, completedBookings] = await Promise.all([
+      this.prisma.viewingRequest.findMany({
+        where: { tenantId: tenant.id },
+        include: { payment: true, proofVerification: true },
+      }),
+      this.prisma.viewingRequest.count({
+        where: { tenantId: tenant.id, status: { notIn: NON_BOOKING_STATUSES } },
+      }),
+      this.prisma.viewingRequest.count({
+        where: {
+          tenantId: tenant.id,
+          status: ViewingRequestStatus.ACCESS_UNLOCKED,
+        },
+      }),
+    ]);
+
+    const payments = requests
+      .filter((r) => r.payment)
+      .map((r) => ({
+        amount: r.payment!.amount,
+        currency: r.payment!.currency,
+        status: r.payment!.status,
+        listingId: r.listingId,
+        isEscrow: Boolean(r.payment!.escrowDepositTxHash),
+        proofStatus: r.proofVerification?.status ?? null,
+      }));
+
+    return {
+      ...summarizePayments(payments),
+      activeBookings,
+      completedBookings,
+    };
   }
 
   async findOne(id: string, userId: string, role: UserRole) {
