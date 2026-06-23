@@ -261,7 +261,9 @@ export interface NotificationItem {
 export interface MessageThread {
   kind: "viewing_request" | "listing_thread";
   id: string;
+  listingId: string;
   listingTitle: string;
+  listingImageUrl: string | null;
   otherParty: string;
   otherPartyId: string;
   otherPartyLastActiveAt: string | null;
