@@ -1,9 +1,4 @@
-import {
-  contract,
-  Keypair,
-  rpc,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
+import type { contract, Keypair, rpc } from "@stellar/stellar-sdk";
 
 // Contract spec (XDR) extracted via `stellar contract bindings typescript`
 // for the deployed UrbanRentishaEscrow contract - see contracts/escrow/.
@@ -77,28 +72,44 @@ type EscrowContractClient = contract.Client & {
 };
 
 export class EscrowClient {
-  private readonly adminKeypair: Keypair;
-  private readonly server: rpc.Server;
-  private readonly adminClient: EscrowContractClient;
-  private readonly spec: contract.Spec;
+  private adminKeypair!: Keypair;
+  private server!: rpc.Server;
+  private adminClient!: EscrowContractClient;
+  private spec!: contract.Spec;
+  private ready: Promise<void> | null = null;
 
-  constructor(private readonly config: EscrowConfig) {
-    this.adminKeypair = Keypair.fromSecret(config.adminSecretKey);
-    this.server = new rpc.Server(config.rpcUrl);
-    this.spec = new contract.Spec(CONTRACT_SPEC);
+  constructor(private readonly config: EscrowConfig) {}
 
-    const signer = contract.basicNodeSigner(
-      this.adminKeypair,
-      config.networkPassphrase,
-    );
+  /**
+   * The Stellar SDK's CJS build requires ESM-only @noble/* crypto packages
+   * internally, which Vercel's serverless runtime can't require()
+   * synchronously - so the SDK is loaded lazily via dynamic import() on
+   * first use instead of at module/constructor time, which works in every
+   * environment.
+   */
+  private ensureReady(): Promise<void> {
+    if (!this.ready) {
+      this.ready = (async () => {
+        const { Keypair, contract, rpc } = await import("@stellar/stellar-sdk");
+        this.adminKeypair = Keypair.fromSecret(this.config.adminSecretKey);
+        this.server = new rpc.Server(this.config.rpcUrl);
+        this.spec = new contract.Spec(CONTRACT_SPEC);
 
-    this.adminClient = new contract.Client(this.spec, {
-      contractId: config.contractId,
-      rpcUrl: config.rpcUrl,
-      networkPassphrase: config.networkPassphrase,
-      publicKey: this.adminKeypair.publicKey(),
-      ...signer,
-    }) as EscrowContractClient;
+        const signer = contract.basicNodeSigner(
+          this.adminKeypair,
+          this.config.networkPassphrase,
+        );
+
+        this.adminClient = new contract.Client(this.spec, {
+          contractId: this.config.contractId,
+          rpcUrl: this.config.rpcUrl,
+          networkPassphrase: this.config.networkPassphrase,
+          publicKey: this.adminKeypair.publicKey(),
+          ...signer,
+        }) as EscrowContractClient;
+      })();
+    }
+    return this.ready;
   }
 
   /**
@@ -113,6 +124,8 @@ export class EscrowClient {
     paymentId: Buffer,
     amountStroops: bigint,
   ): Promise<string> {
+    await this.ensureReady();
+    const { contract } = await import("@stellar/stellar-sdk");
     const payerClient = new contract.Client(this.spec, {
       contractId: this.config.contractId,
       rpcUrl: this.config.rpcUrl,
@@ -136,6 +149,8 @@ export class EscrowClient {
    * on-chain Soroban transaction hash.
    */
   async submitSignedDeposit(signedXdr: string): Promise<string> {
+    await this.ensureReady();
+    const { TransactionBuilder, rpc } = await import("@stellar/stellar-sdk");
     const transaction = TransactionBuilder.fromXDR(
       signedXdr,
       this.config.networkPassphrase,
@@ -163,6 +178,7 @@ export class EscrowClient {
    * Admin-signed (the platform), submitted and confirmed in this call.
    */
   async release(paymentId: Buffer, landlordPublicKey: string): Promise<string> {
+    await this.ensureReady();
     const assembled = await this.adminClient.release({
       payment_id: paymentId,
       landlord: landlordPublicKey,
@@ -172,12 +188,14 @@ export class EscrowClient {
 
   /** Refunds a held payment back to the original payer. Admin-signed. */
   async refund(paymentId: Buffer): Promise<string> {
+    await this.ensureReady();
     const assembled = await this.adminClient.refund({ payment_id: paymentId });
     return this.signAndSend(assembled);
   }
 
   /** Read-only lookup of a hold's current on-chain state. */
   async getHold(paymentId: Buffer): Promise<Hold | null> {
+    await this.ensureReady();
     const assembled = await this.adminClient.get_hold({
       payment_id: paymentId,
     });
