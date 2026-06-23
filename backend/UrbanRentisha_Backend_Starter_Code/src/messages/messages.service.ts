@@ -203,7 +203,9 @@ export class MessagesService {
       return {
         kind: "viewing_request" as const,
         id: thread.id,
+        listingId: thread.listing.id,
         listingTitle: thread.listing.title,
+        listingImageUrl: thread.listing.imageUrl,
         otherParty: otherContact?.name ?? thread.tenant.user.name,
         otherPartyId: otherContact?.id ?? thread.tenant.user.id,
         otherPartyLastActiveAt:
@@ -224,7 +226,9 @@ export class MessagesService {
       return {
         kind: "listing_thread" as const,
         id: thread.id,
+        listingId: thread.listing.id,
         listingTitle: thread.listing.title,
+        listingImageUrl: thread.listing.imageUrl,
         otherParty: otherContact?.name ?? thread.tenant.name,
         otherPartyId: otherContact?.id ?? thread.tenant.id,
         otherPartyLastActiveAt:
