@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
@@ -27,5 +35,10 @@ export class MessagesController {
     @Body() dto: CreateMessageDto,
   ) {
     return this.messages.create(user.sub, id, dto);
+  }
+
+  @Patch("viewing-requests/:id/messages/read")
+  markRead(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.messages.markRequestThreadRead(user.sub, id);
   }
 }
