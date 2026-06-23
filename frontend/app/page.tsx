@@ -3,7 +3,6 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { ProblemSection } from "@/components/landing/problem-section";
 import { TrustFlowSection } from "@/components/landing/trust-flow-section";
 import { AudienceSection } from "@/components/landing/audience-section";
-import { StellarCtaSection } from "@/components/landing/stellar-cta-section";
 import { LandingFooter } from "@/components/landing/landing-footer";
 
 export default function HomePage() {
@@ -14,7 +13,6 @@ export default function HomePage() {
       <ProblemSection />
       <TrustFlowSection />
       <AudienceSection />
-      <StellarCtaSection />
       <LandingFooter />
     </main>
   );
