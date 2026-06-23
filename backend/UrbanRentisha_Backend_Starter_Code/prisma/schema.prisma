@@ -54,6 +54,12 @@ enum ListingStatus {
   SUSPENDED
 }
 
+enum ListingAvailability {
+  AVAILABLE
+  RESERVED
+  RENTED
+}
+
 enum ViewingRequestStatus {
   CREATED
   AWAITING_PAYMENT
@@ -259,30 +265,34 @@ model Document {
 }
 
 model Listing {
-  id                 String          @id @default(cuid())
-  externalListingId  String?
-  title              String
-  description        String
-  location           String
-  address            String?
-  rentAmount         Int
-  currency           String          @default("KES")
-  viewingFee         Int
-  bedrooms           Int?
-  bathrooms          Int?
-  propertyType       String
-  imageUrl           String?
-  verificationStatus ListingStatus   @default(PENDING_REVIEW)
-  ownerId            String
-  owner              User            @relation("ListingOwner", fields: [ownerId], references: [id])
-  agentId            String?
-  agent              AgentProfile?   @relation(fields: [agentId], references: [id])
-  managerId          String?
-  manager            ManagerProfile? @relation(fields: [managerId], references: [id])
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id                   String              @id @default(cuid())
+  externalListingId    String?
+  title                String
+  description          String
+  location             String
+  address              String?
+  rentAmount           Int
+  currency             String              @default("KES")
+  viewingFee           Int
+  bedrooms             Int?
+  bathrooms            Int?
+  propertyType         String
+  imageUrl             String?
+  verificationStatus   ListingStatus       @default(PENDING_REVIEW)
+  availabilityStatus   ListingAvailability @default(AVAILABLE)
+  reservedByRequestId  String?             @unique
+  reservedByRequest    ViewingRequest?     @relation("ListingReservation", fields: [reservedByRequestId], references: [id])
+  reservationExpiresAt DateTime?
+  ownerId              String
+  owner                User                @relation("ListingOwner", fields: [ownerId], references: [id])
+  agentId              String?
+  agent                AgentProfile?       @relation(fields: [agentId], references: [id])
+  managerId            String?
+  manager              ManagerProfile?     @relation(fields: [managerId], references: [id])
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
-  viewingRequests ViewingRequest[]
+  viewingRequests ViewingRequest[] @relation("ListingRequests")
   reports         Report[]
   savedBy         SavedListing[]
   images          ListingImage[]
@@ -319,7 +329,7 @@ model SavedListing {
 model ViewingRequest {
   id            String               @id @default(cuid())
   listingId     String
-  listing       Listing              @relation(fields: [listingId], references: [id])
+  listing       Listing              @relation("ListingRequests", fields: [listingId], references: [id])
   tenantId      String
   tenant        TenantProfile        @relation(fields: [tenantId], references: [id])
   preferredDate DateTime?
@@ -335,6 +345,7 @@ model ViewingRequest {
   reports           Report[]
   notifications     Notification[]
   messages          Message[]
+  reservedListing   Listing?           @relation("ListingReservation")
 }
 
 model Message {
