@@ -19,6 +19,11 @@ export class AgentsController {
     return this.agents.findEscrowOverview(user.sub, user.role);
   }
 
+  @Get("me/escrow/summary")
+  findMyEscrowSummary(@CurrentUser() user: AuthUser) {
+    return this.agents.findEscrowSummary(user.sub, user.role);
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.agents.findOne(id);
