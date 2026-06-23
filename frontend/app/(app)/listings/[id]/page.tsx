@@ -181,6 +181,8 @@ export default function PropertyDetailPage() {
       try {
         const thread = await api.listingThreads.getOrCreate(token, params.id);
         setListingThreadId(thread.id);
+      } catch {
+        // Best-effort: chat panel just won't have a thread to send into.
       } finally {
         setChatLoading(false);
       }
@@ -197,6 +199,8 @@ export default function PropertyDetailPage() {
         : await api.listingThreads.send(token, activeThreadId, chatDraft.trim());
       setChatMessages((prev) => [...prev, message]);
       setChatDraft("");
+    } catch {
+      // Best-effort: leave the draft in place so the user can retry sending.
     } finally {
       setChatSending(false);
     }
