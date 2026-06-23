@@ -27,6 +27,7 @@ import { ReviewsModule } from "./reviews/reviews.module";
 import { ListingThreadsModule } from "./listing-threads/listing-threads.module";
 import { RealtimeModule } from "./realtime/realtime.module";
 import { SupportModule } from "./support/support.module";
+import { EscrowReportingModule } from "./escrow-reporting/escrow-reporting.module";
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { SupportModule } from "./support/support.module";
     ReviewsModule,
     ListingThreadsModule,
     SupportModule,
+    EscrowReportingModule,
   ],
 })
 export class AppModule {}
