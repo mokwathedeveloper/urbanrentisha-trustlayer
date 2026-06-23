@@ -6,6 +6,7 @@ import {
 import { NotificationType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { CreateMessageDto } from "./dto/create-message.dto";
 
 @Injectable()
@@ -13,6 +14,7 @@ export class MessagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   private async loadThread(viewingRequestId: string) {
@@ -110,18 +112,27 @@ export class MessagesService {
       ? this.listingContacts(request.listing).map((contact) => contact.id)
       : [request.tenant.user.id];
 
+    const recipients = recipientIds.filter(
+      (recipientId) => recipientId !== senderId,
+    );
+
     await Promise.all(
-      recipientIds
-        .filter((recipientId) => recipientId !== senderId)
-        .map((recipientId) =>
-          this.notifications.create({
-            userId: recipientId,
-            type: NotificationType.SYSTEM,
-            title: "New Message",
-            message: `${message.sender.name} sent you a message about ${request.listing.title}.`,
-            viewingRequestId,
-          }),
-        ),
+      recipients.map((recipientId) =>
+        this.notifications.create({
+          userId: recipientId,
+          type: NotificationType.SYSTEM,
+          title: "New Message",
+          message: `${message.sender.name} sent you a message about ${request.listing.title}.`,
+          viewingRequestId,
+        }),
+      ),
+    );
+
+    recipients.forEach((recipientId) =>
+      this.realtime.emitToUser(recipientId, "message:new", {
+        threadId: viewingRequestId,
+        kind: "viewing_request",
+      }),
     );
 
     return message;
@@ -136,6 +147,38 @@ export class MessagesService {
       orderBy: { createdAt: "asc" },
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
+  }
+
+  /**
+   * Marks every message in this thread sent by the other party as read.
+   * Pushes a `message:read` receipt to each of those senders so their open
+   * conversation view updates instantly, without them needing to poll.
+   */
+  async markRequestThreadRead(userId: string, viewingRequestId: string) {
+    const request = await this.loadThread(viewingRequestId);
+    this.assertParticipant(userId, request);
+
+    const unread = await this.prisma.message.findMany({
+      where: { viewingRequestId, senderId: { not: userId }, readAt: null },
+      select: { senderId: true },
+    });
+    if (unread.length === 0) return { updated: 0 };
+
+    const readAt = new Date();
+    await this.prisma.message.updateMany({
+      where: { viewingRequestId, senderId: { not: userId }, readAt: null },
+      data: { readAt },
+    });
+
+    const senderIds = [...new Set(unread.map((m) => m.senderId))];
+    senderIds.forEach((senderId) =>
+      this.realtime.emitToUser(senderId, "message:read", {
+        threadId: viewingRequestId,
+        readAt: readAt.toISOString(),
+      }),
+    );
+
+    return { updated: unread.length };
   }
 
   async findInbox(userId: string) {
@@ -194,6 +237,36 @@ export class MessagesService {
       }),
     ]);
 
+    const [unreadByRequest, unreadByListingThread] = await Promise.all([
+      this.prisma.message.groupBy({
+        by: ["viewingRequestId"],
+        where: {
+          viewingRequestId: { in: viewingRequestThreads.map((t) => t.id) },
+          senderId: { not: userId },
+          readAt: null,
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.message.groupBy({
+        by: ["listingThreadId"],
+        where: {
+          listingThreadId: { in: listingThreads.map((t) => t.id) },
+          senderId: { not: userId },
+          readAt: null,
+        },
+        _count: { _all: true },
+      }),
+    ]);
+    const unreadRequestMap = new Map(
+      unreadByRequest.map((row) => [row.viewingRequestId, row._count._all]),
+    );
+    const unreadListingThreadMap = new Map(
+      unreadByListingThread.map((row) => [
+        row.listingThreadId,
+        row._count._all,
+      ]),
+    );
+
     const fromViewingRequests = viewingRequestThreads.map((thread) => {
       const isTenantViewer = thread.tenant.user.id === userId;
       const contacts = this.listingContacts(thread.listing);
@@ -214,6 +287,7 @@ export class MessagesService {
           )?.toISOString() ?? null,
         lastMessage: thread.messages[0]?.body ?? "",
         lastMessageAt: thread.messages[0]?.createdAt ?? thread.updatedAt,
+        unreadCount: unreadRequestMap.get(thread.id) ?? 0,
       };
     });
 
@@ -237,6 +311,7 @@ export class MessagesService {
           )?.toISOString() ?? null,
         lastMessage: thread.messages[0]?.body ?? "",
         lastMessageAt: thread.messages[0]?.createdAt ?? thread.createdAt,
+        unreadCount: unreadListingThreadMap.get(thread.id) ?? 0,
       };
     });
 
