@@ -17,6 +17,7 @@ const MY_ASSIGNED_PROPERTIES: NavItem = { label: "Properties Assigned To Me", hr
 const MESSAGES: NavItem = { label: "Messages", href: "/messages", icon: "mail" };
 const NOTIFICATIONS: NavItem = { label: "Notifications", href: "/notifications", icon: "notifications" };
 const REPORTS: NavItem = { label: "Reports", href: "/reports", icon: "flag" };
+const ESCROW_HOLDS: NavItem = { label: "Escrow / Holds", href: "/escrow", icon: "lock" };
 const REPORT_FAKE_LISTING: NavItem = { label: "Report Fake Listing", href: "/reports/new", icon: "warning" };
 const PROFILE: NavItem = { label: "Profile", href: "/profile", icon: "person" };
 const SETTINGS: NavItem = { label: "Settings", href: "/settings", icon: "settings" };
@@ -29,7 +30,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     MESSAGES,
     { label: "Applications", href: "/applications", icon: "description" },
     { label: "Payments", href: "/payments", icon: "credit_card" },
-    { label: "Escrow / Holds", href: "/escrow", icon: "lock" },
+    ESCROW_HOLDS,
     { label: "Verifications", href: "/verifications", icon: "verified_user" },
     { label: "Viewing Code", href: "/viewing-code", icon: "lock" },
     REPORTS,
@@ -41,6 +42,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   LANDLORD: [
     MY_LANDLORD_PROPERTIES,
     ALL_LISTINGS,
+    ESCROW_HOLDS,
     MESSAGES,
     REPORTS,
     REPORT_FAKE_LISTING,
@@ -51,6 +53,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   AGENT: [
     MY_ASSIGNED_PROPERTIES,
     ALL_LISTINGS,
+    ESCROW_HOLDS,
     MESSAGES,
     REPORTS,
     REPORT_FAKE_LISTING,
@@ -61,6 +64,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   MANAGER: [
     MY_ASSIGNED_PROPERTIES,
     ALL_LISTINGS,
+    ESCROW_HOLDS,
     MESSAGES,
     REPORTS,
     REPORT_FAKE_LISTING,
