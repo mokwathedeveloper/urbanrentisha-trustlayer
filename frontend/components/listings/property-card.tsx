@@ -55,6 +55,10 @@ export function PropertyCard({
         await api.listings.save(token, listing.id);
         setSaved(true);
       }
+    } catch {
+      // Best-effort toggle - if the request fails, leave the saved state
+      // as it was rather than surfacing an unhandled rejection from this
+      // click handler.
     } finally {
       setPending(false);
     }
