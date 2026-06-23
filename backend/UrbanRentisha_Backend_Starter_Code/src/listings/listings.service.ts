@@ -16,6 +16,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { ViewingRequestsService } from "../viewing-requests/viewing-requests.service";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { AddListingImageDto } from "./dto/add-listing-image.dto";
 
@@ -56,6 +57,7 @@ export class ListingsService {
     private readonly auditLogs: AuditLogsService,
     private readonly notifications: NotificationsService,
     private readonly realtime: RealtimeGateway,
+    private readonly viewingRequests: ViewingRequestsService,
   ) {}
 
   findAll() {
@@ -402,6 +404,20 @@ export class ListingsService {
   }
 
   /**
+   * Called once this tenant's proof actually verifies - only now is the
+   * deal truly done, so only now do other queued tenants lose their place.
+   * Cancelling them at payment time instead would be premature: if this
+   * tenant's proof later fails, the queue would already be empty with no
+   * one left to promote.
+   */
+  async finalizeRequest(listingId: string, requestId: string) {
+    await this.viewingRequests.cancelQueuedRequestsForListing(
+      listingId,
+      requestId,
+    );
+  }
+
+  /**
    * Releases a listing back to AVAILABLE - called when the reserving
    * tenant's proof fails, their reservation window lapses (see the cron
    * sweep in ListingsAvailabilityScheduler), or an agent manually frees it.
@@ -460,6 +476,11 @@ export class ListingsService {
       listingId,
       availabilityStatus: ListingAvailability.AVAILABLE,
     });
+
+    // If someone was queued behind the tenant who just lost their hold,
+    // give them their turn immediately rather than waiting for the next
+    // cron tick.
+    await this.viewingRequests.promoteNextQueuedRequest(listingId);
   }
 
   async markRented(listingId: string, actorId: string, role: UserRole) {
