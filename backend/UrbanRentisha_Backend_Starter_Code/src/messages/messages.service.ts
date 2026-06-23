@@ -50,20 +50,39 @@ export class MessagesService {
   }
 
   private listingContacts(listing: {
-    owner: { id: string; name: string };
-    agent: { user: { id: string; name: string } } | null;
-    manager: { user: { id: string; name: string } } | null;
+    owner: { id: string; name: string; lastActiveAt: Date | null };
+    agent: {
+      user: { id: string; name: string; lastActiveAt: Date | null };
+    } | null;
+    manager: {
+      user: { id: string; name: string; lastActiveAt: Date | null };
+    } | null;
   }) {
     const contacts = [
-      { id: listing.owner.id, name: listing.owner.name },
+      {
+        id: listing.owner.id,
+        name: listing.owner.name,
+        lastActiveAt: listing.owner.lastActiveAt,
+      },
       listing.agent
-        ? { id: listing.agent.user.id, name: listing.agent.user.name }
+        ? {
+            id: listing.agent.user.id,
+            name: listing.agent.user.name,
+            lastActiveAt: listing.agent.user.lastActiveAt,
+          }
         : null,
       listing.manager
-        ? { id: listing.manager.user.id, name: listing.manager.user.name }
+        ? {
+            id: listing.manager.user.id,
+            name: listing.manager.user.name,
+            lastActiveAt: listing.manager.user.lastActiveAt,
+          }
         : null,
     ].filter(
-      (contact): contact is { id: string; name: string } => contact !== null,
+      (
+        contact,
+      ): contact is { id: string; name: string; lastActiveAt: Date | null } =>
+        contact !== null,
     );
 
     const seen = new Set<string>();
@@ -178,14 +197,19 @@ export class MessagesService {
     const fromViewingRequests = viewingRequestThreads.map((thread) => {
       const isTenantViewer = thread.tenant.user.id === userId;
       const contacts = this.listingContacts(thread.listing);
+      const otherContact = isTenantViewer
+        ? contacts.find((contact) => contact.id !== userId)
+        : null;
       return {
         kind: "viewing_request" as const,
         id: thread.id,
         listingTitle: thread.listing.title,
-        otherParty: isTenantViewer
-          ? (contacts.find((contact) => contact.id !== userId)?.name ??
-            "Listing Contact")
-          : thread.tenant.user.name,
+        otherParty: otherContact?.name ?? thread.tenant.user.name,
+        otherPartyId: otherContact?.id ?? thread.tenant.user.id,
+        otherPartyLastActiveAt:
+          (
+            otherContact?.lastActiveAt ?? thread.tenant.user.lastActiveAt
+          )?.toISOString() ?? null,
         lastMessage: thread.messages[0]?.body ?? "",
         lastMessageAt: thread.messages[0]?.createdAt ?? thread.updatedAt,
       };
@@ -194,14 +218,19 @@ export class MessagesService {
     const fromListingThreads = listingThreads.map((thread) => {
       const isTenantViewer = thread.tenant.id === userId;
       const contacts = this.listingContacts(thread.listing);
+      const otherContact = isTenantViewer
+        ? contacts.find((contact) => contact.id !== userId)
+        : null;
       return {
         kind: "listing_thread" as const,
         id: thread.id,
         listingTitle: thread.listing.title,
-        otherParty: isTenantViewer
-          ? (contacts.find((contact) => contact.id !== userId)?.name ??
-            "Listing Contact")
-          : thread.tenant.name,
+        otherParty: otherContact?.name ?? thread.tenant.name,
+        otherPartyId: otherContact?.id ?? thread.tenant.id,
+        otherPartyLastActiveAt:
+          (
+            otherContact?.lastActiveAt ?? thread.tenant.lastActiveAt
+          )?.toISOString() ?? null,
         lastMessage: thread.messages[0]?.body ?? "",
         lastMessageAt: thread.messages[0]?.createdAt ?? thread.createdAt,
       };
