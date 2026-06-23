@@ -58,6 +58,11 @@ export function useRealtimeEvent<T = unknown>(
   }, [token, event]);
 }
 
+export function emitRealtimeEvent(token: string | null, event: string, payload: unknown) {
+  if (!token) return;
+  getSocket(token).emit(event, payload);
+}
+
 export function useListingRealtime(token: string | null, listingId: string | null) {
   useEffect(() => {
     if (!token || !listingId) return;
