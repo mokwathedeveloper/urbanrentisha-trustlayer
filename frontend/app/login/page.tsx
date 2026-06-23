@@ -94,11 +94,11 @@ export default function LoginPage() {
       <div className="ur-container flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center">
         <div className="w-full max-w-md">
           <div className="ur-card p-6 sm:p-8">
-            <Link href="/" aria-label="UrbanRentisha home">
-              <LogoMark />
+            <Link href="/" aria-label="UrbanRentisha home" className="flex justify-center">
+              <LogoMark className="h-20 w-auto" />
             </Link>
 
-            <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-ur-primary/30 bg-ur-success-bg px-3 py-1 text-xs font-bold tracking-[0.02em] text-ur-primary">
+            <div className="mx-auto mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-ur-primary/30 bg-ur-success-bg px-3 py-1 text-xs font-bold tracking-[0.02em] text-ur-primary">
               Blockchain-Powered. Privacy-First. Zero-Knowledge.
             </div>
 
