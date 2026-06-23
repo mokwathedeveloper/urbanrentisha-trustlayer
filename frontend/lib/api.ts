@@ -263,6 +263,8 @@ export interface MessageThread {
   id: string;
   listingTitle: string;
   otherParty: string;
+  otherPartyId: string;
+  otherPartyLastActiveAt: string | null;
   lastMessage: string;
   lastMessageAt: string;
 }
