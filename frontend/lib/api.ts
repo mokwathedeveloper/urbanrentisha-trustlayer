@@ -269,6 +269,7 @@ export interface MessageThread {
   otherPartyLastActiveAt: string | null;
   lastMessage: string;
   lastMessageAt: string;
+  unreadCount: number;
 }
 
 export interface MessageItem {
@@ -277,6 +278,7 @@ export interface MessageItem {
   listingThreadId: string | null;
   senderId: string;
   body: string;
+  readAt: string | null;
   createdAt: string;
   sender: { id: string; name: string; role: string };
 }
@@ -733,6 +735,11 @@ export const api = {
         body: { body },
         token,
       }),
+    markRead: (token: string, viewingRequestId: string) =>
+      request<{ updated: number }>(`/viewing-requests/${viewingRequestId}/messages/read`, {
+        method: "PATCH",
+        token,
+      }),
   },
   listingThreads: {
     getOrCreate: (token: string, listingId: string) =>
@@ -743,6 +750,11 @@ export const api = {
       request<MessageItem>(`/listing-threads/${threadId}/messages`, {
         method: "POST",
         body: { body },
+        token,
+      }),
+    markRead: (token: string, threadId: string) =>
+      request<{ updated: number }>(`/listing-threads/${threadId}/messages/read`, {
+        method: "PATCH",
         token,
       }),
   },
