@@ -26,6 +26,7 @@ import { LandlordModule } from "./landlord/landlord.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { ListingThreadsModule } from "./listing-threads/listing-threads.module";
 import { RealtimeModule } from "./realtime/realtime.module";
+import { SupportModule } from "./support/support.module";
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
     LandlordModule,
     ReviewsModule,
     ListingThreadsModule,
+    SupportModule,
   ],
 })
 export class AppModule {}
