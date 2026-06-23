@@ -7,12 +7,31 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { EscrowManagementView } from "@/components/escrow/escrow-management-view";
 
-const ALLOWED_ROLES = ["TENANT"] as const;
+const ALLOWED_ROLES = ["TENANT", "LANDLORD", "AGENT", "MANAGER"] as const;
 
 export default function EscrowPage() {
+  const { user } = useAuth();
+
+  if (user?.role === "LANDLORD" || user?.role === "AGENT" || user?.role === "MANAGER") {
+    return (
+      <RoleGuard allow={[...ALLOWED_ROLES]}>
+        <EscrowManagementView role={user.role} />
+      </RoleGuard>
+    );
+  }
+
+  return (
+    <RoleGuard allow={[...ALLOWED_ROLES]}>
+      <TenantEscrowView />
+    </RoleGuard>
+  );
+}
+
+function TenantEscrowView() {
   const { token } = useAuth();
-  const allowed = useHasRole([...ALLOWED_ROLES]);
+  const allowed = useHasRole(["TENANT"]);
   const [requests, setRequests] = useState<ViewingRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +47,6 @@ export default function EscrowPage() {
   const released = requests.filter((r) => r.payment?.status === "RECEIVED" && r.viewingCode?.status === "ACTIVE");
 
   return (
-    <RoleGuard allow={[...ALLOWED_ROLES]}>
     <div className="px-6 py-8">
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Escrow / Holds</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">
@@ -82,6 +100,5 @@ export default function EscrowPage() {
         </div>
       ) : null}
     </div>
-  </RoleGuard>
   );
 }
