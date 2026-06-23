@@ -17,6 +17,7 @@ import { EscrowService } from "../soroban/escrow.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { SubmitProofVerificationDto } from "./dto/submit-proof-verification.dto";
 import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
+import { ListingsService } from "../listings/listings.service";
 
 interface StoredPublicInputs {
   requestId: string;
@@ -39,6 +40,7 @@ export class ProofVerificationService {
     private readonly escrow: EscrowService,
     private readonly notifications: NotificationsService,
     private readonly access: ViewingRequestAccessService,
+    private readonly listings: ListingsService,
   ) {}
 
   async submit(
@@ -159,6 +161,15 @@ export class ProofVerificationService {
     });
 
     if (!verified) {
+      // Proof failed - this tenant did not secure the property after all,
+      // so free it up for the next interested tenant immediately rather
+      // than waiting for the reservation timer to lapse.
+      await this.listings.releaseListing(
+        request.listingId,
+        actorId,
+        "proof_failed",
+        request.id,
+      );
       throw new BadRequestException(
         "Proof verification failed. Viewing access remains locked.",
       );
