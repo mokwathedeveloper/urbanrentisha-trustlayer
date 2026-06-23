@@ -1,9 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CreateReportDto } from "./dto/create-report.dto";
+import { RespondToReportDto } from "./dto/respond-to-report.dto";
+
+/**
+ * Deadline for a human to first acknowledge a report - not for it to reach
+ * a final resolution, which can legitimately take longer. Computed on read
+ * from createdAt rather than stored, since the rule (24h) can change
+ * without needing to backfill old rows.
+ */
+export const REPORT_RESPONSE_SLA_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class ReportsService {
@@ -57,21 +66,82 @@ export class ReportsService {
     return report;
   }
 
-  findAll() {
-    return this.prisma.report.findMany({
+  private withResponseDeadline<
+    T extends { createdAt: Date; firstRespondedAt: Date | null },
+  >(report: T) {
+    return {
+      ...report,
+      responseDeadline: new Date(
+        report.createdAt.getTime() + REPORT_RESPONSE_SLA_MS,
+      ),
+    };
+  }
+
+  async findAll() {
+    const reports = await this.prisma.report.findMany({
       orderBy: { createdAt: "desc" },
       include: {
         listing: true,
         reporter: { select: { id: true, email: true, name: true, role: true } },
+        respondedBy: { select: { id: true, name: true } },
       },
     });
+    return reports.map((report) => this.withResponseDeadline(report));
   }
 
-  findMine(reporterId: string) {
-    return this.prisma.report.findMany({
+  async findMine(reporterId: string) {
+    const reports = await this.prisma.report.findMany({
       where: { reporterId },
       orderBy: { createdAt: "desc" },
-      include: { listing: true },
+      include: {
+        listing: true,
+        respondedBy: { select: { id: true, name: true } },
+      },
     });
+    return reports.map((report) => this.withResponseDeadline(report));
+  }
+
+  /**
+   * The first admin/platform user to act on a report sets firstRespondedAt
+   * - subsequent responses can still change status, but don't move the
+   * "first response" timestamp, since that's specifically about how long
+   * the reporter waited for someone to start looking at it.
+   */
+  async respond(reportId: string, actorId: string, dto: RespondToReportDto) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!report) throw new NotFoundException("Report not found.");
+
+    const isFirstResponse = !report.firstRespondedAt;
+    const updated = await this.prisma.report.update({
+      where: { id: reportId },
+      data: {
+        status: dto.status,
+        responseNote: dto.note,
+        firstRespondedAt: report.firstRespondedAt ?? new Date(),
+        respondedById: report.respondedById ?? actorId,
+      },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: isFirstResponse ? "report.first_response" : "report.updated",
+      entityType: "report",
+      entityId: reportId,
+      severity: "INFO",
+      metadata: { status: dto.status },
+    });
+
+    await this.notifications.create({
+      userId: report.reporterId,
+      type: NotificationType.REPORT,
+      title: "Report Update",
+      message: `Your report has been updated to: ${dto.status.replace(/_/g, " ").toLowerCase()}.`,
+      listingId: report.listingId ?? undefined,
+      viewingRequestId: report.viewingRequestId ?? undefined,
+    });
+
+    return this.withResponseDeadline(updated);
   }
 }
