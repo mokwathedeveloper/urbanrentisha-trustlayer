@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
+import { SoundEffects } from "@/components/app-shell/sound-effects";
 import { useAuth } from "@/lib/auth";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-ur-bg">
+      <SoundEffects />
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <Topbar />
