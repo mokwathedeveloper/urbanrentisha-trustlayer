@@ -5,13 +5,22 @@ import {
 } from "@nestjs/common";
 import {
   ListingAvailability,
+  NotificationType,
   UserRole,
   ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
 import { ViewingRequestAccessService } from "./viewing-request-access.service";
+
+/**
+ * How long a tenant has to pay once it's their turn before the slot is
+ * handed to the next interested tenant in line - keeps a serious tenant
+ * from being stuck behind someone who never intends to pay.
+ */
+const TURN_WINDOW_MS = 30 * 60 * 1000;
 
 @Injectable()
 export class ViewingRequestsService {
@@ -19,6 +28,7 @@ export class ViewingRequestsService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly access: ViewingRequestAccessService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(userId: string, dto: CreateViewingRequestDto) {
@@ -40,6 +50,15 @@ export class ViewingRequestsService {
       throw new BadRequestException("This property has already been rented.");
     }
 
+    const activeHolder = await this.prisma.viewingRequest.findFirst({
+      where: {
+        listingId: listing.id,
+        status: ViewingRequestStatus.AWAITING_PAYMENT,
+        turnExpiresAt: { gt: new Date() },
+      },
+    });
+
+    const isQueued = Boolean(activeHolder);
     const request = await this.prisma.viewingRequest.create({
       data: {
         tenantId: tenant.id,
@@ -48,21 +67,165 @@ export class ViewingRequestsService {
           ? new Date(dto.preferredDate)
           : undefined,
         preferredTime: dto.preferredTime,
-        status: ViewingRequestStatus.AWAITING_PAYMENT,
+        status: isQueued
+          ? ViewingRequestStatus.QUEUED
+          : ViewingRequestStatus.AWAITING_PAYMENT,
+        turnExpiresAt: isQueued ? null : new Date(Date.now() + TURN_WINDOW_MS),
       },
       include: { listing: true },
     });
 
     await this.auditLogs.create({
       actorId: userId,
-      action: "viewing_request.created",
+      action: isQueued ? "viewing_request.queued" : "viewing_request.created",
       entityType: "viewing_request",
       entityId: request.id,
       severity: "INFO",
       metadata: { listingId: listing.id, viewingFee: listing.viewingFee },
     });
 
+    if (isQueued) {
+      const position = await this.prisma.viewingRequest.count({
+        where: {
+          listingId: listing.id,
+          status: ViewingRequestStatus.QUEUED,
+          createdAt: { lte: request.createdAt },
+        },
+      });
+      await this.notifications.create({
+        userId,
+        type: NotificationType.SYSTEM,
+        title: "You're in the Queue",
+        message: `Another tenant is currently paying for "${listing.title}". You are #${position} in line and will be notified the moment it's your turn.`,
+        viewingRequestId: request.id,
+      });
+    }
+
     return request;
+  }
+
+  /**
+   * Hands the slot to the next queued tenant for this listing, if any -
+   * called both by the cron sweep (turn expired) and directly by
+   * ListingsService when a reservation releases, so the next tenant in
+   * line doesn't have to wait for the next sweep tick.
+   */
+  async promoteNextQueuedRequest(listingId: string) {
+    const next = await this.prisma.viewingRequest.findFirst({
+      where: { listingId, status: ViewingRequestStatus.QUEUED },
+      orderBy: { createdAt: "asc" },
+      include: { tenant: true, listing: true },
+    });
+    if (!next) return null;
+
+    const promoted = await this.prisma.viewingRequest.update({
+      where: { id: next.id },
+      data: {
+        status: ViewingRequestStatus.AWAITING_PAYMENT,
+        turnExpiresAt: new Date(Date.now() + TURN_WINDOW_MS),
+      },
+    });
+
+    await this.auditLogs.create({
+      actorId: next.tenant.userId,
+      action: "viewing_request.turn_promoted",
+      entityType: "viewing_request",
+      entityId: next.id,
+      severity: "INFO",
+    });
+
+    await this.notifications.create({
+      userId: next.tenant.userId,
+      type: NotificationType.SYSTEM,
+      title: "It's Your Turn!",
+      message: `"${next.listing.title}" is now available for you to pay for. You have 30 minutes before your turn passes to the next tenant.`,
+      viewingRequestId: next.id,
+    });
+
+    return promoted;
+  }
+
+  /**
+   * Called when a different tenant's payment actually secures the listing -
+   * everyone else still queued for it never gets a turn on this listing, so
+   * tell them now rather than leaving them waiting indefinitely.
+   */
+  async cancelQueuedRequestsForListing(
+    listingId: string,
+    excludeRequestId: string,
+  ) {
+    const queued = await this.prisma.viewingRequest.findMany({
+      where: {
+        listingId,
+        id: { not: excludeRequestId },
+        status: {
+          in: [
+            ViewingRequestStatus.QUEUED,
+            ViewingRequestStatus.AWAITING_PAYMENT,
+          ],
+        },
+      },
+      include: { tenant: true, listing: true },
+    });
+    if (queued.length === 0) return;
+
+    await this.prisma.viewingRequest.updateMany({
+      where: { id: { in: queued.map((q) => q.id) } },
+      data: { status: ViewingRequestStatus.CANCELLED, turnExpiresAt: null },
+    });
+
+    await Promise.all(
+      queued.map((request) =>
+        this.notifications.create({
+          userId: request.tenant.userId,
+          type: NotificationType.SYSTEM,
+          title: "Property No Longer Available",
+          message: `"${request.listing.title}" was secured by another tenant. Browse similar verified properties.`,
+          viewingRequestId: request.id,
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Cron entry point - releases any turn whose window lapsed with no
+   * payment, and promotes the next tenant in line for that listing.
+   */
+  async expireLapsedTurns() {
+    const lapsed = await this.prisma.viewingRequest.findMany({
+      where: {
+        status: ViewingRequestStatus.AWAITING_PAYMENT,
+        turnExpiresAt: { lt: new Date() },
+      },
+      include: { tenant: true, listing: true },
+    });
+
+    for (const request of lapsed) {
+      await this.prisma.viewingRequest.update({
+        where: { id: request.id },
+        data: { status: ViewingRequestStatus.EXPIRED, turnExpiresAt: null },
+      });
+
+      await this.auditLogs.create({
+        actorId: request.tenant.userId,
+        action: "viewing_request.turn_expired",
+        entityType: "viewing_request",
+        entityId: request.id,
+        severity: "WARNING",
+      });
+
+      await this.notifications.create({
+        userId: request.tenant.userId,
+        type: NotificationType.SYSTEM,
+        title: "Your Turn Has Expired",
+        message: `You did not pay for "${request.listing.title}" in time. Your turn has passed to the next tenant in line.`,
+        viewingRequestId: request.id,
+      });
+
+      await this.promoteNextQueuedRequest(request.listingId);
+    }
+
+    return lapsed.length;
   }
 
   async findAllForUser(userId: string) {
@@ -114,9 +277,22 @@ export class ViewingRequestsService {
 
   async status(id: string, userId: string, role: UserRole) {
     const request = await this.findOne(id, userId, role);
+    let queuePosition: number | null = null;
+    if (request.status === ViewingRequestStatus.QUEUED) {
+      queuePosition = await this.prisma.viewingRequest.count({
+        where: {
+          listingId: request.listingId,
+          status: ViewingRequestStatus.QUEUED,
+          createdAt: { lte: request.createdAt },
+        },
+      });
+    }
+
     return {
       id: request.id,
       status: request.status,
+      turnExpiresAt: request.turnExpiresAt,
+      queuePosition,
       paymentStatus: request.payment?.status ?? "NOT_CREATED",
       proofStatus: request.zkProof?.status ?? "NOT_STARTED",
       verificationStatus: request.proofVerification?.status ?? "NOT_SUBMITTED",
