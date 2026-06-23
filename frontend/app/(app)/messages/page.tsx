@@ -9,9 +9,10 @@ import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { isOnline, formatLastSeen } from "@/lib/presence";
 import { broadcastMessagesChanged } from "@/lib/messages";
-import { useRealtimeEvent } from "@/lib/realtime";
+import { emitRealtimeEvent, useRealtimeEvent } from "@/lib/realtime";
 
 const POLL_INTERVAL_MS = 5000;
+const TYPING_STOP_DELAY_MS = 2500;
 
 function referenceId(id: string): string {
   return id.slice(-8).toUpperCase();
@@ -27,7 +28,10 @@ export default function MessagesPage() {
   const [activeMessages, setActiveMessages] = useState<MessageItem[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [otherPartyTyping, setOtherPartyTyping] = useState(false);
   const consumedThreadParam = useRef<string | null>(null);
+  const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasTypingRef = useRef(false);
 
   useEffect(() => {
     if (!token) return;
@@ -102,8 +106,52 @@ export default function MessagesPage() {
     );
   });
 
+  useRealtimeEvent(
+    token,
+    "typing",
+    (payload: { threadId: string; userId: string; isTyping: boolean }) => {
+      if (payload.threadId !== activeId || payload.userId !== activeThread?.otherPartyId) return;
+      setOtherPartyTyping(payload.isTyping);
+    },
+  );
+
+  // Reset the typing indicator when switching conversations, so it doesn't
+  // carry over from whichever thread was open before. Adjusting state during
+  // render (rather than in an effect) per React's guidance for resetting
+  // state on a prop/key change.
+  const [typingResetForId, setTypingResetForId] = useState(activeId);
+  if (typingResetForId !== activeId) {
+    setTypingResetForId(activeId);
+    setOtherPartyTyping(false);
+  }
+
+  function sendTyping(isTyping: boolean) {
+    if (!activeId || !activeThread) return;
+    emitRealtimeEvent(token, "typing", {
+      threadId: activeId,
+      recipientId: activeThread.otherPartyId,
+      isTyping,
+    });
+  }
+
+  function handleDraftChange(value: string) {
+    setDraft(value);
+    if (!wasTypingRef.current) {
+      wasTypingRef.current = true;
+      sendTyping(true);
+    }
+    if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
+    typingStopTimer.current = setTimeout(() => {
+      wasTypingRef.current = false;
+      sendTyping(false);
+    }, TYPING_STOP_DELAY_MS);
+  }
+
   async function handleSend() {
     if (!token || !activeId || !activeKind || !draft.trim()) return;
+    if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
+    wasTypingRef.current = false;
+    sendTyping(false);
     setSending(true);
     try {
       const message =
@@ -227,9 +275,13 @@ export default function MessagesPage() {
                       }`}
                     />
                     <span className="text-ur-text-secondary">{activeThread.otherParty}</span>
-                    <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
-                      · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
-                    </span>
+                    {otherPartyTyping ? (
+                      <span className="font-semibold text-ur-mint">· typing...</span>
+                    ) : (
+                      <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
+                        · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 font-mono text-[11px] text-ur-text-muted">Ref: {referenceId(activeThread.id)}</p>
                 </div>
@@ -267,7 +319,7 @@ export default function MessagesPage() {
               <div className="flex items-center gap-2 border-t border-ur-border px-4 py-3">
                 <input
                   value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
+                  onChange={(event) => handleDraftChange(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
