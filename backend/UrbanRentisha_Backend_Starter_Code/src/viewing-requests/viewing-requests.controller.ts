@@ -20,6 +20,11 @@ export class ViewingRequestsController {
     return this.viewingRequests.findAllForUser(user.sub);
   }
 
+  @Get("escrow-summary")
+  findEscrowSummary(@CurrentUser() user: AuthUser) {
+    return this.viewingRequests.findEscrowSummary(user.sub);
+  }
+
   @Get(":id")
   findOne(@CurrentUser() user: AuthUser, @Param("id") id: string) {
     return this.viewingRequests.findOne(id, user.sub, user.role);
