@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { api, type MessageItem, type MessageThread } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
@@ -9,6 +10,10 @@ import { Icon } from "@/components/ui/icon";
 import { isOnline, formatLastSeen } from "@/lib/presence";
 
 const POLL_INTERVAL_MS = 5000;
+
+function referenceId(id: string): string {
+  return id.slice(-8).toUpperCase();
+}
 
 export default function MessagesPage() {
   const { token, user } = useAuth();
@@ -115,21 +120,33 @@ export default function MessagesPage() {
               <button
                 key={thread.id}
                 onClick={() => setActiveId(thread.id)}
-                className={`block w-full px-4 py-3 text-left transition-colors ${
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
                   thread.id === activeId ? "bg-ur-card-soft" : "hover:bg-ur-card-soft/60"
                 }`}
               >
-                <p className="text-sm font-bold text-ur-navy">{thread.listingTitle}</p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ur-text-secondary">
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      isOnline(thread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
-                    }`}
-                  />
-                  {thread.otherParty}
-                </p>
-                <p className="mt-1 truncate text-xs text-ur-text-muted">{thread.lastMessage}</p>
-                <p className="mt-1 text-xs text-ur-text-muted">{formatDate(thread.lastMessageAt)}</p>
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-ur-sm bg-ur-card-soft">
+                  {thread.listingImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thread.listingImageUrl} alt={thread.listingTitle} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-ur-text-muted">
+                      <Icon name="apartment" size={16} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-bold text-ur-navy">{thread.listingTitle}</p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ur-text-secondary">
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        isOnline(thread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
+                      }`}
+                    />
+                    {thread.otherParty}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-ur-text-muted">{thread.lastMessage}</p>
+                  <p className="mt-1 text-xs text-ur-text-muted">{formatDate(thread.lastMessageAt)}</p>
+                </div>
               </button>
             ))}
           </div>
@@ -143,19 +160,38 @@ export default function MessagesPage() {
             </div>
           ) : (
             <>
-              <div className="border-b border-ur-border px-5 py-4">
-                <p className="text-sm font-bold text-ur-navy">{activeThread.listingTitle}</p>
-                <p className="flex items-center gap-1.5 text-xs">
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      isOnline(activeThread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
-                    }`}
-                  />
-                  <span className="text-ur-text-secondary">{activeThread.otherParty}</span>
-                  <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
-                    · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
-                  </span>
-                </p>
+              <div className="flex items-center gap-3 border-b border-ur-border px-5 py-4">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-ur-sm bg-ur-card-soft">
+                  {activeThread.listingImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={activeThread.listingImageUrl}
+                      alt={activeThread.listingTitle}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-ur-text-muted">
+                      <Icon name="apartment" size={18} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <Link href={`/listings/${activeThread.listingId}`} className="text-sm font-bold text-ur-navy hover:underline">
+                    {activeThread.listingTitle}
+                  </Link>
+                  <p className="flex items-center gap-1.5 text-xs">
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        isOnline(activeThread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
+                      }`}
+                    />
+                    <span className="text-ur-text-secondary">{activeThread.otherParty}</span>
+                    <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
+                      · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 font-mono text-[11px] text-ur-text-muted">Ref: {referenceId(activeThread.id)}</p>
+                </div>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
                 {activeMessages.map((message) => {
