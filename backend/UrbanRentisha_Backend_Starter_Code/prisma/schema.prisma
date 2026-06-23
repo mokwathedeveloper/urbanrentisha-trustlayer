@@ -62,6 +62,7 @@ enum ListingAvailability {
 
 enum ViewingRequestStatus {
   CREATED
+  QUEUED
   AWAITING_PAYMENT
   PAYMENT_RECEIVED
   PROOF_GENERATING
@@ -337,6 +338,7 @@ model ViewingRequest {
   preferredDate DateTime?
   preferredTime String?
   status        ViewingRequestStatus @default(CREATED)
+  turnExpiresAt DateTime?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
