@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { UserRole } from "@/lib/api";
 import { useUnreadNotificationsCount } from "@/lib/notifications";
+import { useUnreadMessagesCount } from "@/lib/messages";
 
 type NavItem = { label: string; href: string; icon: IconName };
 
@@ -99,6 +100,7 @@ export function Sidebar() {
   const navItems = ROLE_NAV_ITEMS[role];
   const showListPropertyCta = CAN_LIST_PROPERTY.includes(role);
   const unreadNotifications = useUnreadNotificationsCount(token);
+  const unreadMessages = useUnreadMessagesCount(token);
 
   return (
     <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
@@ -127,7 +129,12 @@ export function Sidebar() {
 
         {navItems.map((item) => {
           const active = pathname === item.href;
-          const badgeCount = item.href === "/notifications" ? unreadNotifications : 0;
+          const badgeCount =
+            item.href === "/notifications"
+              ? unreadNotifications
+              : item.href === "/messages"
+                ? unreadMessages
+                : 0;
           return (
             <Link
               key={item.href}
