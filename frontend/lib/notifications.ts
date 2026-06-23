@@ -6,6 +6,7 @@ import type { NotificationItem } from "./api";
  * concrete destination (e.g. a generic "Report Received" confirmation).
  */
 export function getNotificationLink(notification: NotificationItem): string | null {
+  if (notification.title === "New Message") return "/messages";
   if (notification.listingId) return `/listings/${notification.listingId}`;
   if (notification.viewingRequest?.listingId) return `/listings/${notification.viewingRequest.listingId}`;
   if (notification.type === "REPORT") return "/reports";
