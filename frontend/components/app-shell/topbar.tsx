@@ -3,38 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
-import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notifications";
-import { useRealtimeEvent } from "@/lib/realtime";
-
-const POLL_INTERVAL_MS = 30000;
+import { useUnreadNotificationsCount } from "@/lib/notifications";
 
 export function Topbar() {
   const { user, token, logout } = useAuth();
   const router = useRouter();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    const load = () => api.notifications.findMine(token).then(setNotifications);
-    load();
-    // Fallback only: if the WebSocket connection drops, this still keeps
-    // notifications eventually-consistent every 30s.
-    const interval = setInterval(load, POLL_INTERVAL_MS);
-    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
-    };
-  }, [token]);
-
-  useRealtimeEvent(token, "notification:new", (notification: NotificationItem) => {
-    setNotifications((prev) => [notification, ...prev]);
-  });
+  const unreadCount = useUnreadNotificationsCount(token);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -45,8 +24,6 @@ export function Topbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const unreadCount = notifications.filter((n) => !n.readAt).length;
 
   return (
     <header className="flex h-16 items-center justify-end gap-4 border-b border-ur-border bg-ur-bg px-6">
