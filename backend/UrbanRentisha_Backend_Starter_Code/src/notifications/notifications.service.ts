@@ -1,12 +1,16 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { NotificationType, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
-  create(input: {
+  async create(input: {
     userId: string;
     type: NotificationType;
     title: string;
@@ -14,7 +18,9 @@ export class NotificationsService {
     viewingRequestId?: string;
     listingId?: string;
   }) {
-    return this.prisma.notification.create({ data: input });
+    const notification = await this.prisma.notification.create({ data: input });
+    this.realtime.emitToUser(input.userId, "notification:new", notification);
+    return notification;
   }
 
   async notifyAdmins(input: {
