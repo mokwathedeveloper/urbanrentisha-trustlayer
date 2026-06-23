@@ -6,10 +6,33 @@ import {
   ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { EscrowReportingService } from "../escrow-reporting/escrow-reporting.service";
 
 @Injectable()
 export class AgentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly escrowReporting: EscrowReportingService,
+  ) {}
+
+  /**
+   * Full escrow/payment history for every listing this agent or manager
+   * handles - the complete management view, replacing the 5-item
+   * read-only summary on the dashboard.
+   */
+  async findEscrowOverview(userId: string, role: UserRole) {
+    const profile =
+      role === UserRole.MANAGER
+        ? await this.prisma.managerProfile.findUnique({ where: { userId } })
+        : await this.prisma.agentProfile.findUnique({ where: { userId } });
+    if (!profile) throw new NotFoundException("Agent profile not found.");
+
+    return this.escrowReporting.findForListings(
+      role === UserRole.MANAGER
+        ? { managerId: profile.id }
+        : { agentId: profile.id },
+    );
+  }
 
   private async computeStats(
     profileKey: "agentId" | "managerId",
