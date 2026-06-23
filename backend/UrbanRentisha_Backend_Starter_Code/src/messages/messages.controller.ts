@@ -20,7 +20,7 @@ export class MessagesController {
 
   @Get("messages")
   findInbox(@CurrentUser() user: AuthUser) {
-    return this.messages.findInbox(user.sub);
+    return this.messages.findInbox(user.sub, user.role);
   }
 
   @Get("viewing-requests/:id/messages")
