@@ -177,6 +177,10 @@ export class ProofVerificationService {
 
     await this.releaseEscrowIfHeld(actorId, request);
 
+    // Proof verified - the deal is genuinely done now, so anyone still
+    // queued behind this tenant for this listing loses their place.
+    await this.listings.finalizeRequest(request.listingId, request.id);
+
     return verification;
   }
 
