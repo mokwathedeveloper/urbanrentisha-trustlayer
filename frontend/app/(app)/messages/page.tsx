@@ -72,7 +72,9 @@ export default function MessagesPage() {
       const fetcher =
         activeKind === "listing_thread"
           ? api.listingThreads.findMessages(currentToken, currentId)
-          : api.messages.findForRequest(currentToken, currentId);
+          : activeKind === "support"
+            ? api.support.findMessages(currentToken, currentId)
+            : api.messages.findForRequest(currentToken, currentId);
       fetcher.then(setActiveMessages);
     }
     loadMessages();
@@ -87,7 +89,9 @@ export default function MessagesPage() {
     const markRead =
       activeKind === "listing_thread"
         ? api.listingThreads.markRead(token, activeId)
-        : api.messages.markRead(token, activeId);
+        : activeKind === "support"
+          ? api.support.markRead(token, activeId)
+          : api.messages.markRead(token, activeId);
     markRead.then(() => {
       setThreads((prev) => prev.map((t) => (t.id === activeId ? { ...t, unreadCount: 0 } : t)));
       broadcastMessagesChanged();
@@ -157,7 +161,9 @@ export default function MessagesPage() {
       const message =
         activeKind === "listing_thread"
           ? await api.listingThreads.send(token, activeId, draft.trim())
-          : await api.messages.send(token, activeId, draft.trim());
+          : activeKind === "support"
+            ? await api.support.send(token, activeId, draft.trim())
+            : await api.messages.send(token, activeId, draft.trim());
       setActiveMessages((prev) => [...prev, message]);
       setThreads((prev) =>
         prev.map((thread) =>
@@ -201,7 +207,11 @@ export default function MessagesPage() {
                 }`}
               >
                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-ur-sm bg-ur-card-soft">
-                  {thread.listingImageUrl ? (
+                  {thread.kind === "support" ? (
+                    <div className="grid h-full w-full place-items-center text-ur-primary">
+                      <Icon name="support_agent" size={18} />
+                    </div>
+                  ) : thread.listingImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={thread.listingImageUrl} alt={thread.listingTitle} className="h-full w-full object-cover" />
                   ) : (
@@ -251,7 +261,11 @@ export default function MessagesPage() {
             <>
               <div className="flex items-center gap-3 border-b border-ur-border px-5 py-4">
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-ur-sm bg-ur-card-soft">
-                  {activeThread.listingImageUrl ? (
+                  {activeThread.kind === "support" ? (
+                    <div className="grid h-full w-full place-items-center text-ur-primary">
+                      <Icon name="support_agent" size={20} />
+                    </div>
+                  ) : activeThread.listingImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={activeThread.listingImageUrl}
@@ -265,24 +279,32 @@ export default function MessagesPage() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <Link href={`/listings/${activeThread.listingId}`} className="text-sm font-bold text-ur-navy hover:underline">
-                    {activeThread.listingTitle}
-                  </Link>
-                  <p className="flex items-center gap-1.5 text-xs">
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        isOnline(activeThread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
-                      }`}
-                    />
-                    <span className="text-ur-text-secondary">{activeThread.otherParty}</span>
-                    {otherPartyTyping ? (
-                      <span className="font-semibold text-ur-mint">· typing...</span>
-                    ) : (
-                      <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
-                        · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
-                      </span>
-                    )}
-                  </p>
+                  {activeThread.listingId ? (
+                    <Link href={`/listings/${activeThread.listingId}`} className="text-sm font-bold text-ur-navy hover:underline">
+                      {activeThread.listingTitle}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-bold text-ur-navy">{activeThread.listingTitle}</p>
+                  )}
+                  {activeThread.kind === "support" && !activeThread.otherPartyId ? (
+                    <p className="text-xs font-semibold text-ur-warning">Waiting for an agent to join...</p>
+                  ) : (
+                    <p className="flex items-center gap-1.5 text-xs">
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          isOnline(activeThread.otherPartyLastActiveAt) ? "bg-ur-primary" : "bg-ur-text-muted"
+                        }`}
+                      />
+                      <span className="text-ur-text-secondary">{activeThread.otherParty}</span>
+                      {otherPartyTyping ? (
+                        <span className="font-semibold text-ur-mint">· typing...</span>
+                      ) : (
+                        <span className={isOnline(activeThread.otherPartyLastActiveAt) ? "text-ur-primary" : "text-ur-text-muted"}>
+                          · {formatLastSeen(activeThread.otherPartyLastActiveAt)}
+                        </span>
+                      )}
+                    </p>
+                  )}
                   <p className="mt-0.5 font-mono text-[11px] text-ur-text-muted">Ref: {referenceId(activeThread.id)}</p>
                 </div>
               </div>
