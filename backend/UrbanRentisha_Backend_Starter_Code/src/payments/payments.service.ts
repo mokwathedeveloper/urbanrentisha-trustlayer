@@ -20,6 +20,7 @@ import { ConfirmEscrowDepositDto } from "./dto/confirm-escrow-deposit.dto";
 import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
 import { EscrowService } from "../soroban/escrow.service";
 import { HoldStatus } from "../soroban/escrow.client";
+import { ListingsService } from "../listings/listings.service";
 
 @Injectable()
 export class PaymentsService {
@@ -30,6 +31,7 @@ export class PaymentsService {
     private readonly notifications: NotificationsService,
     private readonly access: ViewingRequestAccessService,
     private readonly escrow: EscrowService,
+    private readonly listings: ListingsService,
   ) {}
 
   async createIntent(
@@ -173,7 +175,7 @@ export class PaymentsService {
       },
     });
 
-    await this.prisma.viewingRequest.update({
+    const updatedRequest = await this.prisma.viewingRequest.update({
       where: { id: payment.viewingRequestId },
       data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
     });
@@ -189,6 +191,14 @@ export class PaymentsService {
         viewingRequestId: payment.viewingRequestId,
       },
     });
+
+    // Payment is the earliest real commitment signal - reserve the listing
+    // for this tenant now, before proof/verification even runs.
+    await this.listings.reserveForRequest(
+      updatedRequest.listingId,
+      payment.viewingRequestId,
+      actorId,
+    );
 
     await this.notifications.create({
       userId: actorId,
@@ -270,10 +280,18 @@ export class PaymentsService {
       },
     });
 
-    await this.prisma.viewingRequest.update({
+    const updatedRequest = await this.prisma.viewingRequest.update({
       where: { id: payment.viewingRequestId },
       data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
     });
+
+    // Payment is the earliest real commitment signal - reserve the listing
+    // for this tenant now, before proof/verification even runs.
+    await this.listings.reserveForRequest(
+      updatedRequest.listingId,
+      payment.viewingRequestId,
+      actorId,
+    );
 
     await this.auditLogs.create({
       actorId,
