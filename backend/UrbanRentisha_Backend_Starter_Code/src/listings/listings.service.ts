@@ -5,10 +5,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
+  ListingAvailability,
   ListingStatus,
   NotificationType,
   Prisma,
   UserRole,
+  ViewingRequestStatus,
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
@@ -18,6 +20,14 @@ import { AddListingImageDto } from "./dto/add-listing-image.dto";
 
 const MAX_LISTING_IMAGES = 6;
 const ADMIN_ROLES = new Set<UserRole>([UserRole.ADMIN, UserRole.PLATFORM]);
+
+const RESERVATION_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+const TERMINAL_REQUEST_STATUSES: ViewingRequestStatus[] = [
+  ViewingRequestStatus.EXPIRED,
+  ViewingRequestStatus.REVOKED,
+  ViewingRequestStatus.CANCELLED,
+];
 
 const CONTACT_USER_SELECT = {
   id: true,
@@ -279,6 +289,14 @@ export class ListingsService {
     userId: string,
     role: UserRole,
   ) {
+    return this.assertCanManageListing(listingId, userId, role);
+  }
+
+  private async assertCanManageListing(
+    listingId: string,
+    userId: string,
+    role: UserRole,
+  ) {
     const listing = await this.prisma.listing.findUnique({
       where: { id: listingId },
       include: LISTING_OWNER_INCLUDE,
@@ -296,5 +314,234 @@ export class ListingsService {
     }
 
     return listing;
+  }
+
+  /**
+   * Reserves a listing for the tenant whose payment just landed - the
+   * earliest real commitment signal, matching how real estate platforms
+   * (Zillow, Lamudi, Property24) flip a listing to "Under Offer" rather
+   * than running a hotel-style date-lock or a strict FIFO ticket queue,
+   * neither of which fits a single, all-or-nothing rental unit.
+   *
+   * If the listing is already reserved by a *different* request (a genuine
+   * race - two tenants both mid-pipeline), this payment is still honored
+   * (the money already moved, it cannot be undone here) but the conflict is
+   * surfaced loudly for manual admin resolution rather than silently lost.
+   */
+  async reserveForRequest(
+    listingId: string,
+    requestId: string,
+    actorId: string,
+  ) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+    });
+    if (!listing) return { conflict: false as const };
+
+    if (
+      listing.availabilityStatus === ListingAvailability.RESERVED &&
+      listing.reservedByRequestId !== requestId
+    ) {
+      await this.auditLogs.create({
+        actorId,
+        action: "listing.reservation_conflict",
+        entityType: "listing",
+        entityId: listingId,
+        severity: "CRITICAL",
+        metadata: {
+          requestId,
+          alreadyReservedByRequestId: listing.reservedByRequestId,
+        },
+      });
+      await this.notifications.notifyAdmins({
+        type: NotificationType.SYSTEM,
+        title: "Listing Reservation Conflict",
+        message: `Two tenants both paid for "${listing.title}" around the same time. Manual review and possible refund needed.`,
+        listingId,
+      });
+      return { conflict: true as const };
+    }
+
+    if (listing.availabilityStatus !== ListingAvailability.AVAILABLE) {
+      return { conflict: false as const };
+    }
+
+    await this.prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        availabilityStatus: ListingAvailability.RESERVED,
+        reservedByRequestId: requestId,
+        reservationExpiresAt: new Date(Date.now() + RESERVATION_WINDOW_MS),
+      },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "listing.reserved",
+      entityType: "listing",
+      entityId: listingId,
+      severity: "INFO",
+      metadata: { requestId },
+    });
+
+    await this.notifyWaitlist(
+      listingId,
+      actorId,
+      "Property Reserved by Another Tenant",
+      `"${listing.title}" now has another tenant ahead of you in the process.`,
+    );
+
+    return { conflict: false as const };
+  }
+
+  /**
+   * Releases a listing back to AVAILABLE - called when the reserving
+   * tenant's proof fails, their reservation window lapses (see the cron
+   * sweep in ListingsAvailabilityScheduler), or an agent manually frees it.
+   * If `expectedRequestId` is given, only releases when that request is the
+   * one actually holding the reservation - guards against a failure on one
+   * tenant's request accidentally freeing a different tenant's valid hold.
+   */
+  async releaseListing(
+    listingId: string,
+    actorId: string | undefined,
+    reason: string,
+    expectedRequestId?: string,
+  ) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+    });
+    if (
+      !listing ||
+      listing.availabilityStatus !== ListingAvailability.RESERVED
+    ) {
+      return;
+    }
+    if (
+      expectedRequestId &&
+      listing.reservedByRequestId !== expectedRequestId
+    ) {
+      return;
+    }
+
+    await this.prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        availabilityStatus: ListingAvailability.AVAILABLE,
+        reservedByRequestId: null,
+        reservationExpiresAt: null,
+      },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "listing.released",
+      entityType: "listing",
+      entityId: listingId,
+      severity: "INFO",
+      metadata: { reason },
+    });
+
+    await this.notifyWaitlist(
+      listingId,
+      actorId,
+      "Property Available Again",
+      `"${listing.title}" is available again - you can request a viewing.`,
+    );
+  }
+
+  async markRented(listingId: string, actorId: string, role: UserRole) {
+    const listing = await this.assertCanManageListing(listingId, actorId, role);
+    if (listing.availabilityStatus !== ListingAvailability.RESERVED) {
+      throw new BadRequestException(
+        "Only a reserved listing can be marked as rented.",
+      );
+    }
+
+    const updated = await this.prisma.listing.update({
+      where: { id: listingId },
+      data: { availabilityStatus: ListingAvailability.RENTED },
+    });
+
+    await this.auditLogs.create({
+      actorId,
+      action: "listing.rented",
+      entityType: "listing",
+      entityId: listingId,
+      severity: "SUCCESS",
+    });
+
+    return updated;
+  }
+
+  async releaseReservation(listingId: string, actorId: string, role: UserRole) {
+    await this.assertCanManageListing(listingId, actorId, role);
+    await this.releaseListing(listingId, actorId, "manual_agent_release");
+    return this.findOne(listingId);
+  }
+
+  /**
+   * Called by the cron sweep (see ListingsAvailabilityScheduler) - finds
+   * every reservation whose 48h window has lapsed with nothing resolving it
+   * (no proof submitted, no agent action) and frees those listings.
+   */
+  async releaseExpiredReservations() {
+    const expired = await this.prisma.listing.findMany({
+      where: {
+        availabilityStatus: ListingAvailability.RESERVED,
+        reservationExpiresAt: { lt: new Date() },
+      },
+      select: { id: true },
+    });
+
+    for (const listing of expired) {
+      await this.releaseListing(listing.id, undefined, "reservation_expired");
+    }
+
+    return expired.length;
+  }
+
+  /**
+   * Everyone with real interest in a listing - tenants who saved it, plus
+   * tenants with a still-active (non-terminal) viewing request for it -
+   * minus the tenant who just triggered this notification, if any.
+   */
+  private async notifyWaitlist(
+    listingId: string,
+    excludeUserId: string | null | undefined,
+    title: string,
+    message: string,
+  ) {
+    const [savedBy, requesters] = await Promise.all([
+      this.prisma.savedListing.findMany({
+        where: { listingId },
+        select: { userId: true },
+      }),
+      this.prisma.viewingRequest.findMany({
+        where: {
+          listingId,
+          status: { notIn: TERMINAL_REQUEST_STATUSES },
+        },
+        select: { tenant: { select: { userId: true } } },
+      }),
+    ]);
+
+    const userIds = new Set<string>([
+      ...savedBy.map((s) => s.userId),
+      ...requesters.map((r) => r.tenant.userId),
+    ]);
+    if (excludeUserId) userIds.delete(excludeUserId);
+
+    await Promise.all(
+      Array.from(userIds).map((userId) =>
+        this.notifications.create({
+          userId,
+          type: NotificationType.SYSTEM,
+          title,
+          message,
+          listingId,
+        }),
+      ),
+    );
   }
 }
