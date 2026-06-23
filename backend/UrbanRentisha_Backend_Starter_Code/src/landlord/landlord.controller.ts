@@ -75,6 +75,13 @@ export class LandlordController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.LANDLORD)
+  @Get("escrow")
+  getEscrowOverview(@CurrentUser() user: AuthUser) {
+    return this.landlord.findEscrowOverview(user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.LANDLORD, UserRole.ADMIN, UserRole.PLATFORM)
   @Post("agents/:profileType/:profileId/activation-code")
   generateActivationCode(
