@@ -88,7 +88,7 @@ export class UsersService {
       );
     }
 
-    const wallet = this.stellar.generateWallet();
+    const wallet = await this.stellar.generateWallet();
     await this.prisma.user.update({
       where: { id: userId },
       data: { walletAddress: wallet.publicKey },
