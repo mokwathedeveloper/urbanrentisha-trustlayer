@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { faqTopics } from "@/lib/faq-data";
 import { Icon, type IconName } from "@/components/ui/icon";
 
@@ -26,10 +29,24 @@ const topicColor: Record<string, string> = {
 };
 
 export default function HelpFaqPage() {
+  const router = useRouter();
+  const { token } = useAuth();
   const [search, setSearch] = useState("");
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"checking" | "operational" | "degraded">("checking");
+  const [startingChat, setStartingChat] = useState(false);
+
+  async function handleContactSupport() {
+    if (!token) return;
+    setStartingChat(true);
+    try {
+      const thread = await api.support.getOrCreateMyThread(token);
+      router.push(`/messages?thread=${thread.id}`);
+    } finally {
+      setStartingChat(false);
+    }
+  }
 
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
@@ -154,6 +171,25 @@ export default function HelpFaqPage() {
                 {apiStatus === "checking" ? "Checking API status..." : apiStatus === "operational" ? "API Operational" : "API Unreachable"}
               </span>
             </div>
+          </div>
+
+          <div className="ur-card p-4">
+            <div className="flex items-center gap-2">
+              <Icon name="support_agent" size={16} className="text-ur-primary" />
+              <p className="text-sm font-bold text-ur-navy">Need More Help?</p>
+            </div>
+            <p className="mt-1 text-xs text-ur-text-secondary">
+              Chat with our support team - a real person will respond, not a bot.
+            </p>
+            <button
+              type="button"
+              onClick={handleContactSupport}
+              disabled={startingChat}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:opacity-60"
+            >
+              <Icon name="chat_bubble" size={16} />
+              {startingChat ? "Starting chat..." : "Contact Support"}
+            </button>
           </div>
 
           <div className="ur-card p-4">
