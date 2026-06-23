@@ -21,6 +21,7 @@ import { StellarService } from "../stellar/stellar.service";
 import { EscrowService } from "../soroban/escrow.service";
 import { HoldStatus } from "../soroban/escrow.client";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ListingsService } from "../listings/listings.service";
 import { VerificationDecision } from "./dto/review-verification.dto";
 
 @Injectable()
@@ -32,6 +33,7 @@ export class AdminService {
     private readonly stellar: StellarService,
     private readonly escrow: EscrowService,
     private readonly notifications: NotificationsService,
+    private readonly listings: ListingsService,
   ) {}
 
   async dashboard() {
@@ -717,7 +719,14 @@ export class AdminService {
   async refundPayment(paymentId: string, adminId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
-      include: { viewingRequest: { include: { tenant: true } } },
+      include: {
+        viewingRequest: {
+          include: {
+            tenant: true,
+            listing: { select: { id: true, title: true } },
+          },
+        },
+      },
     });
     if (!payment) throw new NotFoundException("Payment not found.");
     if (
@@ -765,6 +774,26 @@ export class AdminService {
       message: `Your payment of ${updated.amount} ${updated.stellarAsset} has been refunded.`,
       viewingRequestId: payment.viewingRequestId,
     });
+
+    // The landlord/agent/manager were expecting these funds - a refund
+    // means the booking fell through, which is exactly the kind of thing
+    // they shouldn't have to discover after the fact.
+    const contacts = await this.listings.getEscrowContacts(
+      payment.viewingRequest.listing.id,
+    );
+    await Promise.all(
+      contacts
+        .filter((userId) => userId !== payment.viewingRequest.tenant.userId)
+        .map((userId) =>
+          this.notifications.create({
+            userId,
+            type: NotificationType.PAYMENT,
+            title: "Escrow Refunded",
+            message: `Escrow funds of ${updated.amount} ${updated.stellarAsset} for "${payment.viewingRequest.listing.title}" were refunded to the tenant. This booking did not go through.`,
+            viewingRequestId: payment.viewingRequestId,
+          }),
+        ),
+    );
 
     return updated;
   }
