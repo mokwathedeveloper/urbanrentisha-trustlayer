@@ -192,12 +192,24 @@ export interface ViewingRequest {
   preferredDate: string | null;
   preferredTime: string | null;
   status: string;
+  turnExpiresAt: string | null;
   createdAt: string;
   listing?: Listing;
   payment?: Payment | null;
   zkProof?: ZkProof | null;
   proofVerification?: ProofVerification | null;
   viewingCode?: ViewingCode | null;
+}
+
+export interface ViewingRequestStatusInfo {
+  id: string;
+  status: string;
+  turnExpiresAt: string | null;
+  queuePosition: number | null;
+  paymentStatus: string;
+  proofStatus: string;
+  verificationStatus: string;
+  viewingCodeStatus: string;
 }
 
 export interface Payment {
@@ -593,7 +605,8 @@ export const api = {
       request<ViewingRequest>("/viewing-requests", { method: "POST", body, token }),
     findMine: (token: string) => request<ViewingRequest[]>("/viewing-requests", { token }),
     findOne: (token: string, id: string) => request<ViewingRequest>(`/viewing-requests/${id}`, { token }),
-    status: (token: string, id: string) => request<{ status: string }>(`/viewing-requests/${id}/status`, { token }),
+    status: (token: string, id: string) =>
+      request<ViewingRequestStatusInfo>(`/viewing-requests/${id}/status`, { token }),
   },
   payments: {
     create: (token: string, body: { viewingRequestId: string; payerWallet?: string }) =>
