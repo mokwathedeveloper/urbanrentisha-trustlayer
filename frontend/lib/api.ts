@@ -259,9 +259,9 @@ export interface NotificationItem {
 }
 
 export interface MessageThread {
-  kind: "viewing_request" | "listing_thread";
+  kind: "viewing_request" | "listing_thread" | "support";
   id: string;
-  listingId: string;
+  listingId: string | null;
   listingTitle: string;
   listingImageUrl: string | null;
   otherParty: string;
@@ -754,6 +754,23 @@ export const api = {
       }),
     markRead: (token: string, threadId: string) =>
       request<{ updated: number }>(`/listing-threads/${threadId}/messages/read`, {
+        method: "PATCH",
+        token,
+      }),
+  },
+  support: {
+    getOrCreateMyThread: (token: string) =>
+      request<{ id: string }>("/support/thread", { method: "POST", token }),
+    findMessages: (token: string, threadId: string) =>
+      request<MessageItem[]>(`/support/threads/${threadId}/messages`, { token }),
+    send: (token: string, threadId: string, body: string) =>
+      request<MessageItem>(`/support/threads/${threadId}/messages`, {
+        method: "POST",
+        body: { body },
+        token,
+      }),
+    markRead: (token: string, threadId: string) =>
+      request<{ updated: number }>(`/support/threads/${threadId}/messages/read`, {
         method: "PATCH",
         token,
       }),
