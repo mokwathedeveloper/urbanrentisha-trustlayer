@@ -314,6 +314,40 @@ export class PaymentsService {
       viewingRequestId: payment.viewingRequestId,
     });
 
+    // Escrow funding is a real, stake-holding event for whoever owns or
+    // manages this property - they should not have to discover it by
+    // refreshing a dashboard.
+    await this.notifyEscrowContacts(
+      updatedRequest.listingId,
+      actorId,
+      "Escrow Funded",
+      `A tenant has deposited ${updated.amount} ${updated.stellarAsset} into escrow for your listing. Funds release once their viewing proof is verified.`,
+      payment.viewingRequestId,
+    );
+
     return updated;
+  }
+
+  private async notifyEscrowContacts(
+    listingId: string,
+    excludeUserId: string,
+    title: string,
+    message: string,
+    viewingRequestId: string,
+  ) {
+    const contacts = await this.listings.getEscrowContacts(listingId);
+    await Promise.all(
+      contacts
+        .filter((userId) => userId !== excludeUserId)
+        .map((userId) =>
+          this.notifications.create({
+            userId,
+            type: NotificationType.PAYMENT,
+            title,
+            message,
+            viewingRequestId,
+          }),
+        ),
+    );
   }
 }
