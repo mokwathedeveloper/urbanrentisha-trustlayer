@@ -19,6 +19,7 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { StorageService } from "../storage/storage.service";
 import { StellarService } from "../stellar/stellar.service";
+import { EscrowReportingService } from "../escrow-reporting/escrow-reporting.service";
 
 const ACTIVATION_CODE_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ACTIVATION_CODE_TTL_MS = 1000 * 60 * 60 * 72;
@@ -42,7 +43,17 @@ export class LandlordService {
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
     private readonly stellar: StellarService,
+    private readonly escrowReporting: EscrowReportingService,
   ) {}
+
+  /**
+   * Every escrow/payment transaction tied to a property this landlord
+   * owns - active holds, releases, and refunds together, since "where is
+   * my money" shouldn't require checking three different screens.
+   */
+  async findEscrowOverview(userId: string) {
+    return this.escrowReporting.findForListings({ ownerId: userId });
+  }
 
   async inviteAgent(
     actorId: string,
