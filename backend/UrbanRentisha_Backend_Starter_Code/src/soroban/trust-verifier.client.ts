@@ -1,4 +1,4 @@
-import { contract, Keypair } from "@stellar/stellar-sdk";
+import type { contract } from "@stellar/stellar-sdk";
 
 // Contract spec (XDR) extracted from `stellar contract bindings typescript`
 // for the deployed UrbanRentishaTrustVerifier contract. Forked from
@@ -38,19 +38,38 @@ type VerifyProofFn = (args: {
 }) => Promise<contract.AssembledTransaction<contract.Result<boolean>>>;
 
 export class TrustVerifierClient {
-  private readonly client: contract.Client & { verify_proof: VerifyProofFn };
+  private client: (contract.Client & { verify_proof: VerifyProofFn }) | null =
+    null;
 
-  constructor(private readonly config: TrustVerifierConfig) {
-    const keypair = Keypair.fromSecret(config.signerSecretKey);
-    const signer = contract.basicNodeSigner(keypair, config.networkPassphrase);
+  constructor(private readonly config: TrustVerifierConfig) {}
 
-    this.client = new contract.Client(new contract.Spec(CONTRACT_SPEC), {
-      contractId: config.contractId,
-      rpcUrl: config.rpcUrl,
-      networkPassphrase: config.networkPassphrase,
-      publicKey: keypair.publicKey(),
-      ...signer,
-    }) as contract.Client & { verify_proof: VerifyProofFn };
+  /**
+   * The Stellar SDK's CJS build requires ESM-only @noble/* crypto packages
+   * internally, which Vercel's serverless runtime can't require()
+   * synchronously - so the SDK is loaded lazily via dynamic import() on
+   * first use instead of at module/constructor time, which works in every
+   * environment.
+   */
+  private async getClient(): Promise<
+    contract.Client & { verify_proof: VerifyProofFn }
+  > {
+    if (!this.client) {
+      const { contract, Keypair } = await import("@stellar/stellar-sdk");
+      const keypair = Keypair.fromSecret(this.config.signerSecretKey);
+      const signer = contract.basicNodeSigner(
+        keypair,
+        this.config.networkPassphrase,
+      );
+
+      this.client = new contract.Client(new contract.Spec(CONTRACT_SPEC), {
+        contractId: this.config.contractId,
+        rpcUrl: this.config.rpcUrl,
+        networkPassphrase: this.config.networkPassphrase,
+        publicKey: keypair.publicKey(),
+        ...signer,
+      }) as contract.Client & { verify_proof: VerifyProofFn };
+    }
+    return this.client;
   }
 
   /**
@@ -62,7 +81,8 @@ export class TrustVerifierClient {
     proof: ProofPoints,
     pubSignals: string[],
   ): Promise<{ verified: boolean; txHash: string }> {
-    const assembled = await this.client.verify_proof({
+    const client = await this.getClient();
+    const assembled = await client.verify_proof({
       vk,
       proof,
       pub_signals: pubSignals,
