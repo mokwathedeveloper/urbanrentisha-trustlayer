@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { isOnline, formatLastSeen } from "@/lib/presence";
+import { broadcastMessagesChanged } from "@/lib/messages";
+import { useRealtimeEvent } from "@/lib/realtime";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -74,6 +76,32 @@ export default function MessagesPage() {
     return () => clearInterval(interval);
   }, [token, activeId, activeKind]);
 
+  // Opening a conversation marks the other party's messages as read - both
+  // here (unread badge clears) and on their end (read receipt appears).
+  useEffect(() => {
+    if (!token || !activeId || !activeKind) return;
+    const markRead =
+      activeKind === "listing_thread"
+        ? api.listingThreads.markRead(token, activeId)
+        : api.messages.markRead(token, activeId);
+    markRead.then(() => {
+      setThreads((prev) => prev.map((t) => (t.id === activeId ? { ...t, unreadCount: 0 } : t)));
+      broadcastMessagesChanged();
+    });
+  }, [token, activeId, activeKind]);
+
+  useRealtimeEvent(token, "message:new", () => {
+    if (!token) return;
+    api.messages.findInbox(token).then(setThreads);
+  });
+
+  useRealtimeEvent(token, "message:read", (payload: { threadId: string; readAt: string }) => {
+    if (payload.threadId !== activeId) return;
+    setActiveMessages((prev) =>
+      prev.map((m) => (m.senderId === user?.id && !m.readAt ? { ...m, readAt: payload.readAt } : m)),
+    );
+  });
+
   async function handleSend() {
     if (!token || !activeId || !activeKind || !draft.trim()) return;
     setSending(true);
@@ -135,7 +163,14 @@ export default function MessagesPage() {
                   )}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-bold text-ur-navy">{thread.listingTitle}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-bold text-ur-navy">{thread.listingTitle}</p>
+                    {thread.unreadCount > 0 ? (
+                      <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-ur-mint px-1 text-[10px] font-bold text-ur-bg">
+                        {thread.unreadCount > 99 ? "99+" : thread.unreadCount}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ur-text-secondary">
                     <span
                       className={`h-1.5 w-1.5 shrink-0 rounded-full ${
@@ -144,7 +179,13 @@ export default function MessagesPage() {
                     />
                     {thread.otherParty}
                   </p>
-                  <p className="mt-1 truncate text-xs text-ur-text-muted">{thread.lastMessage}</p>
+                  <p
+                    className={`mt-1 truncate text-xs ${
+                      thread.unreadCount > 0 ? "font-semibold text-ur-navy" : "text-ur-text-muted"
+                    }`}
+                  >
+                    {thread.lastMessage}
+                  </p>
                   <p className="mt-1 text-xs text-ur-text-muted">{formatDate(thread.lastMessageAt)}</p>
                 </div>
               </button>
@@ -204,8 +245,19 @@ export default function MessagesPage() {
                         }`}
                       >
                         <p>{message.body}</p>
-                        <p className={`mt-1 text-xs ${isOwn ? "text-white/70" : "text-ur-text-muted"}`}>
+                        <p
+                          className={`mt-1 flex items-center justify-end gap-1 text-xs ${
+                            isOwn ? "text-white/70" : "text-ur-text-muted"
+                          }`}
+                        >
                           {formatDate(message.createdAt)}
+                          {isOwn ? (
+                            <Icon
+                              name={message.readAt ? "done_all" : "check"}
+                              size={12}
+                              className={message.readAt ? "text-ur-cyan" : "text-white/70"}
+                            />
+                          ) : null}
                         </p>
                       </div>
                     </div>
