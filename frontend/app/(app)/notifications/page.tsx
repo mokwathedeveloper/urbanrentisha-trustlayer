@@ -211,6 +211,8 @@ function NotificationDetail({
 }) {
   const meta = typeMeta[notification.type] ?? typeMeta.SYSTEM;
   const vr = notification.viewingRequest;
+  const isMessage = notification.title === "New Message";
+  const messageListingTitle = notification.listing?.title ?? vr?.listing?.title ?? null;
 
   return (
     <>
@@ -234,6 +236,21 @@ function NotificationDetail({
       ) : null}
 
       <p className="mt-3 text-sm text-ur-text-secondary">{notification.message}</p>
+
+      {isMessage ? (
+        <div className="mt-5 border-t border-ur-border pt-4">
+          <DetailSection title="Conversation Details">
+            <DetailRow label="Property" value={messageListingTitle ?? "—"} />
+          </DetailSection>
+          <Link
+            href="/messages"
+            className="mt-2 flex items-center gap-2 rounded-ur border border-ur-primary/25 bg-ur-success-bg p-3 text-sm text-ur-primary"
+          >
+            <Icon name="chat_bubble" size={16} />
+            Open Conversation
+          </Link>
+        </div>
+      ) : null}
 
       {vr ? (
         <div className="mt-5 border-t border-ur-border pt-4">
