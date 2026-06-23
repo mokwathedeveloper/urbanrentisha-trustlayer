@@ -79,6 +79,27 @@ export class RealtimeGateway
     client.leave(LISTING_ROOM(listingId));
   }
 
+  /**
+   * Pure relay, no persistence - typing state is too ephemeral to be worth
+   * a DB write. Trusts client.data.userId (set during the authenticated
+   * handshake) as the sender, so a client can't spoof typing as someone
+   * else.
+   */
+  @SubscribeMessage("typing")
+  relayTyping(
+    @MessageBody()
+    data: { threadId: string; recipientId: string; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId as string | undefined;
+    if (!userId) return;
+    this.emitToUser(data.recipientId, "typing", {
+      threadId: data.threadId,
+      userId,
+      isTyping: data.isTyping,
+    });
+  }
+
   emitToUser(userId: string, event: string, payload: unknown) {
     this.server.to(USER_ROOM(userId)).emit(event, payload);
   }
