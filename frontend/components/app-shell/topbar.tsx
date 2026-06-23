@@ -7,6 +7,7 @@ import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notifications";
+import { useRealtimeEvent } from "@/lib/realtime";
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -21,6 +22,8 @@ export function Topbar() {
     if (!token) return;
     const load = () => api.notifications.findMine(token).then(setNotifications);
     load();
+    // Fallback only: if the WebSocket connection drops, this still keeps
+    // notifications eventually-consistent every 30s.
     const interval = setInterval(load, POLL_INTERVAL_MS);
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
     return () => {
@@ -28,6 +31,10 @@ export function Topbar() {
       window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
     };
   }, [token]);
+
+  useRealtimeEvent(token, "notification:new", (notification: NotificationItem) => {
+    setNotifications((prev) => [notification, ...prev]);
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
