@@ -55,6 +55,10 @@ export class LandlordService {
     return this.escrowReporting.findForListings({ ownerId: userId });
   }
 
+  async findEscrowSummary(userId: string) {
+    return this.escrowReporting.summarizeForListings({ ownerId: userId });
+  }
+
   async inviteAgent(
     actorId: string,
     actorRole: UserRole,
