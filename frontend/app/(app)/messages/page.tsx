@@ -173,6 +173,8 @@ export default function MessagesPage() {
         ),
       );
       setDraft("");
+    } catch {
+      // Best-effort: leave the draft in place so the user can retry sending.
     } finally {
       setSending(false);
     }
