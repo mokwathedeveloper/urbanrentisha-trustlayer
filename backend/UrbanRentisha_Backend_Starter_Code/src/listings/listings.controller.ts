@@ -113,4 +113,10 @@ export class ListingsController {
   releaseReservation(@CurrentUser() user: AuthUser, @Param("id") id: string) {
     return this.listings.releaseReservation(id, user.sub, user.role);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(":id/escrow")
+  getEscrowPhase(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.listings.getEscrowPhase(id, user.sub, user.role);
+  }
 }
