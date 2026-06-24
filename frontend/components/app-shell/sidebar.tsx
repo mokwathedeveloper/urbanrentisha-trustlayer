@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { LogoMark } from "@/components/landing/logo-mark";
 import type { UserRole } from "@/lib/api";
 import { useUnreadNotificationsCount } from "@/lib/notifications";
 import { useUnreadMessagesCount } from "@/lib/messages";
@@ -110,13 +111,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
-      <div className="flex items-center gap-2 px-5 py-6">
-        <Icon name="home" size={28} className="text-ur-primary" />
-        <p className="text-sm font-black leading-tight tracking-[-0.02em]">
-          <span className="text-white">URBAN</span>
-          <br />
-          <span className="text-ur-primary">RENTISHA</span>
-        </p>
+      <div className="flex items-center px-5 py-6">
+        <LogoMark className="h-9 w-auto" />
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
