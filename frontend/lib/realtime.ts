@@ -23,10 +23,11 @@ function getSocket(token: string): Socket {
     transports: ["websocket"],
     // Some deployments (e.g. Vercel serverless) can't accept a WebSocket
     // upgrade at all - existing polling elsewhere is the real-time fallback
-    // in that case, so give up after a few tries instead of reconnecting
-    // forever and hammering a host that will never accept the connection.
-    reconnectionAttempts: 3,
-    reconnectionDelay: 2000,
+    // in that case. Try exactly once and stop: no reconnection attempts,
+    // so a permanently-refused host produces a single failed attempt per
+    // page load instead of repeatedly hammering a connection that can
+    // never succeed.
+    reconnection: false,
     timeout: 5000,
   });
   socket.on("connect_error", () => {
