@@ -112,7 +112,7 @@ export function Sidebar() {
   return (
     <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
       <div className="flex items-center px-5 py-6">
-        <LogoMark className="h-9 w-auto" />
+        <LogoMark className="h-14 w-auto" />
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
