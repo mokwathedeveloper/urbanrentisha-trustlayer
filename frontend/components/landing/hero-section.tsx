@@ -12,7 +12,7 @@ export function HeroSection() {
         alt="Zero-knowledge proof verified on Stellar blockchain, unlocking verified rental access"
         fill
         priority
-        unoptimized
+        sizes="100vw"
         className="object-contain object-right"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-ur-page via-ur-page/85 to-ur-page/20" />
