@@ -9,6 +9,7 @@ import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { StellarService } from "../stellar/stellar.service";
+import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 
@@ -19,13 +20,22 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly notifications: NotificationsService,
     private readonly stellar: StellarService,
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (existing) throw new BadRequestException("Email is already registered.");
+    if (existing) {
+      await this.auditLogs.create({
+        action: "auth.register_rejected",
+        entityType: "user",
+        severity: "WARNING",
+        metadata: { email: dto.email, reason: "email_already_registered" },
+      });
+      throw new BadRequestException("Email is already registered.");
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
@@ -51,6 +61,15 @@ export class AuthService {
         mustChangePassword: true,
         walletAddress: true,
       },
+    });
+
+    await this.auditLogs.create({
+      actorId: user.id,
+      action: "auth.registered",
+      entityType: "user",
+      entityId: user.id,
+      severity: "INFO",
+      metadata: { email: user.email, role: user.role },
     });
 
     await this.notifications.notifyAdmins({
@@ -84,15 +103,49 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user) throw new UnauthorizedException("Invalid email or password.");
+    if (!user) {
+      await this.auditLogs.create({
+        action: "auth.login_failed",
+        entityType: "user",
+        severity: "WARNING",
+        metadata: { email: dto.email, reason: "user_not_found" },
+      });
+      throw new UnauthorizedException("Invalid email or password.");
+    }
 
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordOk)
+    if (!passwordOk) {
+      await this.auditLogs.create({
+        actorId: user.id,
+        action: "auth.login_failed",
+        entityType: "user",
+        entityId: user.id,
+        severity: "WARNING",
+        metadata: { email: user.email, reason: "invalid_password" },
+      });
       throw new UnauthorizedException("Invalid email or password.");
+    }
 
     if (user.status === UserStatus.SUSPENDED) {
+      await this.auditLogs.create({
+        actorId: user.id,
+        action: "auth.login_blocked",
+        entityType: "user",
+        entityId: user.id,
+        severity: "WARNING",
+        metadata: { email: user.email, reason: "account_suspended" },
+      });
       throw new UnauthorizedException("This account has been suspended.");
     }
+
+    await this.auditLogs.create({
+      actorId: user.id,
+      action: "auth.login_succeeded",
+      entityType: "user",
+      entityId: user.id,
+      severity: "SUCCESS",
+      metadata: { email: user.email },
+    });
 
     return {
       user: {
