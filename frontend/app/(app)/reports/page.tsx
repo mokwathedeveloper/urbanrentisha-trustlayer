@@ -25,9 +25,9 @@ const statusTone: Record<string, string> = {
 };
 
 const severityTone: Record<string, string> = {
-  high: "border-ur-error/40 text-ur-error",
-  medium: "border-ur-warning/40 text-ur-warning",
-  low: "border-ur-primary/40 text-ur-primary",
+  HIGH: "border-ur-error/40 text-ur-error",
+  MEDIUM: "border-ur-warning/40 text-ur-warning",
+  LOW: "border-ur-primary/40 text-ur-primary",
 };
 
 const respondableStatuses = ["UNDER_REVIEW", "RESOLVED", "DISMISSED", "ESCALATED"];
@@ -164,7 +164,7 @@ export default function ReportsListPage() {
                     {report.status === "OPEN" ? "Under Review" : report.status.replace(/_/g, " ")}
                   </span>
                   <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${severityTone[report.severity] ?? "border-ur-border text-ur-text-muted"}`}>
-                    {report.severity} severity
+                    {report.severity.toLowerCase()} severity
                   </span>
                   <SlaBadge report={report} />
                 </div>
