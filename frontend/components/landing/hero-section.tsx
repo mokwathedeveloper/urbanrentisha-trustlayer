@@ -15,7 +15,7 @@ export function HeroSection() {
         sizes="100vw"
         className="object-contain object-right"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-ur-page via-ur-page/85 to-ur-page/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-ur-page via-ur-page/95 to-ur-page/60" />
 
       <div className="ur-container relative flex min-h-[640px] flex-col justify-center py-16 lg:py-20">
         <div className="flex max-w-xl flex-col">
@@ -54,14 +54,14 @@ export function HeroSection() {
 
           <dl className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
             {heroStats.map((stat) => (
-              <div key={stat.label}>
-                <div className="flex items-center gap-2">
+              <div key={stat.label} className="flex flex-col-reverse">
+                <dt className="mt-1 text-xs text-ur-text-muted">{stat.label}</dt>
+                <dd className="flex items-center gap-2 text-xl font-black text-ur-navy">
                   <span className="grid h-7 w-7 place-items-center rounded-md bg-ur-primary/10 text-ur-primary">
                     <Icon name={stat.icon} size={16} />
                   </span>
-                  <dd className="text-xl font-black text-ur-navy">{stat.value}</dd>
-                </div>
-                <dt className="mt-1 text-xs text-ur-text-muted">{stat.label}</dt>
+                  {stat.value}
+                </dd>
               </div>
             ))}
           </dl>
