@@ -106,7 +106,7 @@ export default function TeamPage() {
             ) : (
               <div className="divide-y divide-ur-border">
                 {members.map((member) => {
-                  const isVerified = member.verificationStatus === "verified";
+                  const isVerified = member.verificationStatus === "VERIFIED";
                   const isActivated = Boolean(member.activatedAt);
                   return (
                     <div key={`${member.profileType}-${member.id}`} className="flex flex-wrap items-center justify-between gap-3 p-4">

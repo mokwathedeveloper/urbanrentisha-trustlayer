@@ -71,7 +71,7 @@ export default function AgentVerificationProfilePage() {
     return <p className="p-8 text-sm text-ur-text-muted">Loading agent profile...</p>;
   }
 
-  const isVerified = agent.verificationStatus === "verified";
+  const isVerified = agent.verificationStatus === "VERIFIED";
 
   const checks = [
     { label: "Identity Verification", verified: isVerified },
