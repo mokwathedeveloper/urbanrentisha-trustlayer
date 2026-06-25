@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
+  AgentVerificationStatus,
   DocumentType,
   ListingStatus,
   NotificationType,
@@ -102,10 +103,10 @@ export class AdminService {
       ]).then(([a, m]) => a + m),
       Promise.all([
         this.prisma.agentProfile.count({
-          where: { verificationStatus: "verified" },
+          where: { verificationStatus: AgentVerificationStatus.VERIFIED },
         }),
         this.prisma.managerProfile.count({
-          where: { verificationStatus: "verified" },
+          where: { verificationStatus: AgentVerificationStatus.VERIFIED },
         }),
       ]).then(([a, m]) => a + m),
       this.prisma.proofVerification.count({
@@ -155,13 +156,17 @@ export class AdminService {
       }),
       Promise.all([
         this.prisma.agentProfile.findMany({
-          where: { verificationStatus: { not: "verified" } },
+          where: {
+            verificationStatus: { not: AgentVerificationStatus.VERIFIED },
+          },
           take: 5,
           orderBy: { createdAt: "desc" },
           include: { user: { select: { name: true, email: true } } },
         }),
         this.prisma.managerProfile.findMany({
-          where: { verificationStatus: { not: "verified" } },
+          where: {
+            verificationStatus: { not: AgentVerificationStatus.VERIFIED },
+          },
           take: 5,
           orderBy: { createdAt: "desc" },
           include: { user: { select: { name: true, email: true } } },
@@ -456,8 +461,8 @@ export class AdminService {
             verificationStage: stage,
             verificationStatus:
               decision === VerificationDecision.APPROVED
-                ? "verified"
-                : "pending",
+                ? AgentVerificationStatus.VERIFIED
+                : AgentVerificationStatus.PENDING,
           },
         });
         break;
@@ -468,8 +473,8 @@ export class AdminService {
             verificationStage: stage,
             verificationStatus:
               decision === VerificationDecision.APPROVED
-                ? "verified"
-                : "pending",
+                ? AgentVerificationStatus.VERIFIED
+                : AgentVerificationStatus.PENDING,
           },
         });
         break;
