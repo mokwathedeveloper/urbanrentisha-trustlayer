@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 
 type Category = "LISTING" | "AGENT";
-type Severity = "high" | "medium" | "low";
+type Severity = "HIGH" | "MEDIUM" | "LOW";
 
 const listingReasons: { value: string; label: string }[] = [
   { value: "FAKE_LISTING", label: "Listing looks fake or doesn't exist" },
@@ -23,9 +23,9 @@ const agentReasons: { value: string; label: string }[] = [
 ];
 
 const severityOptions: { value: Severity; label: string; description: string }[] = [
-  { value: "high", label: "High", description: "Urgent risk" },
-  { value: "medium", label: "Medium", description: "Moderate risk" },
-  { value: "low", label: "Low", description: "Low risk" },
+  { value: "HIGH", label: "High", description: "Urgent risk" },
+  { value: "MEDIUM", label: "Medium", description: "Moderate risk" },
+  { value: "LOW", label: "Low", description: "Low risk" },
 ];
 
 function ReportFormContent() {
@@ -39,7 +39,7 @@ function ReportFormContent() {
   const [reportReason, setReportReason] = useState(listingReasons[0].value);
   const [contactDetail, setContactDetail] = useState("");
   const [additionalReason, setAdditionalReason] = useState("");
-  const [severity, setSeverity] = useState<Severity>("medium");
+  const [severity, setSeverity] = useState<Severity>("MEDIUM");
   const [allowContact, setAllowContact] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,9 +219,9 @@ function ReportFormContent() {
                     onClick={() => setSeverity(option.value)}
                     className={`rounded-ur border p-3 text-center ${
                       severity === option.value
-                        ? option.value === "high"
+                        ? option.value === "HIGH"
                           ? "border-ur-error bg-ur-error-bg"
-                          : option.value === "medium"
+                          : option.value === "MEDIUM"
                             ? "border-ur-warning bg-ur-warning-bg"
                             : "border-ur-primary bg-ur-success-bg"
                         : "border-ur-border bg-ur-card-soft"
@@ -229,9 +229,9 @@ function ReportFormContent() {
                   >
                     <span
                       className={`block text-sm font-bold ${
-                        option.value === "high"
+                        option.value === "HIGH"
                           ? "text-ur-error"
-                          : option.value === "medium"
+                          : option.value === "MEDIUM"
                             ? "text-ur-warning"
                             : "text-ur-primary"
                       }`}
