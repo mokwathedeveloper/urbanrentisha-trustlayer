@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { NotificationType } from "@prisma/client";
+import { NotificationType, ReportSeverity, ReportType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -32,7 +32,9 @@ export class ReportsService {
         description: dto.description,
         severity:
           dto.severity ??
-          (dto.reportType === "UNSAFE_PAYMENT" ? "high" : "medium"),
+          (dto.reportType === ReportType.UNSAFE_PAYMENT
+            ? ReportSeverity.HIGH
+            : ReportSeverity.MEDIUM),
         allowContact: dto.allowContact ?? false,
       },
     });
@@ -42,7 +44,8 @@ export class ReportsService {
       action: "report.submitted",
       entityType: "report",
       entityId: report.id,
-      severity: report.severity === "high" ? "CRITICAL" : "WARNING",
+      severity:
+        report.severity === ReportSeverity.HIGH ? "CRITICAL" : "WARNING",
       metadata: { ...dto },
     });
 
@@ -58,7 +61,7 @@ export class ReportsService {
     await this.notifications.notifyAdmins({
       type: NotificationType.REPORT,
       title: "New Report Filed",
-      message: `A ${report.severity}-severity ${report.reportType.toLowerCase().replace(/_/g, " ")} report was filed and needs review.`,
+      message: `A ${report.severity.toLowerCase()}-severity ${report.reportType.toLowerCase().replace(/_/g, " ")} report was filed and needs review.`,
       viewingRequestId: dto.viewingRequestId,
       listingId: dto.listingId,
     });
