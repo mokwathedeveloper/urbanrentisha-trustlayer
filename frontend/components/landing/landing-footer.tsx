@@ -30,7 +30,7 @@ export function LandingFooter() {
         ))}
       </div>
 
-      <div className="ur-container flex flex-col items-center justify-between gap-3 border-t border-ur-border py-6 text-xs text-ur-text-muted sm:flex-row">
+      <div className="ur-container flex flex-col items-center justify-between gap-3 border-t border-ur-border py-6 text-xs text-ur-text-secondary sm:flex-row">
         <p>&copy; {new Date().getFullYear()} UrbanRentisha TrustLayer. All rights reserved.</p>
       </div>
     </footer>
