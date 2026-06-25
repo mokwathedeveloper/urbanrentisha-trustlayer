@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from "@prisma/client";
+import { AgentVerificationStatus, PrismaClient, UserRole } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -30,7 +30,7 @@ async function main() {
         create: {
           agencyName: "Green View Realty",
           licenseNumber: "AGT-KE-2048",
-          verificationStatus: "verified",
+          verificationStatus: AgentVerificationStatus.VERIFIED,
           trustScore: 91
         }
       }
