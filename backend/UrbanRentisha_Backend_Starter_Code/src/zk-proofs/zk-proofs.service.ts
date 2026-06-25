@@ -16,7 +16,7 @@ import * as snarkjs from "snarkjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { sha256 } from "../common/utils/hash.util";
-import { addMod, fieldHash, mulMod, randomField } from "./field.util";
+import { addMod, fieldHash, mimcFeistel, mulMod, randomField } from "./field.util";
 import { GenerateProofDto } from "./dto/generate-proof.dto";
 import { ViewingRequestAccessService } from "../viewing-requests/viewing-request-access.service";
 
@@ -71,8 +71,7 @@ export class ZkProofsService {
     );
     const nonceField = randomField();
     const paymentCommitment = addMod(
-      mulMod(secretField, secretField),
-      mulMod(nonceField, nonceField),
+      mimcFeistel(secretField, nonceField),
       mulMod(requestIdField, listingIdField),
       feeField,
     );
