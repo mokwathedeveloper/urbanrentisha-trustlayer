@@ -1,5 +1,5 @@
-import { IsBoolean, IsEnum, IsIn, IsOptional, IsString } from "class-validator";
-import { ReportType } from "@prisma/client";
+import { IsBoolean, IsEnum, IsOptional, IsString } from "class-validator";
+import { ReportSeverity, ReportType } from "@prisma/client";
 
 export class CreateReportDto {
   @IsOptional()
@@ -17,8 +17,8 @@ export class CreateReportDto {
   description!: string;
 
   @IsOptional()
-  @IsIn(["high", "medium", "low"])
-  severity?: string;
+  @IsEnum(ReportSeverity)
+  severity?: ReportSeverity;
 
   @IsOptional()
   @IsBoolean()
