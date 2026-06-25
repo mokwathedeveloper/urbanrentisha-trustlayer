@@ -717,7 +717,7 @@ export const api = {
         viewingRequestId?: string;
         reportType: string;
         description: string;
-        severity?: "high" | "medium" | "low";
+        severity?: "HIGH" | "MEDIUM" | "LOW";
         allowContact?: boolean;
       },
     ) => request<ReportItem>("/reports", { method: "POST", body, token }),
