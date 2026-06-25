@@ -119,6 +119,17 @@ enum ReportType {
   OTHER
 }
 
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AgentVerificationStatus {
+  PENDING
+  VERIFIED
+}
+
 enum NotificationType {
   PAYMENT
   PROOF
@@ -167,6 +178,8 @@ model User {
   reviewsWritten    Review[]         @relation("ReviewAuthor")
   supportThreadsAsUser  SupportThread[] @relation("SupportThreadUser")
   supportThreadsAsAdmin SupportThread[] @relation("SupportThreadAdmin")
+
+  @@index([role])
 }
 
 model TenantProfile {
@@ -199,51 +212,57 @@ model LandlordProfile {
 }
 
 model AgentProfile {
-  id                      String            @id @default(cuid())
-  userId                  String            @unique
-  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   agencyName              String?
   licenseNumber           String?
-  verificationStatus      String            @default("pending")
-  verificationStage       VerificationStage @default(PROFILE_CREATED)
-  trustScore              Int               @default(70)
-  reportCount             Int               @default(0)
+  verificationStatus      AgentVerificationStatus  @default(PENDING)
+  verificationStage       VerificationStage        @default(PROFILE_CREATED)
+  trustScore              Int                      @default(70)
+  reportCount             Int                      @default(0)
   landlordId              String?
-  landlord                LandlordProfile?  @relation(fields: [landlordId], references: [id])
+  landlord                LandlordProfile?         @relation(fields: [landlordId], references: [id])
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   activatedAt             DateTime?
   attestationTxHash       String?
   attestedAt              DateTime?
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
   listings  Listing[]
   documents Document[]
+
+  @@index([landlordId])
+  @@index([verificationStatus])
 }
 
 model ManagerProfile {
-  id                      String            @id @default(cuid())
-  userId                  String            @unique
-  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   agencyName              String?
   licenseNumber           String?
-  verificationStatus      String            @default("pending")
-  verificationStage       VerificationStage @default(PROFILE_CREATED)
-  trustScore              Int               @default(70)
-  reportCount             Int               @default(0)
+  verificationStatus      AgentVerificationStatus  @default(PENDING)
+  verificationStage       VerificationStage        @default(PROFILE_CREATED)
+  trustScore              Int                      @default(70)
+  reportCount             Int                      @default(0)
   landlordId              String?
-  landlord                LandlordProfile?  @relation(fields: [landlordId], references: [id])
+  landlord                LandlordProfile?         @relation(fields: [landlordId], references: [id])
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   activatedAt             DateTime?
   attestationTxHash       String?
   attestedAt              DateTime?
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
   listings  Listing[]
   documents Document[]
+
+  @@index([landlordId])
+  @@index([verificationStatus])
 }
 
 model Document {
@@ -267,6 +286,13 @@ model Document {
   reviewedBy        User?            @relation("DocumentReviewer", fields: [reviewedById], references: [id])
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+
+  @@index([uploaderId])
+  @@index([tenantProfileId])
+  @@index([landlordProfileId])
+  @@index([agentProfileId])
+  @@index([managerProfileId])
+  @@index([reviewedById])
 }
 
 model Listing {
@@ -304,6 +330,12 @@ model Listing {
   notifications   Notification[]
   threads         ListingThread[]
   reviews         Review[]
+
+  @@index([ownerId])
+  @@index([agentId])
+  @@index([managerId])
+  @@index([verificationStatus])
+  @@index([availabilityStatus])
 }
 
 model ListingImage {
@@ -318,6 +350,8 @@ model ListingImage {
   device     String?
   gpsPresent Boolean   @default(false)
   createdAt  DateTime  @default(now())
+
+  @@index([listingId])
 }
 
 model SavedListing {
@@ -329,6 +363,7 @@ model SavedListing {
   createdAt DateTime @default(now())
 
   @@unique([userId, listingId])
+  @@index([listingId])
 }
 
 model ViewingRequest {
@@ -352,6 +387,10 @@ model ViewingRequest {
   notifications     Notification[]
   messages          Message[]
   reservedListing   Listing?           @relation("ListingReservation")
+
+  @@index([listingId])
+  @@index([tenantId])
+  @@index([status])
 }
 
 model Message {
@@ -367,6 +406,11 @@ model Message {
   body             String
   readAt           DateTime?
   createdAt        DateTime        @default(now())
+
+  @@index([viewingRequestId])
+  @@index([listingThreadId])
+  @@index([supportThreadId])
+  @@index([senderId])
 }
 
 model ListingThread {
@@ -399,6 +443,7 @@ model SupportThread {
   messages Message[]
 
   @@unique([userId])
+  @@index([assignedAdminId])
 }
 
 model Review {
@@ -415,6 +460,8 @@ model Review {
   updatedAt    DateTime @updatedAt
 
   @@unique([reviewerId, targetUserId])
+  @@index([targetUserId])
+  @@index([listingId])
 }
 
 model Payment {
@@ -435,6 +482,8 @@ model Payment {
   escrowReleasedAt    DateTime?
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
+
+  @@index([status])
 }
 
 model ZkProof {
@@ -448,6 +497,8 @@ model ZkProof {
   generatedAt      DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+
+  @@index([status])
 }
 
 model ProofVerification {
@@ -461,6 +512,8 @@ model ProofVerification {
   verifiedAt       DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+
+  @@index([status])
 }
 
 model ViewingCode {
@@ -486,7 +539,7 @@ model Report {
   reportType       ReportType
   description      String
   status           ReportStatus    @default(OPEN)
-  severity         String          @default("medium")
+  severity         ReportSeverity  @default(MEDIUM)
   allowContact     Boolean         @default(false)
   firstRespondedAt DateTime?
   respondedById    String?
@@ -494,6 +547,12 @@ model Report {
   responseNote     String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+
+  @@index([listingId])
+  @@index([viewingRequestId])
+  @@index([reporterId])
+  @@index([respondedById])
+  @@index([status])
 }
 
 model Notification {
@@ -509,6 +568,10 @@ model Notification {
   listing          Listing?         @relation(fields: [listingId], references: [id])
   readAt           DateTime?
   createdAt        DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([viewingRequestId])
+  @@index([listingId])
 }
 
 model AuditLog {
@@ -521,12 +584,15 @@ model AuditLog {
   severity   AuditSeverity @default(INFO)
   metadata   Json?
   createdAt  DateTime      @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
 }
 
 model ApiClient {
   id            String   @id @default(cuid())
   name          String
-  apiKeyHash    String
+  apiKeyHash    String   @unique
   status        String   @default("active")
   allowedOrigin String?
   createdAt     DateTime @default(now())
@@ -545,4 +611,6 @@ model WebhookEvent {
   status      String    @default("active")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([apiClientId])
 }
