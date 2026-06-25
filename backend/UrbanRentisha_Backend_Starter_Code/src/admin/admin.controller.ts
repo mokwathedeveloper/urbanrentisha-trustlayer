@@ -14,7 +14,11 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
-import { AdminService } from "./admin.service";
+import { AdminDashboardService } from "./admin-dashboard.service";
+import { AdminVerificationService } from "./admin-verification.service";
+import { AdminUserService } from "./admin-user.service";
+import { AdminLandlordService } from "./admin-landlord.service";
+import { AdminPaymentOpsService } from "./admin-payment-ops.service";
 import { ReviewVerificationDto } from "./dto/review-verification.dto";
 import { UpdateUserStatusDto } from "./dto/update-user-status.dto";
 import { SetAgentLandlordDto } from "./dto/set-agent-landlord.dto";
@@ -35,21 +39,27 @@ enum AgentLikeProfileTypeParam {
 @Roles(UserRole.ADMIN)
 @Controller("admin")
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly dashboardService: AdminDashboardService,
+    private readonly verification: AdminVerificationService,
+    private readonly users: AdminUserService,
+    private readonly landlords: AdminLandlordService,
+    private readonly paymentOps: AdminPaymentOpsService,
+  ) {}
 
   @Get("dashboard")
   dashboard() {
-    return this.admin.dashboard();
+    return this.dashboardService.dashboard();
   }
 
   @Get("overview")
   overview() {
-    return this.admin.overview();
+    return this.dashboardService.overview();
   }
 
   @Get("verifications")
   listVerifications() {
-    return this.admin.listVerifications();
+    return this.verification.listVerifications();
   }
 
   @Patch("verifications/:profileType/:profileId/review")
@@ -60,7 +70,7 @@ export class AdminController {
     @Body() dto: ReviewVerificationDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.admin.reviewVerification(
+    return this.verification.reviewVerification(
       profileType,
       profileId,
       dto.decision,
@@ -75,12 +85,12 @@ export class AdminController {
     @Body() dto: UpdateUserStatusDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.admin.setUserStatus(id, dto.status, user.sub);
+    return this.users.setUserStatus(id, dto.status, user.sub);
   }
 
   @Get("landlords")
   listLandlords() {
-    return this.admin.listLandlords();
+    return this.landlords.listLandlords();
   }
 
   @Patch("agents/:profileType/:profileId/landlord")
@@ -91,7 +101,7 @@ export class AdminController {
     @Body() dto: SetAgentLandlordDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.admin.setAgentLandlord(
+    return this.landlords.setAgentLandlord(
       profileType,
       profileId,
       dto.landlordProfileId ?? null,
@@ -101,11 +111,11 @@ export class AdminController {
 
   @Get("landlords/:landlordProfileId/team")
   getLandlordTeam(@Param("landlordProfileId") landlordProfileId: string) {
-    return this.admin.getLandlordTeam(landlordProfileId);
+    return this.landlords.getLandlordTeam(landlordProfileId);
   }
 
   @Post("payments/:id/refund")
   refundPayment(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.admin.refundPayment(id, user.sub);
+    return this.paymentOps.refundPayment(id, user.sub);
   }
 }
