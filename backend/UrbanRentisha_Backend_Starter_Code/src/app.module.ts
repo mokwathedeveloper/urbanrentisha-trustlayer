@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -33,6 +35,10 @@ import { EscrowReportingModule } from "./escrow-reporting/escrow-reporting.modul
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    // Generous global default (60 req/min) - tighter per-route limits (e.g.
+    // login/register) are applied with @Throttle() where brute-forcing is
+    // an actual risk, per src/auth/auth.controller.ts.
+    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 60 }]),
     RealtimeModule,
     PrismaModule,
     AuthModule,
@@ -61,5 +67,6 @@ import { EscrowReportingModule } from "./escrow-reporting/escrow-reporting.modul
     SupportModule,
     EscrowReportingModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
