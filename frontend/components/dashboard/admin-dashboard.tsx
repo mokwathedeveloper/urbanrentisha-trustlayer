@@ -131,12 +131,12 @@ export function AdminDashboardView() {
                 </div>
                 <span
                   className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                    agent.verificationStatus === "verified"
+                    agent.verificationStatus === "VERIFIED"
                       ? "border-ur-primary/40 text-ur-primary"
                       : "border-ur-warning/40 text-ur-warning"
                   }`}
                 >
-                  {agent.verificationStatus === "verified" ? "Verified" : "Pending"}
+                  {agent.verificationStatus === "VERIFIED" ? "Verified" : "Pending"}
                 </span>
               </Row>
             ))

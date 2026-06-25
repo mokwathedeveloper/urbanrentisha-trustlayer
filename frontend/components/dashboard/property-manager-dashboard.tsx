@@ -55,7 +55,7 @@ export function PropertyManagerDashboardView() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-black tracking-[-0.02em] text-ur-navy">
             Welcome back, {user?.name?.split(" ")[0] ?? "Manager"}!
-            {dashboard?.verificationStatus === "verified" ? (
+            {dashboard?.verificationStatus === "VERIFIED" ? (
               <Icon name="verified" size={20} className="text-ur-primary" />
             ) : null}
           </h1>
