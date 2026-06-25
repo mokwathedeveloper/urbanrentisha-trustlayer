@@ -10,7 +10,12 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "border border-ur-primary bg-ur-primary text-white hover:bg-ur-primary-hover",
+  // bg-ur-primary-hover (not bg-ur-primary) at rest: white button-label text
+  // on the brand's lighter green (#16A34A) measures 3.3:1, below WCAG AA's
+  // 4.5:1 for normal text. The darker hover/active shades (already part of
+  // the palette) pass at 5:1+ and read as the same green family - ur-primary
+  // itself stays untouched everywhere else (badges, links, icons, borders).
+  primary: "border border-ur-primary-hover bg-ur-primary-hover text-white hover:bg-ur-primary-active active:bg-ur-primary-active",
   secondary: "border border-ur-border-strong bg-ur-card text-ur-text hover:bg-ur-card-hover",
   ghost: "border border-transparent bg-transparent text-ur-muted hover:bg-white/5 hover:text-white",
   outline: "border border-white/14 bg-transparent text-white hover:border-ur-primary/60 hover:bg-white/5",
