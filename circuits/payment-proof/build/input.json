@@ -2,7 +2,7 @@
   "requestId": "12345",
   "listingId": "9876",
   "requiredViewingFee": "10",
-  "paymentCommitment": "180103193963",
-  "paymentSecret": "424242",
-  "paymentNonce": "13"
+  "paymentCommitment": "36641870119524741684872236590800899687401000478095830012568547819568772422937",
+  "paymentSecret": "111",
+  "paymentNonce": "222"
 }
