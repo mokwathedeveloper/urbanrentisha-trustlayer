@@ -235,12 +235,26 @@ export class PaymentsService {
     if (!payment) throw new NotFoundException("Payment not found.");
     await this.access.assertAccess(payment.viewingRequestId, actorId, role);
 
-    const xdr = await this.escrow.prepareDeposit(
-      dto.payerPublicKey,
-      payment.id,
-      payment.amount,
-    );
-    return { xdr };
+    try {
+      const xdr = await this.escrow.prepareDeposit(
+        dto.payerPublicKey,
+        payment.id,
+        payment.amount,
+      );
+      return { xdr };
+    } catch (error) {
+      await this.auditLogs.create({
+        actorId,
+        action: "payment.escrow_deposit_prepare_failed",
+        entityType: "payment",
+        entityId: payment.id,
+        severity: "WARNING",
+        metadata: { reason: (error as Error).message },
+      });
+      throw new BadRequestException(
+        "Could not prepare the escrow deposit transaction. Please try again.",
+      );
+    }
   }
 
   /**
@@ -260,9 +274,25 @@ export class PaymentsService {
     if (!payment) throw new NotFoundException("Payment not found.");
     await this.access.assertAccess(payment.viewingRequestId, actorId, role);
 
-    const txHash = await this.escrow.submitSignedDeposit(dto.signedXdr);
+    let txHash: string;
+    let hold: Awaited<ReturnType<EscrowService["getHold"]>>;
+    try {
+      txHash = await this.escrow.submitSignedDeposit(dto.signedXdr);
+      hold = await this.escrow.getHold(payment.id);
+    } catch (error) {
+      await this.auditLogs.create({
+        actorId,
+        action: "payment.escrow_deposit_confirm_failed",
+        entityType: "payment",
+        entityId: payment.id,
+        severity: "CRITICAL",
+        metadata: { reason: (error as Error).message },
+      });
+      throw new BadRequestException(
+        "Could not confirm the escrow deposit on-chain. Please try again.",
+      );
+    }
 
-    const hold = await this.escrow.getHold(payment.id);
     if (!hold || hold.status !== HoldStatus.Held) {
       throw new BadRequestException(
         "Escrow deposit transaction succeeded but no held funds were found on-chain.",
