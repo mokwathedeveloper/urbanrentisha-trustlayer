@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import {
+  AgentVerificationStatus,
   DocumentType,
   NotificationType,
   UserRole,
@@ -98,7 +99,7 @@ export class LandlordService {
           dto.role === UserRole.AGENT
             ? {
                 create: {
-                  verificationStatus: "pending",
+                  verificationStatus: AgentVerificationStatus.PENDING,
                   verificationStage: VerificationStage.DOCUMENTS_UPLOADED,
                   landlordId: landlordProfileId,
                 },
@@ -108,7 +109,7 @@ export class LandlordService {
           dto.role === UserRole.MANAGER
             ? {
                 create: {
-                  verificationStatus: "pending",
+                  verificationStatus: AgentVerificationStatus.PENDING,
                   verificationStage: VerificationStage.DOCUMENTS_UPLOADED,
                   landlordId: landlordProfileId,
                 },
@@ -194,7 +195,7 @@ export class LandlordService {
         "This profile does not belong to your team.",
       );
     }
-    if (profile.verificationStatus !== "verified") {
+    if (profile.verificationStatus !== AgentVerificationStatus.VERIFIED) {
       throw new BadRequestException(
         "This profile has not been approved by an admin yet.",
       );
