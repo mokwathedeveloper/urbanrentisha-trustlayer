@@ -123,7 +123,13 @@ Noir was the original recommendation for readability, but its UltraHonk verifier
 
 ## 6.2 Hash Primitive Substitution
 
-The conceptual commitment formula in section 8 below calls for a ZK-friendly hash (e.g. Poseidon). The deployed circuit instead uses a field-native quadratic binding (`commitment = secret^2 + nonce^2 + requestId*listingId + fee`), because circomlib's Poseidon round constants are computed for the BN254 scalar field and are not valid under the BLS12-381 field this verifier contract requires. This is a known, intentional substitution, not an oversight — see `circuits/payment-proof/payment_proof.circom` for the in-code rationale.
+The conceptual commitment formula in section 8 below calls for a ZK-friendly hash (e.g. Poseidon). circomlib's Poseidon round constants are computed for the BN254 scalar field and are not valid under the BLS12-381 field this verifier contract requires (Stellar's own canonical `groth16_verifier` example also targets BLS12-381, so this is the same curve choice as the official reference, not a fallback).
+
+An earlier revision of this circuit used a field-native quadratic binding (`commitment = secret^2 + nonce^2 + requestId*listingId + fee`) as a placeholder. That relation is **not** a binding commitment: `x^2 + y^2 = T` has on the order of the field's full size in solutions over a prime field, so a prover could pick an arbitrary `secret` and solve for a matching `nonce` via a modular square root, producing a valid-looking proof without ever knowing the real (secret, nonce) pair derived from the actual payment. This was a real gap, not a stylistic one.
+
+The deployed circuit now uses `MiMCFeistel(paymentSecret, paymentNonce)` — a minimal one-way permutation over the BLS12-381 scalar field using the `x^5` S-box (the same S-box exponent Poseidon uses for this field; `gcd(5, r-1) = 1` makes `x -> x^5` a bijection) with 12 rounds and fixed, deterministically-generated round constants (`sha256` of a labelled seed, reduced mod the field order — see `circuits/payment-proof/payment_proof.circom` for the exact construction and `field.util.ts`'s `mimcFeistel` for the byte-identical off-chain twin used by the backend). This has no known efficient inversion, so finding an alternate (secret, nonce) pair that produces the same commitment is intractable.
+
+**Documented MVP limitation:** this MiMCFeistel construction is **not** an independently audited Poseidon/MiMC parameter set. It is a minimal, self-contained construction sized for this MVP's binding requirement. Production use should adopt a standard, audited primitive matched to this field (e.g. a published Poseidon instantiation for BLS12-381).
 
 ## 6.3 When RISC Zero Makes Sense
 
