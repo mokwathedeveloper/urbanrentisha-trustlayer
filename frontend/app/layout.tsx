@@ -82,15 +82,20 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font, @next/next/google-font-display -- icon font
-            must hide its ligature text fallback (display=block) instead of showing it as raw text.
+        {/* eslint-disable-next-line @next/next/no-page-custom-font -- icon font.
             Axes pinned to what components/ui/icon.tsx actually renders
             (opsz 20, wght 400, GRAD 0 - fixed; FILL toggles 0/1) instead of
             the full variable ranges, which were pulling a ~4MB font file
-            for a handful of static icon weights. */}
+            for a handful of static icon weights (now ~475KB).
+            display=swap (not block): with the font now loading in well
+            under a second, the brief raw-ligature-text flash swap can
+            cause is shorter than the invisible-icon flash block causes
+            while still being the LCP/render-blocking penalty Lighthouse's
+            font-display audit flags - the tradeoff that justified `block`
+            at ~4MB doesn't hold at ~475KB. */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0..1,0&display=block"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0..1,0&display=swap"
         />
         <script
           type="application/ld+json"
