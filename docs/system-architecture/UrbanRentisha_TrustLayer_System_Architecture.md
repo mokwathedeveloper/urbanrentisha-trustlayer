@@ -74,9 +74,9 @@ Role-based access control
 Stellar testnet
 Soroban smart contracts
 Stellar SDK
-Noir or Circom proof system
-Off-chain ZK proof generation service
-On-chain proof verification or verification-state recording
+Circom proof system, BLS12-381 (chosen over Noir - see WHITEPAPER.md S4.1)
+Off-chain ZK proof generation service (real Groth16 proofs via snarkjs)
+On-chain proof verification (real BLS12-381 pairing check, not state recording)
 ```
 
 ## 3.4 Infrastructure

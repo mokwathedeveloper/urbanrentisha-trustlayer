@@ -54,9 +54,9 @@ BullMQ
 Stellar testnet
 Soroban smart contracts
 Stellar SDK
-Noir or Circom proof system
-ZK proof generation service
-Proof verification service
+Circom proof system, BLS12-381 (chosen over Noir - see WHITEPAPER.md S4.1)
+ZK proof generation service (real Groth16 proofs via snarkjs)
+Proof verification service (real BLS12-381 pairing check on-chain)
 ```
 
 ### 2.4 Design and UI Stack
@@ -855,6 +855,8 @@ For the MVP, the smart contract should focus on proof verification status and ac
 ## 15. ZK Proof Roadmap
 
 ### 15.1 Recommended Proof System
+
+> ℹ️ **Update:** this section's original recommendation (Noir) was not the path actually taken. **Circom + Groth16 was used instead** — Noir's UltraHonk verifier for Soroban exists only as a third-party fork, a higher-risk dependency under hackathon time constraints, whereas Circom + Groth16 has an official Stellar-maintained reference verifier. See [WHITEPAPER.md](../../WHITEPAPER.md) §4.1 for the full rationale. The recommendation below is kept for historical context only.
 
 Use Noir for the first version because it is more readable and easier to explain in a hackathon setting.
 
