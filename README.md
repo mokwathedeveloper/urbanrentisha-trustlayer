@@ -221,6 +221,8 @@ Full endpoint catalog: [docs/api/UrbanRentisha_TrustLayer_API_Documentation.md](
 | 🏛️ [docs/system-architecture/](docs/system-architecture/) | Broader system architecture documentation |
 | 👥 [CONTRIBUTORS.md](CONTRIBUTORS.md) | Who built this |
 | 🎬 [DEMO_GUIDE.md](DEMO_GUIDE.md) | Judge demo credentials, walkthrough, video script |
+| 📄 [WHITEPAPER.md](WHITEPAPER.md) | Formal technical writeup: architecture, ZK proof system, security model |
+| 🌱 [RESPONSIBLE_DEVELOPMENT.md](RESPONSIBLE_DEVELOPMENT.md) | Security, privacy, accessibility, and honest-limitations commitments |
 
 ## 📊 Status
 
