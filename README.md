@@ -11,6 +11,7 @@
 [![Tech Stack](https://img.shields.io/badge/Tech_Stack-See_Docs-16A34A?style=for-the-badge)](TECH_STACK.md)
 [![Security](https://img.shields.io/badge/Security-Policy-F59E0B?style=for-the-badge)](SECURITY.md)
 [![Changelog](https://img.shields.io/badge/Changelog-644_Commits-6366F1?style=for-the-badge)](CHANGELOG.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 > **[Stellar Hacks: Real-World ZK](https://dorahacks.io/hackathon/stellar-hacks-zk)** — Stellar Development Foundation
 
@@ -32,6 +33,54 @@ Tenant requests viewing on a verified listing
 ```
 
 The proof is load-bearing: access stays locked until on-chain verification returns `true`. See [docs/zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md](docs/zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md) for the full proof design (statement, inputs, lifecycle, failure states, and the documented MVP limitations below).
+
+## 🔗 Live Contracts — Stellar Testnet
+
+| Contract | Address | Role |
+|---|---|---|
+| 🪪 `UrbanRentishaTrustVerifier` | [`CAO2EEH75TIJWGQEMKIO2RLDPWHQJ7HLDTG7HVYYGS6ZEV62HZQYDGSW`](https://stellar.expert/explorer/testnet/contract/CAO2EEH75TIJWGQEMKIO2RLDPWHQJ7HLDTG7HVYYGS6ZEV62HZQYDGSW) | Groth16/BLS12-381 on-chain proof verification |
+| 🔒 `UrbanRentishaEscrow` | [`CCDYGIL6TW3CDBYUOOZFEY7LJXCY35AFTS3FGIMIG37PYMKAAJW5ESTY`](https://stellar.expert/explorer/testnet/contract/CCDYGIL6TW3CDBYUOOZFEY7LJXCY35AFTS3FGIMIG37PYMKAAJW5ESTY) | Viewing-fee deposit, release, and refund |
+
+**Network:** Stellar Testnet · Horizon `https://horizon-testnet.stellar.org` · Soroban RPC `https://soroban-testnet.stellar.org`
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    Tenant(["👤 Tenant\nNext.js 16 + React 19"])
+
+    subgraph Backend["⚙️ Backend — NestJS, Node 20"]
+        Auth["🔑 AuthService\nJWT + bcrypt + rate limit + audit log"]
+        Payments["💳 PaymentsService\nescrow deposit/confirm"]
+        ZkProofs["🔐 ZkProofsService\nsnarkjs groth16.fullProve()"]
+        ProofVerify["✅ ProofVerificationService\non-chain verify + escrow release"]
+    end
+
+    subgraph Circuit["🧮 ZK Circuit — Circom 2.1.0"]
+        MiMC["🔁 MiMCPermutation\nx^5 S-box · 220 rounds\nBLS12-381 scalar field"]
+    end
+
+    subgraph Stellar["⭐ Stellar Testnet"]
+        Escrow["🔒 UrbanRentishaEscrow\nCCDYGIL6...AJW5ESTY"]
+        Verifier["🪪 UrbanRentishaTrustVerifier\nCAO2EEH7...HZQYDGSW"]
+    end
+
+    subgraph Data["🗄️ Data"]
+        Postgres["🐘 PostgreSQL (Supabase)\nPrisma 5 · indexed FKs · enum status columns"]
+    end
+
+    Tenant -- "browse / pay / verify" --> Backend
+    Auth --> Postgres
+    Payments --> Escrow
+    Payments --> Postgres
+    ZkProofs -- "witness + circuit artifacts" --> Circuit
+    ZkProofs --> Postgres
+    ProofVerify -- "submit proof" --> Verifier
+    Verifier -- "true / false" --> ProofVerify
+    ProofVerify -- "release on success" --> Escrow
+```
+
+Full diagram (frontend layer, admin services, analytics) in [TECH_STACK.md](TECH_STACK.md).
 
 ## 🔐 ZK stack — what's actually implemented
 
@@ -55,15 +104,23 @@ The rest of the platform (NestJS backend, Next.js frontend) implements the surro
 backend/                       NestJS backend (API, Prisma, Stellar SDK, ZK proof workflow)
 circuits/payment-proof/        Circom circuit, build artifacts, Groth16 ceremony outputs
 contracts/trust-verifier/      Soroban Groth16/BLS12-381 verifier contract (Rust)
+contracts/escrow/              Soroban escrow contract (deposit/release/refund)
 frontend/                      Next.js app
 docs/zkproof/                  ZK proof design: statement, inputs, lifecycle, security/privacy rules
 docs/contracts/                Soroban smart contract design docs
 docs/system-architecture/      System architecture documentation
+docs/api/                      API endpoint catalog
+docs/roadmap/                  Build roadmap
 docs/deployment/               Deployment docs
+qa-screenshots/                Before/after screenshots for every screen, against the real running app
+TECH_STACK.md, SECURITY.md,
+CHANGELOG.md, CONTRIBUTORS.md  Project documentation (see below)
 CLAUDE.md                      AI implementation rules
 ```
 
-## 🚀 Backend quick start
+## 🚀 Quick Start
+
+### Backend
 
 ```bash
 cd backend/UrbanRentisha_Backend_Starter_Code
@@ -76,6 +133,17 @@ npm run start:dev
 
 API base URL: `http://localhost:4000/api/v1`
 
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Runs on `http://localhost:3000` (falls back to the next free port if 3000 is taken).
+
 ## 🔁 Regenerating the circuit / verifier
 
 ```bash
@@ -85,6 +153,57 @@ circom payment_proof.circom --r1cs --wasm --sym --prime bls12381 -o build
 cd ../../contracts/trust-verifier
 cargo test --release   # exercises the deployed verifier against real proof/public-input vectors
 ```
+
+## 🔑 Environment Variables
+
+Full templates: [`backend/.../.env.example`](backend/UrbanRentisha_Backend_Starter_Code/.env.example), [`frontend/.env.example`](frontend/.env.example). Key variables:
+
+```bash
+# ── Backend ──────────────────────────────────────────────────────────
+DATABASE_URL=               # Supabase PostgreSQL, pgbouncer pooled
+DIRECT_URL=                 # Same DB, direct (non-pooled) — required for migrations
+JWT_SECRET=
+STELLAR_NETWORK=testnet
+STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+TRUST_VERIFIER_CONTRACT_ID=CAO2EEH75TIJWGQEMKIO2RLDPWHQJ7HLDTG7HVYYGS6ZEV62HZQYDGSW
+ESCROW_CONTRACT_ID=CCDYGIL6TW3CDBYUOOZFEY7LJXCY35AFTS3FGIMIG37PYMKAAJW5ESTY
+ZK_PROOF_SALT=
+
+# ── Frontend ─────────────────────────────────────────────────────────
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1
+NEXT_PUBLIC_SITE_URL=https://urbanrentisha.app
+```
+
+> `DATABASE_URL` uses pgbouncer's transaction pooling, which doesn't support prepared statements — Prisma migrations and `prisma migrate diff` need `DIRECT_URL` (the non-pooled connection) instead, or they fail with `prepared statement "s0" does not exist`.
+
+## 🧪 Testing
+
+```bash
+# Backend — Jest, 100% line/branch coverage on auth + ZK commitment logic
+cd backend/UrbanRentisha_Backend_Starter_Code && npm test
+
+# Backend — type/lint/build gates
+npx tsc --noEmit && npx eslint "{src,apps,libs,test,api}/**/*.ts" && npm run build
+
+# Frontend — type/lint/build gates
+cd frontend && npx tsc --noEmit && npx eslint . --ext .ts,.tsx && npm run build
+
+# Soroban contract — exercises the deployed verifier against real proof vectors
+cd contracts/trust-verifier && cargo test --release
+```
+
+## 📸 Screenshots
+
+Before/after screenshots for every screen live in [`qa-screenshots/`](qa-screenshots/) (94 images) — captured against the real running app at each implementation step, not mockups.
+
+## 🗺️ Roadmap
+
+See [docs/roadmap/UrbanRentisha_TrustLayer_Final_Professional_Roadmap.md](docs/roadmap/UrbanRentisha_TrustLayer_Final_Professional_Roadmap.md).
+
+## 🔌 API Reference
+
+Full endpoint catalog: [docs/api/UrbanRentisha_TrustLayer_API_Documentation.md](docs/api/UrbanRentisha_TrustLayer_API_Documentation.md). Live, interactive version at `/api-docs` in the running frontend.
 
 ## 📚 Documentation
 
@@ -102,6 +221,17 @@ cargo test --release   # exercises the deployed verifier against real proof/publ
 
 MVP built for the hackathon submission deadline (June 29, 2026, 12:00 PM PST). Test coverage exists for the ZK commitment logic, escrow summary arithmetic, and the full auth flow (`backend/.../src/**/*.spec.ts`); broader backend coverage is still thin.
 
+## 🏆 Hackathon Submission
+
+| | |
+|---|---|
+| Hackathon | [Stellar Hacks: Real-World ZK](https://dorahacks.io/hackathon/stellar-hacks-zk) |
+| Organizer | Stellar Development Foundation |
+| Deadline | June 29, 2026, 12:00 PM PST |
+| Repo | [github.com/mokwathedeveloper/urbanrentisha-trustlayer](https://github.com/mokwathedeveloper/urbanrentisha-trustlayer) |
+| ZK toolchain | Circom + Groth16, BLS12-381 |
+| Live verifier | [`CAO2EEH7...HZQYDGSW`](https://stellar.expert/explorer/testnet/contract/CAO2EEH75TIJWGQEMKIO2RLDPWHQJ7HLDTG7HVYYGS6ZEV62HZQYDGSW) on Stellar testnet |
+
 ## 📄 License
 
-TBD.
+[MIT](LICENSE) © 2026 Mokwa Moffat Ohuru
