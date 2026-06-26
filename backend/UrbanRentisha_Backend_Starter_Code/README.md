@@ -42,11 +42,11 @@ Admin operations
 ## Quick Start
 
 ```bash
-pnpm install
+npm install
 cp .env.example .env
-pnpm prisma:generate
-pnpm prisma:migrate
-pnpm start:dev
+npm run prisma:generate
+npm run prisma:migrate
+npm run start:dev
 ```
 
 ## Default API URL
@@ -55,6 +55,15 @@ pnpm start:dev
 http://localhost:4000/api/v1
 ```
 
+## Testing
+
+```bash
+npm test                                          # Jest - 100% line/branch coverage on auth + ZK commitment logic
+npx tsc --noEmit                                  # typecheck
+npx eslint "{src,apps,libs,test,api}/**/*.ts"     # lint
+npm run build                                     # nest build
+```
+
 ## Important
 
-This starter includes a hybrid MVP proof flow. The ZK proof service creates a simulated proof hash and verification record so the product flow can be demonstrated. A real ZK circuit/prover can later replace the mock generator without changing the API contract.
+The ZK proof service generates **real** Groth16 proofs — `snarkjs.groth16.fullProve()` against the actual Circom circuit artifacts in `src/zk-proofs/circuit-artifacts/` — and submits them for **real** on-chain verification against a deployed Soroban contract (`CAO2EEH75TIJWGQEMKIO2RLDPWHQJ7HLDTG7HVYYGS6ZEV62HZQYDGSW` on Stellar testnet). This is not a mock or simulated proof flow; see [docs/zkproof/](../../docs/zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md) and the root [WHITEPAPER.md](../../WHITEPAPER.md) for the full design and an honest account of the construction's current limitations.
