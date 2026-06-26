@@ -61,8 +61,15 @@ export class ListingsService {
     private readonly viewingRequests: ViewingRequestsService,
   ) {}
 
+  /**
+   * Public, unauthenticated browse endpoint (no guard, no role context) -
+   * defaults to verified-only. Pending/rejected listings have no business
+   * being shown to a tenant browsing the marketplace; admins moderate
+   * those through the dedicated admin verification endpoints, not this one.
+   */
   findAll() {
     return this.prisma.listing.findMany({
+      where: { verificationStatus: ListingStatus.VERIFIED },
       orderBy: { createdAt: "desc" },
       include: LISTING_OWNER_INCLUDE,
     });
