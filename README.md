@@ -96,6 +96,7 @@ cargo test --release   # exercises the deployed verifier against real proof/publ
 | 🔐 [docs/zkproof/](docs/zkproof/UrbanRentisha_TrustLayer_ZK_Proof_Documentation.md) | Full ZK proof design: statement, inputs, lifecycle, security writeup |
 | ⛓️ [docs/contracts/](docs/contracts/) | Soroban smart contract design docs |
 | 🏛️ [docs/system-architecture/](docs/system-architecture/) | Broader system architecture documentation |
+| 👥 [CONTRIBUTORS.md](CONTRIBUTORS.md) | Who built this |
 
 ## 📊 Status
 
