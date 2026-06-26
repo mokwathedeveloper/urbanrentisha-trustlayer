@@ -1,5 +1,7 @@
 # UrbanRentisha TrustLayer Contract Documentation
 
+> ℹ️ **Note (added after implementation):** this document is the original pre-implementation design plan — section 8 below lists six "recommended" contract functions (`create_request`, `submit_proof`, `verify_proof`, `get_access_status`, `get_verification_status`, `revoke_access`). The contract actually built and deployed (`contracts/trust-verifier/src/lib.rs`) implements only **one**: `verify_proof`. This was a deliberate simplification, not an oversight: the deployed contract is stateless with respect to the verification key (passed as a call parameter, not stored), performs a real Groth16/BLS12-381 pairing check, and returns a plain boolean. All request lifecycle, access-eligibility, and revocation logic — the rest of what section 8 describes — lives in the backend (NestJS + Postgres) instead of on-chain, which kept the contract small and meant the circuit could be revised twice during development (see [WHITEPAPER.md](../../WHITEPAPER.md) §4.3) without ever redeploying it. Treat the rest of this document as the original design rationale, not a description of the final contract surface.
+
 ## 1. Document Purpose
 
 This document defines the smart contract design for **UrbanRentisha TrustLayer**, a ZK-powered rental payment proof and verified property access platform built on Stellar.
