@@ -26,7 +26,7 @@ stellar contract invoke \
   -- verify_proof \
   --vk '<see data/verification_key.json>' \
   --proof '<see data/proof.json>' \
-  --pub_signals '["12345","9876","10","180103193963"]'
+  --pub_signals '["12345","9876","10","36448661883152570573923503639632223392617604890390749318817700377169827659117"]'
 # => true
 
 # Tampering with the public commitment correctly fails:
