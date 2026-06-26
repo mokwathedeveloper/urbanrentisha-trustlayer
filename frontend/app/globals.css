@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+/* Self-hosted, subsetted to exactly the 75 glyphs in
+   components/ui/icon.tsx's ICON_GLYPHS (regenerate via
+   scripts/subset-icon-font.cjs if that list changes). Google's CDN-served
+   full Material Symbols variable font was ~475KB for these same 75 icons;
+   this subset is ~380KB and removes a third-party DNS/TLS round-trip
+   entirely. CSS rules below are copied verbatim from Google's own served
+   stylesheet, just pointing at the local file. */
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/material-symbols-outlined-subset.woff2") format("woff2");
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+
 :root {
   --font-inter: Inter, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
