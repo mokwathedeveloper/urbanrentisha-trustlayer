@@ -80,23 +80,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font -- icon font.
-            Axes pinned to what components/ui/icon.tsx actually renders
-            (opsz 20, wght 400, GRAD 0 - fixed; FILL toggles 0/1) instead of
-            the full variable ranges, which were pulling a ~4MB font file
-            for a handful of static icon weights (now ~475KB).
-            display=swap (not block): with the font now loading in well
-            under a second, the brief raw-ligature-text flash swap can
-            cause is shorter than the invisible-icon flash block causes
-            while still being the LCP/render-blocking penalty Lighthouse's
-            font-display audit flags - the tradeoff that justified `block`
-            at ~4MB doesn't hold at ~475KB. */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0..1,0&display=swap"
-        />
+        {/* Icon font is now self-hosted and subsetted (app/globals.css) -
+            no Google Fonts request, so no preconnect needed for it. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
