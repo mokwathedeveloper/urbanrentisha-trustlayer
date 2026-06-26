@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="UrbanRentisha TrustLayer" width="90" />
+<img src="frontend/public/images/logo.png" alt="UrbanRentisha TrustLayer" width="90" />
 
 # 🌱 Responsible Software Development
 

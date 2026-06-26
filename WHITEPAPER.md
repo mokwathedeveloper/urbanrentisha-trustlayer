@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="UrbanRentisha TrustLayer" width="100" />
+<img src="frontend/public/images/logo.png" alt="UrbanRentisha TrustLayer" width="100" />
 
 # UrbanRentisha TrustLayer
 ## Technical Whitepaper v1.0
