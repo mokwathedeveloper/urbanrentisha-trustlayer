@@ -12,6 +12,11 @@ export function HeroSection() {
         alt="Zero-knowledge proof verified on Stellar blockchain, unlocking verified rental access"
         fill
         priority
+        // `priority` alone does not set the fetchpriority HTML attribute in
+        // this Next.js version - confirmed by reading
+        // next/dist/shared/lib/get-img-props.js, and by Lighthouse flagging
+        // priorityHinted: false on this exact element despite `priority`.
+        fetchPriority="high"
         sizes="100vw"
         className="object-contain object-right"
       />
