@@ -21,6 +21,10 @@
 
 A tenant proves a required viewing/reservation payment was made — using a real zero-knowledge proof, verified on-chain by a Soroban smart contract — without exposing wallet history, and only then receives access to a verified property's viewing details.
 
+## 🔑 Judge Demo — Live Credentials
+
+**Live site:** https://urbanrentisha-web.vercel.app — login as `tenant1@urbanrentisha.local` / `TenantPass123!` and try the real flow described below. Full credential table, step-by-step walkthrough, and a video script in **[DEMO_GUIDE.md](DEMO_GUIDE.md)**.
+
 ## 🔁 The trust flow
 
 ```text
@@ -216,6 +220,7 @@ Full endpoint catalog: [docs/api/UrbanRentisha_TrustLayer_API_Documentation.md](
 | ⛓️ [docs/contracts/](docs/contracts/) | Soroban smart contract design docs |
 | 🏛️ [docs/system-architecture/](docs/system-architecture/) | Broader system architecture documentation |
 | 👥 [CONTRIBUTORS.md](CONTRIBUTORS.md) | Who built this |
+| 🎬 [DEMO_GUIDE.md](DEMO_GUIDE.md) | Judge demo credentials, walkthrough, video script |
 
 ## 📊 Status
 
