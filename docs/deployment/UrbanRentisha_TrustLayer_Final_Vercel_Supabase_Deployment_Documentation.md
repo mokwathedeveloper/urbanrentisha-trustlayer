@@ -1,5 +1,14 @@
 # UrbanRentisha TrustLayer Final Vercel + Supabase Deployment Documentation
 
+> ⚠️ **Correction (added after this document was written):** this document predates the final implementation, and some of its specifics no longer match reality — variable names (`NEXT_PUBLIC_API_URL` here vs. the real `NEXT_PUBLIC_API_BASE_URL`), paths (`apps/web`/`apps/api` here vs. the real `frontend/`/`backend/UrbanRentisha_Backend_Starter_Code/`), and critically, **the custom domain `urbanrentisha.app` referenced throughout is not currently live (DNS isn't pointed there)**. Following this doc's `CORS_ORIGIN`/`API_BASE_URL` examples literally was the actual root cause of a real production bug: the live frontend's `NEXT_PUBLIC_API_BASE_URL` and the backend's `CORS_ORIGIN` were both set to values that pointed nowhere, so the deployed app couldn't log in or load any data. That's been fixed directly on the live deployment.
+>
+> **Use the real, current values instead:**
+> - Frontend → backend: `NEXT_PUBLIC_API_BASE_URL=https://urbanrentisha-api.vercel.app/api/v1`
+> - Backend CORS: `CORS_ORIGIN=https://urbanrentisha-web.vercel.app`
+> - Full, current variable lists: [`backend/.../.env.example`](../../backend/UrbanRentisha_Backend_Starter_Code/.env.example), [`frontend/.env.example`](../../frontend/.env.example)
+>
+> Treat the rest of this document as the original planning/architecture rationale, not a literal step-by-step to follow today.
+
 ## 1. Document Purpose
 
 This document defines the final deployment direction for **UrbanRentisha TrustLayer** using:
