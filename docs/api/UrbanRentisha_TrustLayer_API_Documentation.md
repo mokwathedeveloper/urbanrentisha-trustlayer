@@ -1,5 +1,9 @@
 # UrbanRentisha TrustLayer API Documentation
 
+> ⚠️ **Correction (added after implementation):** this document is the original pre-implementation API plan and has real drift from the final backend — checked directly against the running server's actual mapped routes, not assumed. Specifically: the entire **section 23 "Demo Mode" API (`/demo/start`, `/demo/payments/simulate`, `/demo/proofs/verify`) was never built** — there is no `/demo/*` route anywhere in the backend (the real demo experience is a hardcoded login button in the frontend, see [DEMO_GUIDE.md](../../DEMO_GUIDE.md)). Several other paths were renamed during implementation, e.g. `/proofs/generate` here is really `/zk-proofs/generate`, `/admin/audit-logs` here is really the top-level `/audit-logs`.
+>
+> **For the current, verified-accurate endpoint list, use the live interactive docs at `/api-docs` in the running frontend** (also linked from the main [README.md](../../README.md)) — checked directly against the real backend and confirmed to match on every documented route, unlike this file. Treat this document as the original design intent, not a literal current reference.
+
 ## 1. Document Purpose
 
 This document defines the API structure for **UrbanRentisha TrustLayer**, a ZK-powered rental trust and payment-verification platform built on Stellar.
