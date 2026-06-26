@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { SITE_URL } from "@/lib/site";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -80,18 +83,25 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font, @next/next/google-font-display -- icon font
-            must hide its ligature text fallback (display=block) instead of showing it as raw text */}
+            must hide its ligature text fallback (display=block) instead of showing it as raw text.
+            Axes pinned to what components/ui/icon.tsx actually renders
+            (opsz 20, wght 400, GRAD 0 - fixed; FILL toggles 0/1) instead of
+            the full variable ranges, which were pulling a ~4MB font file
+            for a handful of static icon weights. */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0..1,0&display=block"
         />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        <GoogleAnalytics />
       </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>{children}</AuthProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
