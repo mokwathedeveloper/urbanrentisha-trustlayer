@@ -12,6 +12,7 @@ import { FilterChips } from "@/components/listings/filter-chips";
 import { SavedSearchesPanel } from "@/components/listings/saved-searches-panel";
 import { TrustStrip } from "@/components/listings/trust-strip";
 import { Icon } from "@/components/ui/icon";
+import { CardSkeleton } from "@/components/ui/skeleton";
 
 export default function SearchPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -105,14 +106,20 @@ export default function SearchPage() {
           </div>
 
           <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((listing) => (
-              <PropertyCard key={listing.id} listing={listing} variant="details" />
-            ))}
-            {!loading && filtered.length === 0 ? (
-              <p className="col-span-full py-12 text-center text-sm text-ur-text-muted">
-                No properties match your filters.
-              </p>
-            ) : null}
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
+            ) : (
+              <>
+                {filtered.map((listing) => (
+                  <PropertyCard key={listing.id} listing={listing} variant="details" />
+                ))}
+                {filtered.length === 0 ? (
+                  <p className="col-span-full py-12 text-center text-sm text-ur-text-muted">
+                    No properties match your filters.
+                  </p>
+                ) : null}
+              </>
+            )}
           </div>
 
           <TrustStrip />

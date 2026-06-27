@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { PropertyCard } from "@/components/listings/property-card";
 import { Icon } from "@/components/ui/icon";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { CardSkeleton } from "@/components/ui/skeleton";
 
 const ALLOWED_ROLES = ["TENANT"] as const;
 
@@ -34,7 +35,13 @@ export default function SavedPropertiesPage() {
       <h1 className="text-2xl font-black tracking-[-0.02em] text-ur-navy">Saved Properties</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">Properties you have saved to review later.</p>
 
-      {loading ? <p className="mt-6 text-sm text-ur-text-muted">Loading...</p> : null}
+      {loading ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : null}
 
       {!loading && saved.length === 0 ? (
         <div className="ur-card mt-6 flex flex-col items-center gap-3 p-10 text-center">
@@ -46,11 +53,13 @@ export default function SavedPropertiesPage() {
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {saved.map((item) => (
-          <PropertyCard key={item.id} listing={item.listing} initialSaved onUnsave={handleUnsave} />
-        ))}
-      </div>
+      {!loading && saved.length > 0 ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {saved.map((item) => (
+            <PropertyCard key={item.id} listing={item.listing} initialSaved onUnsave={handleUnsave} />
+          ))}
+        </div>
+      ) : null}
     </div>
   </RoleGuard>
   );

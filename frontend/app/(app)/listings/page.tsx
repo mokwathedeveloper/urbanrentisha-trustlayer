@@ -5,6 +5,7 @@ import { api, type Listing } from "@/lib/api";
 import { PropertyCard } from "@/components/listings/property-card";
 import { FilterPanel, DEFAULT_FILTERS, type ListingFilters } from "@/components/listings/filter-panel";
 import { Icon } from "@/components/ui/icon";
+import { CardSkeleton } from "@/components/ui/skeleton";
 
 export default function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -109,14 +110,20 @@ export default function ListingsPage() {
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((listing) => (
-            <PropertyCard key={listing.id} listing={listing} />
-          ))}
-          {!loading && filtered.length === 0 ? (
-            <p className="col-span-full py-12 text-center text-sm text-ur-text-muted">
-              No properties match your filters.
-            </p>
-          ) : null}
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
+          ) : (
+            <>
+              {filtered.map((listing) => (
+                <PropertyCard key={listing.id} listing={listing} />
+              ))}
+              {filtered.length === 0 ? (
+                <p className="col-span-full py-12 text-center text-sm text-ur-text-muted">
+                  No properties match your filters.
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
 
         <div className={showFilters ? "block" : "hidden lg:block"}>
