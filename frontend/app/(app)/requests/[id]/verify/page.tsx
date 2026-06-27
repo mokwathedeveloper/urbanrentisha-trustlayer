@@ -8,6 +8,9 @@ import { Stepper } from "@/components/requests/stepper";
 import { api, ApiError, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { PageLoader } from "@/components/ui/page-loader";
+import { VerificationProcessingState } from "@/components/ui/processing-state";
+import { Spinner } from "@/components/ui/spinner";
 
 const verifySteps = ["Proof Submitted", "Verifying Proof", "Verification Result", "Access Granted", "Complete"];
 
@@ -68,7 +71,7 @@ export default function VerifyProofPage() {
     }
   }
 
-  if (loading) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+  if (loading) return <PageLoader />;
   if (error && !request) return <p className="p-8 text-sm text-ur-error">{error}</p>;
   if (!request?.zkProof) return null;
 
@@ -95,15 +98,10 @@ export default function VerifyProofPage() {
           <Stepper currentStep={2} steps={verifySteps} />
 
           {verifying ? (
-            <div className="flex items-center gap-3 rounded-ur border border-ur-cyan/30 bg-ur-bg-soft p-4">
-              <Icon name="hourglass_empty" size={20} className="animate-pulse text-ur-cyan" />
-              <div>
-                <p className="text-sm font-bold text-ur-cyan">Verifying your proof...</p>
-                <p className="text-xs text-ur-text-secondary">
-                  Your zero-knowledge proof has been submitted to the Stellar network for verification.
-                </p>
-              </div>
-            </div>
+            <VerificationProcessingState
+              title="Verifying your proof..."
+              subtitle="Your zero-knowledge proof has been submitted to the Stellar network for verification."
+            />
           ) : null}
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -158,7 +156,8 @@ export default function VerifyProofPage() {
               <Button
                 className="mt-4 w-full"
                 onClick={handleVerify}
-                disabled={verifying || verified}
+                disabled={verified}
+                loading={verifying}
               >
                 {verified ? "Proof Verified" : verifying ? "Verifying Proof..." : "Verify Proof"}
               </Button>
@@ -205,10 +204,13 @@ export default function VerifyProofPage() {
           <div className="ur-card flex flex-col items-center p-5 text-center">
             <h2 className="font-bold text-ur-navy">Verification Result</h2>
             <div
-              className={`my-4 grid h-20 w-20 place-items-center rounded-full border ${
+              className={`relative my-4 grid h-20 w-20 place-items-center rounded-full border ${
                 verified ? "border-ur-primary bg-ur-success-bg" : failed ? "border-ur-error bg-ur-error-bg" : "border-ur-cyan/40 bg-ur-bg-soft"
               }`}
             >
+              {verifying ? (
+                <Spinner size="lg" className="absolute inset-[-1px] h-[calc(100%+2px)] w-[calc(100%+2px)] text-ur-cyan" aria-label="" />
+              ) : null}
               {verified ? (
                 <Icon name="check" size={36} className="text-ur-primary" />
               ) : failed ? (
