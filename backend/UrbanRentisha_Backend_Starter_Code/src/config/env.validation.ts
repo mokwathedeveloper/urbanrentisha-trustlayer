@@ -88,6 +88,17 @@ export class EnvironmentVariables {
     message: "CRON_SECRET must be at least 16 characters",
   })
   CRON_SECRET?: string;
+
+  // Also production-only-required (see below) - shared throttler storage
+  // (see common/throttler/throttler-storage.factory.ts). Optional outside
+  // production: local dev falls back to per-instance in-memory throttling
+  // with no Redis at all, which is fine for a single local process.
+  @IsOptional()
+  @IsString()
+  @Matches(/^rediss?:\/\//, {
+    message: "REDIS_URL must be a redis:// or rediss:// connection string",
+  })
+  REDIS_URL?: string;
 }
 
 /** Secrets checked for obvious placeholder values before production may boot. */
@@ -98,10 +109,11 @@ const PRODUCTION_SECRET_FIELDS: (keyof EnvironmentVariables)[] = [
   "CRON_SECRET",
 ];
 
-/** Secrets required in production only - unlike the always-required ones
- * above, these have a real, valid "unset" state outside production. */
+/** Secrets/config required in production only - unlike the always-required
+ * ones above, these have a real, valid "unset" state outside production. */
 const PRODUCTION_ONLY_REQUIRED_FIELDS: (keyof EnvironmentVariables)[] = [
   "CRON_SECRET",
+  "REDIS_URL",
 ];
 
 /**
