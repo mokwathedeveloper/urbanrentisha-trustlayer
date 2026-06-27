@@ -82,6 +82,11 @@
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
+  "overrides": {
+    "@stellar/stellar-sdk": {
+      "@noble/hashes": "1.8.0"
+    }
+  },
   "engines": {
     "node": "20.x"
   },
