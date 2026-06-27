@@ -1,4 +1,7 @@
 import type { contract } from "@stellar/stellar-sdk";
+import { importEsm } from "../common/utils/dynamic-import.util";
+
+type StellarSdk = typeof import("@stellar/stellar-sdk");
 
 // Contract spec (XDR) extracted from `stellar contract bindings typescript`
 // for the deployed UrbanRentishaTrustVerifier contract. Forked from
@@ -46,15 +49,19 @@ export class TrustVerifierClient {
   /**
    * The Stellar SDK's CJS build requires ESM-only @noble/* crypto packages
    * internally, which Vercel's serverless runtime can't require()
-   * synchronously - so the SDK is loaded lazily via dynamic import() on
-   * first use instead of at module/constructor time, which works in every
-   * environment.
+   * synchronously - so the SDK is loaded lazily on first use via importEsm,
+   * a real runtime import() that resolves the SDK's proper ESM build
+   * instead of tsc's downleveled `await import()` (which compiles to a
+   * plain require() under module: "commonjs" and would still hit the
+   * broken CJS build - see dynamic-import.util.ts).
    */
   private async getClient(): Promise<
     contract.Client & { verify_proof: VerifyProofFn }
   > {
     if (!this.client) {
-      const { contract, Keypair } = await import("@stellar/stellar-sdk");
+      const { contract, Keypair } = await importEsm<StellarSdk>(
+        "@stellar/stellar-sdk",
+      );
       const keypair = Keypair.fromSecret(this.config.signerSecretKey);
       const signer = contract.basicNodeSigner(
         keypair,
