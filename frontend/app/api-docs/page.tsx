@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { apiEndpoints, apiGroups, type ApiEndpoint, type HttpMethod } from "@/lib/api-docs-data";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
@@ -170,7 +171,7 @@ export default function ApiDocsPage() {
                 disabled={sending}
                 className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
               >
-                <Icon name="send" size={16} />
+                {sending ? <ButtonSpinner /> : <Icon name="send" size={16} />}
                 {sending ? "Sending..." : "Send"}
               </button>
             </div>

@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { faqTopics } from "@/lib/faq-data";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const topicIcons: Record<string, IconName> = {
   "stellar-testnet": "hub",
@@ -190,7 +191,7 @@ export default function HelpFaqPage() {
               disabled={startingChat}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:opacity-60"
             >
-              <Icon name="chat_bubble" size={16} />
+              {startingChat ? <ButtonSpinner /> : <Icon name="chat_bubble" size={16} />}
               {startingChat ? "Starting chat..." : "Contact Support"}
             </button>
           </div>
