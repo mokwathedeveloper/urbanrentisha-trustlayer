@@ -143,4 +143,30 @@ pre,
       linear-gradient(90deg, rgba(22, 163, 74, 0.05) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+
+  /* Shared shimmer for every Skeleton (components/ui/skeleton.tsx) - one
+     keyframe so every skeleton in the app pulses in sync. Reduced to a
+     static, slightly-lighter block under prefers-reduced-motion instead of
+     removing the placeholder entirely, since it's still load-bearing for
+     preventing layout shift. */
+  .ur-shimmer {
+    animation: ur-shimmer 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ur-shimmer {
+      animation: none;
+      opacity: 0.7;
+    }
+  }
+}
+
+@keyframes ur-shimmer {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
