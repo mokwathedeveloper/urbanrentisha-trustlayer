@@ -1,6 +1,24 @@
 {
   "version": 2,
-  "builds": [{ "src": "api/index.ts", "use": "@vercel/node" }],
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "node_modules/@stellar/stellar-sdk/**",
+          "node_modules/@noble/**",
+          "node_modules/base32.js/**",
+          "node_modules/bignumber.js/**",
+          "node_modules/eventsource/**",
+          "node_modules/eventsource-parser/**",
+          "node_modules/feaxios/**",
+          "node_modules/smol-toml/**",
+          "node_modules/uint8array-extras/**"
+        ]
+      }
+    }
+  ],
   "routes": [{ "src": "/(.*)", "dest": "api/index.ts" }],
   "crons": [
     {
