@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { StatCardSkeleton } from "@/components/ui/skeleton";
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -107,11 +108,13 @@ export function StatCard({
   color: string;
   loading?: boolean;
 }) {
+  if (loading) return <StatCardSkeleton />;
+
   return (
     <div className="ur-card p-4">
       <Icon name={icon} size={16} className={`${color}`} />
       <p className="mt-2 text-xs text-ur-text-secondary">{label}</p>
-      <p className="text-xl font-black text-ur-navy">{loading ? "—" : value}</p>
+      <p className="text-xl font-black text-ur-navy">{value}</p>
     </div>
   );
 }
