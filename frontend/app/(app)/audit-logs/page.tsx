@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, type AuditLogEntry, type AuditLogStats } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const entityIcons: Record<string, IconName> = {
   listing: "description",
@@ -164,13 +165,17 @@ export default function AuditLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ur-border">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-ur-text-muted">
-                    Loading...
-                  </td>
-                </tr>
-              ) : null}
+              {loading
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 5 }).map((__, j) => (
+                        <td key={j} className="px-4 py-3">
+                          <Skeleton className="h-4 w-full max-w-32" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : null}
               {!loading && filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-ur-text-muted">

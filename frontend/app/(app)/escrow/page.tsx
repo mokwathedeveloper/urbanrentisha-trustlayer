@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
 import { EscrowManagementView } from "@/components/escrow/escrow-management-view";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 const ALLOWED_ROLES = ["TENANT", "LANDLORD", "AGENT", "MANAGER"] as const;
 
@@ -109,7 +110,7 @@ function RequestSection({
       <p className="border-b border-ur-border p-4 text-sm font-bold text-ur-navy">
         {title} <span className="text-ur-text-muted">({requests.length})</span>
       </p>
-      {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+      {loading ? <ListRowSkeletonGroup rows={3} /> : null}
       {!loading && requests.length === 0 ? (
         <div className="flex flex-col items-center gap-3 p-10 text-center">
           <Icon name="lock" size={32} className="text-ur-text-muted" />

@@ -10,6 +10,8 @@ import { Icon } from "@/components/ui/icon";
 import { isOnline, formatLastSeen } from "@/lib/presence";
 import { broadcastMessagesChanged } from "@/lib/messages";
 import { emitRealtimeEvent, useRealtimeEvent } from "@/lib/realtime";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const POLL_INTERVAL_MS = 5000;
 const TYPING_STOP_DELAY_MS = 2500;
@@ -189,7 +191,7 @@ export default function MessagesPage() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
         <div className="ur-card overflow-hidden">
-          {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+          {loading ? <ListRowSkeletonGroup rows={5} /> : null}
           {!loading && threads.length === 0 ? (
             <div className="flex flex-col items-center gap-3 p-10 text-center">
               <Icon name="mail" size={32} className="text-ur-text-muted" />
@@ -358,7 +360,7 @@ export default function MessagesPage() {
                   disabled={sending || !draft.trim()}
                   className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Icon name="send" size={16} />
+                  {sending ? <ButtonSpinner /> : <Icon name="send" size={16} />}
                   Send
                 </button>
               </div>

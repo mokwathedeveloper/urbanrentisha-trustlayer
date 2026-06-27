@@ -7,6 +7,8 @@ import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const ALLOWED_ROLES = ["ADMIN", "PLATFORM"] as const;
 
@@ -97,7 +99,7 @@ export default function AdminVerificationsPage() {
       {error ? <p className="mt-4 text-sm text-ur-error">{error}</p> : null}
 
       <div className="mt-6 ur-card">
-        {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+        {loading ? <ListRowSkeletonGroup rows={5} /> : null}
         {!loading && items.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
             <Icon name="verified_user" size={28} className="text-ur-text-muted" />
@@ -198,7 +200,7 @@ export default function AdminVerificationsPage() {
                         onClick={() => handleReview(item, "APPROVED")}
                         className="flex items-center gap-1.5 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:opacity-50"
                       >
-                        <Icon name="check_circle" size={16} />
+                        {submitting ? <ButtonSpinner /> : <Icon name="check_circle" size={16} />}
                         Approve
                       </button>
                       <button
@@ -207,7 +209,7 @@ export default function AdminVerificationsPage() {
                         onClick={() => handleReview(item, "NEEDS_CORRECTION")}
                         className="flex items-center gap-1.5 rounded-ur-sm border border-ur-warning/40 bg-ur-warning-bg px-4 py-2 text-sm font-bold text-ur-warning hover:bg-ur-warning/15 disabled:opacity-50"
                       >
-                        <Icon name="info" size={16} />
+                        {submitting ? <ButtonSpinner /> : <Icon name="info" size={16} />}
                         Needs Correction
                       </button>
                       <button
@@ -216,7 +218,7 @@ export default function AdminVerificationsPage() {
                         onClick={() => handleReview(item, "REJECTED")}
                         className="flex items-center gap-1.5 rounded-ur-sm border border-ur-error/40 bg-ur-error-bg px-4 py-2 text-sm font-bold text-ur-error hover:bg-ur-error/15 disabled:opacity-50"
                       >
-                        <Icon name="close" size={16} />
+                        {submitting ? <ButtonSpinner /> : <Icon name="close" size={16} />}
                         Reject
                       </button>
                       {item.userStatus === "SUSPENDED" ? (
@@ -226,7 +228,7 @@ export default function AdminVerificationsPage() {
                           onClick={() => handleSetStatus(item, "ACTIVE")}
                           className="flex items-center gap-1.5 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-bold text-ur-text-secondary hover:bg-ur-card-hover disabled:opacity-50"
                         >
-                          <Icon name="verified_user" size={16} />
+                          {submitting ? <ButtonSpinner /> : <Icon name="verified_user" size={16} />}
                           Reactivate Account
                         </button>
                       ) : (
@@ -236,7 +238,7 @@ export default function AdminVerificationsPage() {
                           onClick={() => handleSetStatus(item, "SUSPENDED")}
                           className="flex items-center gap-1.5 rounded-ur-sm border border-ur-border bg-ur-card px-4 py-2 text-sm font-bold text-ur-text-secondary hover:bg-ur-card-hover disabled:opacity-50"
                         >
-                          <Icon name="gpp_maybe" size={16} />
+                          {submitting ? <ButtonSpinner /> : <Icon name="gpp_maybe" size={16} />}
                           Suspend Account
                         </button>
                       )}

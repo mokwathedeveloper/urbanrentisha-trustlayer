@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { StatusBadge, activeStatuses, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 const ALLOWED_ROLES = ["TENANT"] as const;
 
@@ -35,7 +36,7 @@ export default function ApplicationsPage() {
       </p>
 
       <div className="mt-6 ur-card">
-        {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+        {loading ? <ListRowSkeletonGroup rows={5} /> : null}
         {!loading && active.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
             <Icon name="assignment" size={32} className="text-ur-text-muted" />
