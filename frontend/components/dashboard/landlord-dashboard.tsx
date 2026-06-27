@@ -19,7 +19,7 @@ export function LandlordDashboardView() {
     if (!token) return;
     Promise.all([api.listings.findMine(token), api.users.me(token)])
       .then(([myListings, me]) => {
-        setListings(myListings);
+        setListings(myListings.items);
         setProfile(me);
       })
       .finally(() => setLoading(false));

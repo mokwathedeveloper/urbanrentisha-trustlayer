@@ -23,7 +23,7 @@ export default function SearchPage() {
   useEffect(() => {
     api.listings
       .findAll()
-      .then(setListings)
+      .then((response) => setListings(response.items))
       .finally(() => setLoading(false));
   }, []);
 

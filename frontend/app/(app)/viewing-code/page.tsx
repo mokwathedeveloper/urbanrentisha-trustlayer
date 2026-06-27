@@ -28,7 +28,7 @@ export default function ViewingCodePage() {
     if (!token || !allowed) return;
     api.viewingRequests
       .findMine(token)
-      .then(setRequests)
+      .then((response) => setRequests(response.items))
       .finally(() => setLoading(false));
   }, [token, allowed]);
 

@@ -20,7 +20,7 @@ export default function MyPropertiesPage() {
     if (!token || !allowed) return;
     api.listings
       .findMine(token)
-      .then(setListings)
+      .then((response) => setListings(response.items))
       .finally(() => setLoading(false));
   }, [token, allowed]);
 

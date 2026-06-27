@@ -74,7 +74,7 @@ export default function MessagesPage() {
           ? api.listingThreads.findMessages(currentToken, currentId)
           : activeKind === "support"
             ? api.support.findMessages(currentToken, currentId)
-            : api.messages.findForRequest(currentToken, currentId);
+            : api.messages.findForRequest(currentToken, currentId).then((response) => response.items);
       fetcher.then(setActiveMessages);
     }
     loadMessages();

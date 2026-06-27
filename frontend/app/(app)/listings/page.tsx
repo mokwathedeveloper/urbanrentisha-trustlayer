@@ -18,7 +18,7 @@ export default function ListingsPage() {
   useEffect(() => {
     api.listings
       .findAll()
-      .then(setListings)
+      .then((response) => setListings(response.items))
       .catch(() => setError("Could not load listings."))
       .finally(() => setLoading(false));
   }, []);

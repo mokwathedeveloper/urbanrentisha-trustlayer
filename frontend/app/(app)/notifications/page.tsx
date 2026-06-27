@@ -51,9 +51,9 @@ export default function NotificationsPage() {
     if (!token) return;
     api.notifications
       .findMine(token)
-      .then((items) => {
-        setNotifications(items);
-        if (items.length > 0) setSelectedId(items[0].id);
+      .then((response) => {
+        setNotifications(response.items);
+        if (response.items.length > 0) setSelectedId(response.items[0].id);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -99,7 +99,7 @@ export default function NotificationsPage() {
     if (!token) return;
     await Promise.all(notifications.filter((n) => !n.readAt).map((n) => api.notifications.markRead(token, n.id)));
     const refreshed = await api.notifications.findMine(token);
-    setNotifications(refreshed);
+    setNotifications(refreshed.items);
     broadcastNotificationsChanged();
   }
 

@@ -10,6 +10,37 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Shared shape for every backend list endpoint that paginates (listings
+ * browse/mine/saved, reports, notifications, viewing requests, viewing
+ * request messages). These used to return a bare `T[]`; every caller must
+ * read `.items` instead of treating the response itself as the array -
+ * the return type changing from `T[]` to `PaginatedResponse<T>` below is
+ * what makes TypeScript catch any call site that still assumes otherwise.
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  hasNextPage: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+function withPaginationQuery(path: string, params?: PaginationParams): string {
+  if (!params || (params.page === undefined && params.limit === undefined)) {
+    return path;
+  }
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  return `${path}?${query.toString()}`;
+}
+
 async function request<T>(
   path: string,
   options: { method?: string; body?: unknown; token?: string | null } = {},
@@ -623,10 +654,13 @@ export const api = {
       request<{ publicKey: string; secretKey: string }>("/users/me/wallet/generate", { method: "POST", token }),
   },
   listings: {
-    findAll: () => request<Listing[]>("/listings"),
+    findAll: (params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<Listing>>(withPaginationQuery("/listings", params)),
     findOne: (id: string) => request<Listing>(`/listings/${id}`),
-    findSaved: (token: string) => request<SavedListingItem[]>("/listings/saved", { token }),
-    findMine: (token: string) => request<Listing[]>("/listings/mine", { token }),
+    findSaved: (token: string, params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<SavedListingItem>>(withPaginationQuery("/listings/saved", params), { token }),
+    findMine: (token: string, params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<Listing>>(withPaginationQuery("/listings/mine", params), { token }),
     save: (token: string, id: string) => request<SavedListingItem>(`/listings/${id}/save`, { method: "POST", token }),
     unsave: (token: string, id: string) =>
       request<{ success: boolean }>(`/listings/${id}/save`, { method: "DELETE", token }),
@@ -677,7 +711,8 @@ export const api = {
   viewingRequests: {
     create: (token: string, body: { listingId: string; preferredDate?: string; preferredTime?: string }) =>
       request<ViewingRequest>("/viewing-requests", { method: "POST", body, token }),
-    findMine: (token: string) => request<ViewingRequest[]>("/viewing-requests", { token }),
+    findMine: (token: string, params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<ViewingRequest>>(withPaginationQuery("/viewing-requests", params), { token }),
     findOne: (token: string, id: string) => request<ViewingRequest>(`/viewing-requests/${id}`, { token }),
     status: (token: string, id: string) =>
       request<ViewingRequestStatusInfo>(`/viewing-requests/${id}/status`, { token }),
@@ -721,13 +756,16 @@ export const api = {
         allowContact?: boolean;
       },
     ) => request<ReportItem>("/reports", { method: "POST", body, token }),
-    findAll: (token: string) => request<ReportItem[]>("/reports", { token }),
-    findMine: (token: string) => request<ReportItem[]>("/reports/mine", { token }),
+    findAll: (token: string, params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<ReportItem>>(withPaginationQuery("/reports", params), { token }),
+    findMine: (token: string, params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<ReportItem>>(withPaginationQuery("/reports/mine", params), { token }),
     respond: (token: string, id: string, body: { status: string; note?: string }) =>
       request<ReportItem>(`/reports/${id}/respond`, { method: "PATCH", body, token }),
   },
   notifications: {
-    findMine: (token: string) => request<NotificationItem[]>("/notifications", { token }),
+    findMine: (token: string, params: PaginationParams = { limit: 100 }) =>
+      request<PaginatedResponse<NotificationItem>>(withPaginationQuery("/notifications", params), { token }),
     markRead: (token: string, id: string) =>
       request<NotificationItem>(`/notifications/${id}/read`, { method: "PATCH", token }),
   },
@@ -826,8 +864,15 @@ export const api = {
   },
   messages: {
     findInbox: (token: string) => request<MessageThread[]>("/messages", { token }),
-    findForRequest: (token: string, viewingRequestId: string) =>
-      request<MessageItem[]>(`/viewing-requests/${viewingRequestId}/messages`, { token }),
+    findForRequest: (
+      token: string,
+      viewingRequestId: string,
+      params: PaginationParams = { limit: 100 },
+    ) =>
+      request<PaginatedResponse<MessageItem>>(
+        withPaginationQuery(`/viewing-requests/${viewingRequestId}/messages`, params),
+        { token },
+      ),
     send: (token: string, viewingRequestId: string, body: string) =>
       request<MessageItem>(`/viewing-requests/${viewingRequestId}/messages`, {
         method: "POST",

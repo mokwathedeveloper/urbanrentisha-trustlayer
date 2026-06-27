@@ -20,7 +20,7 @@ export default function SavedPropertiesPage() {
     if (!token || !allowed) return;
     api.listings
       .findSaved(token)
-      .then(setSaved)
+      .then((response) => setSaved(response.items))
       .finally(() => setLoading(false));
   }, [token, allowed]);
 

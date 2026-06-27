@@ -147,7 +147,7 @@ export default function PropertyDetailPage() {
     api.viewingRequests
       .findMine(token)
       .then((requests) => {
-        const match = requests.find((request) => request.listingId === params.id);
+        const match = requests.items.find((request) => request.listingId === params.id);
         setViewingRequestId(match?.id ?? null);
       })
       .catch(() => {});
@@ -161,7 +161,7 @@ export default function PropertyDetailPage() {
     const threadId = activeThreadId;
     function loadMessages() {
       const fetcher = viewingRequestId
-        ? api.messages.findForRequest(currentToken, threadId)
+        ? api.messages.findForRequest(currentToken, threadId).then((response) => response.items)
         : api.listingThreads.findMessages(currentToken, threadId);
       fetcher.then(setChatMessages).catch(() => {});
     }

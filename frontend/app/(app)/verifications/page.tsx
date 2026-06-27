@@ -29,7 +29,7 @@ export default function VerificationsPage() {
     if (!token || !allowed) return;
     api.viewingRequests
       .findMine(token)
-      .then(setRequests)
+      .then((response) => setRequests(response.items))
       .finally(() => setLoading(false));
   }, [token, allowed]);
 

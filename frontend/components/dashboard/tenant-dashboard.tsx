@@ -26,9 +26,9 @@ export function TenantDashboardView() {
       api.users.me(token),
     ])
       .then(([req, notif, rep, me]) => {
-        setRequests(req);
-        setNotifications(notif);
-        setReports(rep);
+        setRequests(req.items);
+        setNotifications(notif.items);
+        setReports(rep.items);
         setProfile(me);
       })
       .finally(() => setLoading(false));

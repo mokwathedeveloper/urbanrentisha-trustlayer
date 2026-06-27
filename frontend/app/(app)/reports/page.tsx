@@ -83,7 +83,7 @@ export default function ReportsListPage() {
   function load() {
     if (!token) return;
     const fetcher = isAdmin ? api.reports.findAll(token) : api.reports.findMine(token);
-    fetcher.then(setReports).finally(() => setLoading(false));
+    fetcher.then((response) => setReports(response.items)).finally(() => setLoading(false));
   }
 
   useEffect(load, [token, isAdmin]);

@@ -40,7 +40,8 @@ export function useUnreadNotificationsCount(token: string | null): number {
 
   useEffect(() => {
     if (!token) return;
-    const load = () => api.notifications.findMine(token).then(setNotifications);
+    const load = () =>
+      api.notifications.findMine(token).then((response) => setNotifications(response.items));
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
