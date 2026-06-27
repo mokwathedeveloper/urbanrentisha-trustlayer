@@ -2,6 +2,9 @@ import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Horizon } from "@stellar/stellar-sdk";
 import { createHash } from "crypto";
+import { importEsm } from "../common/utils/dynamic-import.util";
+
+type StellarSdk = typeof import("@stellar/stellar-sdk");
 
 @Injectable()
 export class StellarService {
@@ -13,12 +16,16 @@ export class StellarService {
    * The Stellar SDK's CJS build requires ESM-only @noble/* crypto packages
    * internally, which Vercel's serverless runtime can't require()
    * synchronously - so the SDK (and this server instance) are loaded lazily
-   * via dynamic import() on first use instead of at module/constructor
-   * time, which works in every environment.
+   * on first use via importEsm, a real runtime import() that resolves the
+   * SDK's proper ESM build instead of tsc's downleveled `await import()`
+   * (which compiles to a plain require() under module: "commonjs" and
+   * would still hit the broken CJS build - see dynamic-import.util.ts).
    */
   private async getServer(): Promise<Horizon.Server> {
     if (!this.server) {
-      const { Horizon: HorizonNs } = await import("@stellar/stellar-sdk");
+      const { Horizon: HorizonNs } = await importEsm<StellarSdk>(
+        "@stellar/stellar-sdk",
+      );
       this.server = new HorizonNs.Server(
         this.config.get<string>("STELLAR_HORIZON_URL") ??
           "https://horizon-testnet.stellar.org",
@@ -49,7 +56,7 @@ export class StellarService {
     }
 
     const { Keypair, TransactionBuilder, BASE_FEE, Networks, Operation } =
-      await import("@stellar/stellar-sdk");
+      await importEsm<StellarSdk>("@stellar/stellar-sdk");
     const server = await this.getServer();
 
     const keypair = Keypair.fromSecret(secret);
@@ -90,7 +97,7 @@ export class StellarService {
    * call returns, the platform has no way to sign for this account again.
    */
   async generateWallet(): Promise<{ publicKey: string; secretKey: string }> {
-    const { Keypair } = await import("@stellar/stellar-sdk");
+    const { Keypair } = await importEsm<StellarSdk>("@stellar/stellar-sdk");
     const keypair = Keypair.random();
     return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
   }
@@ -209,7 +216,7 @@ export class StellarService {
       Operation,
       Asset,
       Memo,
-    } = await import("@stellar/stellar-sdk");
+    } = await importEsm<StellarSdk>("@stellar/stellar-sdk");
     const server = await this.getServer();
 
     const keypair = Keypair.fromSecret(secret);
