@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
+import { requestContextMiddleware } from "./common/middleware/request-context.middleware";
 
 /**
  * Shared middleware/pipe/CORS setup used by both the local dev server
@@ -10,6 +11,10 @@ import helmet from "helmet";
  */
 export function configureApp(app: INestApplication): void {
   const config = app.get(ConfigService);
+
+  // First, so every other piece of middleware/every request handler runs
+  // inside the request-ID context.
+  app.use(requestContextMiddleware);
 
   app.use(helmet());
 

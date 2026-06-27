@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { AuditSeverity, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { getRequestId } from "../common/context/request-context";
 
 type AuditInput = {
   actorId?: string;
@@ -20,11 +21,25 @@ export class AuditLogsService {
    * write to be atomic with other writes (e.g. payments.service.ts's
    * confirmEscrowDeposit) can pass their `tx` through instead of always
    * writing via a separate, independent connection.
+   *
+   * Automatically stamps the current HTTP request's correlation ID (see
+   * common/middleware/request-context.middleware.ts) into metadata when
+   * one exists, so a failed transaction's audit trail can be traced back
+   * to the exact request that caused it via the same ID logged in the
+   * structured access log line - no manual timestamp/entityId
+   * correlation needed. Calls made outside an HTTP request (cron
+   * schedulers, the reconciliation sweep) simply have no requestId.
    */
   create(
     input: AuditInput,
     client: PrismaService | Prisma.TransactionClient = this.prisma,
   ) {
+    const requestId = getRequestId();
+    const metadata = {
+      ...((input.metadata as Record<string, unknown> | undefined) ?? {}),
+      ...(requestId ? { requestId } : {}),
+    };
+
     return client.auditLog.create({
       data: {
         actorId: input.actorId,
@@ -32,7 +47,7 @@ export class AuditLogsService {
         entityType: input.entityType,
         entityId: input.entityId,
         severity: input.severity ?? "INFO",
-        metadata: input.metadata ?? {},
+        metadata,
       },
     });
   }

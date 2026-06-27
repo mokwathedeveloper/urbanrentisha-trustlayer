@@ -6,6 +6,7 @@ import {
 import {
   NotificationType,
   PaymentStatus,
+  Prisma,
   UserRole,
   ViewingRequestStatus,
 } from "@prisma/client";
@@ -49,17 +50,37 @@ export class PaymentsService {
     if (!request) throw new NotFoundException("Viewing request not found.");
     if (request.payment) return request.payment;
 
-    const payment = await this.prisma.payment.create({
-      data: {
-        viewingRequestId: request.id,
-        amount: request.listing.viewingFee,
-        currency: request.listing.currency,
-        destinationWallet: this.stellar.getDestinationWallet(),
-        payerWallet: dto.payerWallet,
-        stellarMemo: this.stellar.createMemoForRequest(request.id),
-        status: PaymentStatus.AWAITING_PAYMENT,
-      },
-    });
+    let payment;
+    try {
+      payment = await this.prisma.payment.create({
+        data: {
+          viewingRequestId: request.id,
+          amount: request.listing.viewingFee,
+          currency: request.listing.currency,
+          destinationWallet: this.stellar.getDestinationWallet(),
+          payerWallet: dto.payerWallet,
+          stellarMemo: this.stellar.createMemoForRequest(request.id),
+          status: PaymentStatus.AWAITING_PAYMENT,
+        },
+      });
+    } catch (error) {
+      // A concurrent call already won the race to create this viewing
+      // request's payment (Payment.viewingRequestId is @unique) - return
+      // the row that won instead of propagating an unhandled 500. The DB
+      // constraint already guarantees there is exactly one Payment per
+      // viewing request; this just makes the losing caller's response
+      // graceful instead of an error.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const existing = await this.prisma.payment.findUnique({
+          where: { viewingRequestId: request.id },
+        });
+        if (existing) return existing;
+      }
+      throw error;
+    }
 
     await this.auditLogs.create({
       actorId,

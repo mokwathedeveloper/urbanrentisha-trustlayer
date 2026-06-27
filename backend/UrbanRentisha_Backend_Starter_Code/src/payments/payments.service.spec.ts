@@ -1,6 +1,11 @@
 import { Test } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
-import { PaymentStatus, UserRole, ViewingRequestStatus } from "@prisma/client";
+import {
+  PaymentStatus,
+  Prisma,
+  UserRole,
+  ViewingRequestStatus,
+} from "@prisma/client";
 import { PaymentsService } from "./payments.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StellarService } from "../stellar/stellar.service";
@@ -328,5 +333,119 @@ describe("PaymentsService.confirmEscrowDeposit", () => {
       expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(tx.payment.update).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("PaymentsService.createIntent", () => {
+  let service: PaymentsService;
+  let prisma: {
+    viewingRequest: { findUnique: jest.Mock };
+    payment: { create: jest.Mock; findUnique: jest.Mock };
+  };
+  let auditLogs: { create: jest.Mock };
+  let access: { assertAccess: jest.Mock };
+
+  const baseRequest = {
+    id: "request-1",
+    payment: null as unknown,
+    listing: { viewingFee: 500, currency: "KES" },
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      viewingRequest: {
+        findUnique: jest.fn().mockResolvedValue(baseRequest),
+      },
+      payment: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+      },
+    };
+    auditLogs = { create: jest.fn().mockResolvedValue(undefined) };
+    access = { assertAccess: jest.fn().mockResolvedValue(undefined) };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PaymentsService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: StellarService,
+          useValue: {
+            getDestinationWallet: () => "GDEST",
+            createMemoForRequest: () => "memo-1",
+          },
+        },
+        { provide: AuditLogsService, useValue: auditLogs },
+        { provide: NotificationsService, useValue: {} },
+        { provide: ViewingRequestAccessService, useValue: access },
+        { provide: EscrowService, useValue: {} },
+        { provide: ListingsService, useValue: {} },
+      ],
+    }).compile();
+
+    service = moduleRef.get(PaymentsService);
+  });
+
+  it("creates a new payment when none exists yet", async () => {
+    const created = { id: "payment-1", viewingRequestId: "request-1" };
+    prisma.payment.create.mockResolvedValue(created);
+
+    const result = await service.createIntent("tenant-1", UserRole.TENANT, {
+      viewingRequestId: "request-1",
+    } as never);
+
+    expect(result).toBe(created);
+    expect(prisma.payment.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the already-created payment without calling create, when the viewing request already has one", async () => {
+    const existing = { id: "payment-existing", viewingRequestId: "request-1" };
+    prisma.viewingRequest.findUnique.mockResolvedValue({
+      ...baseRequest,
+      payment: existing,
+    });
+
+    const result = await service.createIntent("tenant-1", UserRole.TENANT, {
+      viewingRequestId: "request-1",
+    } as never);
+
+    expect(result).toBe(existing);
+    expect(prisma.payment.create).not.toHaveBeenCalled();
+  });
+
+  it("gracefully returns the winning row instead of throwing when a concurrent call already created the payment", async () => {
+    // Both calls observe request.payment === null (the race window), so
+    // both attempt prisma.payment.create - the database's @unique
+    // constraint on viewingRequestId is what actually decides the winner.
+    const winner = { id: "payment-winner", viewingRequestId: "request-1" };
+    const uniqueConstraintError = Object.assign(
+      new Error("Unique constraint failed on the fields: (`viewingRequestId`)"),
+      { code: "P2002", name: "PrismaClientKnownRequestError" },
+    );
+    Object.setPrototypeOf(
+      uniqueConstraintError,
+      Prisma.PrismaClientKnownRequestError.prototype,
+    );
+    prisma.payment.create.mockRejectedValue(uniqueConstraintError);
+    prisma.payment.findUnique.mockResolvedValue(winner);
+
+    const result = await service.createIntent("tenant-1", UserRole.TENANT, {
+      viewingRequestId: "request-1",
+    } as never);
+
+    expect(result).toEqual(winner);
+    expect(prisma.payment.findUnique).toHaveBeenCalledWith({
+      where: { viewingRequestId: "request-1" },
+    });
+  });
+
+  it("still throws for a database error that is not the duplicate-payment unique-constraint violation", async () => {
+    prisma.payment.create.mockRejectedValue(new Error("connection refused"));
+
+    await expect(
+      service.createIntent("tenant-1", UserRole.TENANT, {
+        viewingRequestId: "request-1",
+      } as never),
+    ).rejects.toThrow("connection refused");
   });
 });
