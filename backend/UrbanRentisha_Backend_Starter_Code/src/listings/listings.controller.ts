@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
@@ -14,6 +15,7 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { RejectListingDto } from "./dto/reject-listing.dto";
 import { AddListingImageDto } from "./dto/add-listing-image.dto";
@@ -24,20 +26,26 @@ export class ListingsController {
   constructor(private readonly listings: ListingsService) {}
 
   @Get()
-  findAll() {
-    return this.listings.findAll();
+  findAll(@Query() pagination: PaginationQueryDto) {
+    return this.listings.findAll(pagination);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get("saved")
-  findSaved(@CurrentUser() user: AuthUser) {
-    return this.listings.findSaved(user.sub);
+  findSaved(
+    @CurrentUser() user: AuthUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.listings.findSaved(user.sub, pagination);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get("mine")
-  findMine(@CurrentUser() user: AuthUser) {
-    return this.listings.findMine(user.sub, user.role);
+  findMine(
+    @CurrentUser() user: AuthUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.listings.findMine(user.sub, user.role, pagination);
   }
 
   @Get(":id")

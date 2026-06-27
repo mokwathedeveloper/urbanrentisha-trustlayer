@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
 import { FINANCIAL_MUTATION_THROTTLE } from "../common/constants/throttle-limits";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
 import { ViewingRequestsService } from "./viewing-requests.service";
 
@@ -21,8 +30,11 @@ export class ViewingRequestsController {
   }
 
   @Get()
-  findMine(@CurrentUser() user: AuthUser) {
-    return this.viewingRequests.findAllForUser(user.sub);
+  findMine(
+    @CurrentUser() user: AuthUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.viewingRequests.findAllForUser(user.sub, pagination);
   }
 
   @Get("escrow-summary")

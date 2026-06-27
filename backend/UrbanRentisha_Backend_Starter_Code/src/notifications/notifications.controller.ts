@@ -1,7 +1,15 @@
-import { Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
 import { NotificationsService } from "./notifications.service";
 
 @UseGuards(JwtAuthGuard)
@@ -10,8 +18,11 @@ export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
   @Get()
-  findMine(@CurrentUser() user: AuthUser) {
-    return this.notifications.findForUser(user.sub);
+  findMine(
+    @CurrentUser() user: AuthUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.notifications.findForUser(user.sub, pagination);
   }
 
   @Patch(":id/read")

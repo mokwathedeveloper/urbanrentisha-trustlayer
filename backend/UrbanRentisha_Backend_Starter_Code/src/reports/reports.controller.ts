@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
@@ -13,6 +14,7 @@ import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
 import { CreateReportDto } from "./dto/create-report.dto";
 import { RespondToReportDto } from "./dto/respond-to-report.dto";
 import { ReportsService } from "./reports.service";
@@ -30,13 +32,16 @@ export class ReportsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.PLATFORM)
   @Get()
-  findAll() {
-    return this.reports.findAll();
+  findAll(@Query() pagination: PaginationQueryDto) {
+    return this.reports.findAll(pagination);
   }
 
   @Get("mine")
-  findMine(@CurrentUser() user: AuthUser) {
-    return this.reports.findMine(user.sub);
+  findMine(
+    @CurrentUser() user: AuthUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.reports.findMine(user.sub, pagination);
   }
 
   @UseGuards(RolesGuard)

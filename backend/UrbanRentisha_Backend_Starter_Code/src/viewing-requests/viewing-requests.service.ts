@@ -15,6 +15,11 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
 import { ViewingRequestAccessService } from "./viewing-request-access.service";
 import { summarizePayments } from "../escrow-reporting/escrow-summary.util";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
+import {
+  buildPaginatedResult,
+  paginationArgs,
+} from "../common/utils/pagination.util";
 
 /**
  * How long a tenant has to pay once it's their turn before the slot is
@@ -236,33 +241,43 @@ export class ViewingRequestsService {
     return lapsed.length;
   }
 
-  async findAllForUser(userId: string) {
+  /** Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded, with a heavy nested include per row. */
+  async findAllForUser(userId: string, pagination: PaginationQueryDto) {
+    const { page, limit } = pagination;
     const tenant = await this.prisma.tenantProfile.findUnique({
       where: { userId },
     });
-    if (!tenant) return [];
+    if (!tenant) return buildPaginatedResult([], 0, page, limit);
 
-    return this.prisma.viewingRequest.findMany({
-      where: { tenantId: tenant.id },
-      orderBy: { createdAt: "desc" },
-      include: {
-        listing: {
-          include: {
-            agent: {
-              include: {
-                user: {
-                  select: { id: true, name: true, email: true, phone: true },
+    const where = { tenantId: tenant.id };
+    const [items, total] = await Promise.all([
+      this.prisma.viewingRequest.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          listing: {
+            include: {
+              agent: {
+                include: {
+                  user: {
+                    select: { id: true, name: true, email: true, phone: true },
+                  },
                 },
               },
             },
           },
+          payment: true,
+          zkProof: true,
+          proofVerification: true,
+          viewingCode: true,
         },
-        payment: true,
-        zkProof: true,
-        proofVerification: true,
-        viewingCode: true,
-      },
-    });
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.viewingRequest.count({ where }),
+    ]);
+
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   /** Dashboard card numbers for a tenant - amount spent, held in escrow,

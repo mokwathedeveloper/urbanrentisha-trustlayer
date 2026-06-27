@@ -18,6 +18,11 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { ViewingRequestsService } from "../viewing-requests/viewing-requests.service";
 import { computeEscrowPhase } from "../escrow-reporting/escrow-phase.util";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
+import {
+  buildPaginatedResult,
+  paginationArgs,
+} from "../common/utils/pagination.util";
 import { CreateListingDto } from "./dto/create-listing.dto";
 import { AddListingImageDto } from "./dto/add-listing-image.dto";
 
@@ -66,49 +71,67 @@ export class ListingsService {
    * defaults to verified-only. Pending/rejected listings have no business
    * being shown to a tenant browsing the marketplace; admins moderate
    * those through the dedicated admin verification endpoints, not this one.
+   *
+   * Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded, returning every verified listing in one response.
    */
-  findAll() {
-    return this.prisma.listing.findMany({
-      where: { verificationStatus: ListingStatus.VERIFIED },
-      orderBy: { createdAt: "desc" },
-      include: LISTING_OWNER_INCLUDE,
-    });
+  async findAll(pagination: PaginationQueryDto) {
+    const { page, limit } = pagination;
+    const where = { verificationStatus: ListingStatus.VERIFIED };
+
+    const [items, total] = await Promise.all([
+      this.prisma.listing.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: LISTING_OWNER_INCLUDE,
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.listing.count({ where }),
+    ]);
+
+    return buildPaginatedResult(items, total, page, limit);
   }
 
-  async findMine(userId: string, role: UserRole) {
-    let listings: Awaited<ReturnType<typeof this.prisma.listing.findMany>>;
+  /** Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded for any owner/agent/manager with a large portfolio. */
+  async findMine(
+    userId: string,
+    role: UserRole,
+    pagination: PaginationQueryDto,
+  ) {
+    const { page, limit } = pagination;
+    let where: Prisma.ListingWhereInput;
 
     if (role === UserRole.AGENT) {
       const agentProfile = await this.prisma.agentProfile.findUnique({
         where: { userId },
       });
-      if (!agentProfile) return [];
-      listings = await this.prisma.listing.findMany({
-        where: { agentId: agentProfile.id },
-        orderBy: { createdAt: "desc" },
-        include: LISTING_OWNER_INCLUDE,
-      });
+      if (!agentProfile) return buildPaginatedResult([], 0, page, limit);
+      where = { agentId: agentProfile.id };
     } else if (role === UserRole.MANAGER) {
       const managerProfile = await this.prisma.managerProfile.findUnique({
         where: { userId },
       });
-      if (!managerProfile) return [];
-      listings = await this.prisma.listing.findMany({
-        where: { managerId: managerProfile.id },
-        orderBy: { createdAt: "desc" },
-        include: LISTING_OWNER_INCLUDE,
-      });
+      if (!managerProfile) return buildPaginatedResult([], 0, page, limit);
+      where = { managerId: managerProfile.id };
     } else {
       // LANDLORD (and ADMIN/PLATFORM, who own no listings but get an empty,
       // harmless result here - they use /listings or /admin views instead).
-      listings = await this.prisma.listing.findMany({
-        where: { ownerId: userId },
-        orderBy: { createdAt: "desc" },
-        include: LISTING_OWNER_INCLUDE,
-      });
+      where = { ownerId: userId };
     }
 
-    return this.attachEscrowPhase(listings);
+    const [listings, total] = await Promise.all([
+      this.prisma.listing.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: LISTING_OWNER_INCLUDE,
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.listing.count({ where }),
+    ]);
+
+    const items = await this.attachEscrowPhase(listings);
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   /**
@@ -248,14 +271,25 @@ export class ListingsService {
     return { success: true };
   }
 
-  findSaved(userId: string) {
-    return this.prisma.savedListing.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        listing: { include: LISTING_OWNER_INCLUDE },
-      },
-    });
+  /** Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded for any tenant who has saved a large number of listings. */
+  async findSaved(userId: string, pagination: PaginationQueryDto) {
+    const { page, limit } = pagination;
+    const where = { userId };
+
+    const [items, total] = await Promise.all([
+      this.prisma.savedListing.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          listing: { include: LISTING_OWNER_INCLUDE },
+        },
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.savedListing.count({ where }),
+    ]);
+
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   async markVerified(id: string, actorId: string) {

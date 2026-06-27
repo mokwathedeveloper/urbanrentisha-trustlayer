@@ -5,11 +5,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
 import { MessagesService } from "./messages.service";
 import { CreateMessageDto } from "./dto/create-message.dto";
 
@@ -24,8 +26,12 @@ export class MessagesController {
   }
 
   @Get("viewing-requests/:id/messages")
-  findForRequest(@CurrentUser() user: AuthUser, @Param("id") id: string) {
-    return this.messages.findForRequest(user.sub, id);
+  findForRequest(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.messages.findForRequest(user.sub, id, pagination);
   }
 
   @Post("viewing-requests/:id/messages")

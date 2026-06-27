@@ -7,6 +7,11 @@ import { NotificationType, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
+import {
+  buildPaginatedResult,
+  paginationArgs,
+} from "../common/utils/pagination.util";
 import { CreateMessageDto } from "./dto/create-message.dto";
 
 const ADMIN_ROLES = new Set<UserRole>([UserRole.ADMIN, UserRole.PLATFORM]);
@@ -140,15 +145,34 @@ export class MessagesService {
     return message;
   }
 
-  async findForRequest(userId: string, viewingRequestId: string) {
+  /**
+   * Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded. Ordering is unchanged (oldest first), so page 1 is the
+   * start of the conversation, not the most recent messages - callers
+   * that want the tail end of a long thread need to request a later page
+   * (or the frontend should switch to requesting the last page first).
+   */
+  async findForRequest(
+    userId: string,
+    viewingRequestId: string,
+    pagination: PaginationQueryDto,
+  ) {
     const request = await this.loadThread(viewingRequestId);
     this.assertParticipant(userId, request);
 
-    return this.prisma.message.findMany({
-      where: { viewingRequestId },
-      orderBy: { createdAt: "asc" },
-      include: { sender: { select: { id: true, name: true, role: true } } },
-    });
+    const { page, limit } = pagination;
+    const where = { viewingRequestId };
+    const [items, total] = await Promise.all([
+      this.prisma.message.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        include: { sender: { select: { id: true, name: true, role: true } } },
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.message.count({ where }),
+    ]);
+
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   /**

@@ -3,6 +3,11 @@ import { NotificationType, ReportSeverity, ReportType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
+import {
+  buildPaginatedResult,
+  paginationArgs,
+} from "../common/utils/pagination.util";
 import { CreateReportDto } from "./dto/create-report.dto";
 import { RespondToReportDto } from "./dto/respond-to-report.dto";
 
@@ -80,28 +85,47 @@ export class ReportsService {
     };
   }
 
-  async findAll() {
-    const reports = await this.prisma.report.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        listing: true,
-        reporter: { select: { id: true, email: true, name: true, role: true } },
-        respondedBy: { select: { id: true, name: true } },
-      },
-    });
-    return reports.map((report) => this.withResponseDeadline(report));
+  /** Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded, returning every report in the table with no `where` at all. */
+  async findAll(pagination: PaginationQueryDto) {
+    const { page, limit } = pagination;
+    const [reports, total] = await Promise.all([
+      this.prisma.report.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          listing: true,
+          reporter: {
+            select: { id: true, email: true, name: true, role: true },
+          },
+          respondedBy: { select: { id: true, name: true } },
+        },
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.report.count(),
+    ]);
+    const items = reports.map((report) => this.withResponseDeadline(report));
+    return buildPaginatedResult(items, total, page, limit);
   }
 
-  async findMine(reporterId: string) {
-    const reports = await this.prisma.report.findMany({
-      where: { reporterId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        listing: true,
-        respondedBy: { select: { id: true, name: true } },
-      },
-    });
-    return reports.map((report) => this.withResponseDeadline(report));
+  /** Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded for any reporter with a large report history. */
+  async findMine(reporterId: string, pagination: PaginationQueryDto) {
+    const { page, limit } = pagination;
+    const where = { reporterId };
+    const [reports, total] = await Promise.all([
+      this.prisma.report.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          listing: true,
+          respondedBy: { select: { id: true, name: true } },
+        },
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.report.count({ where }),
+    ]);
+    const items = reports.map((report) => this.withResponseDeadline(report));
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   /**

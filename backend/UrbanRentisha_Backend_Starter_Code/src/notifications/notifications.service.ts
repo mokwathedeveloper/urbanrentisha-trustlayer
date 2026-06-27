@@ -2,6 +2,11 @@ import { ForbiddenException, Injectable } from "@nestjs/common";
 import { NotificationType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
+import {
+  buildPaginatedResult,
+  paginationArgs,
+} from "../common/utils/pagination.util";
 
 @Injectable()
 export class NotificationsService {
@@ -78,23 +83,34 @@ export class NotificationsService {
     );
   }
 
-  findForUser(userId: string) {
-    return this.prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        viewingRequest: {
-          include: {
-            listing: true,
-            payment: true,
-            zkProof: true,
-            proofVerification: true,
-            viewingCode: true,
+  /** Paginated (page/limit, default 20, hard max 100) - previously
+   * unbounded, with a heavy nested include per row. */
+  async findForUser(userId: string, pagination: PaginationQueryDto) {
+    const { page, limit } = pagination;
+    const where = { userId };
+
+    const [items, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          viewingRequest: {
+            include: {
+              listing: true,
+              payment: true,
+              zkProof: true,
+              proofVerification: true,
+              viewingCode: true,
+            },
           },
+          listing: true,
         },
-        listing: true,
-      },
-    });
+        ...paginationArgs(page, limit),
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   async markRead(id: string, userId: string) {
