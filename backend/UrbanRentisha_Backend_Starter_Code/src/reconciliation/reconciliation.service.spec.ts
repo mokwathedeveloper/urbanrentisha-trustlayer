@@ -16,6 +16,7 @@ describe("ReconciliationService", () => {
   let service: ReconciliationService;
   let prisma: {
     payment: { findMany: jest.Mock; update: jest.Mock };
+    reconciliationLock: { updateMany: jest.Mock; update: jest.Mock };
     $transaction: jest.Mock;
   };
   let tx: {
@@ -40,6 +41,10 @@ describe("ReconciliationService", () => {
     };
     prisma = {
       payment: { findMany: jest.fn().mockResolvedValue([]), update: jest.fn() },
+      reconciliationLock: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue({}),
+      },
       $transaction: jest.fn((callback: (tx: unknown) => Promise<unknown>) =>
         callback(tx),
       ),
@@ -122,7 +127,7 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileDeposits();
 
-      expect(result).toEqual({ repaired: 1, ambiguous: 0 });
+      expect(result).toEqual({ checked: 1, repaired: 1, ambiguous: 0 });
       expect(tx.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -160,7 +165,7 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileDeposits();
 
-      expect(result).toEqual({ repaired: 0, ambiguous: 0 });
+      expect(result).toEqual({ checked: 1, repaired: 0, ambiguous: 0 });
       expect(tx.payment.update).not.toHaveBeenCalled();
       expect(auditLogs.create).not.toHaveBeenCalled();
       expect(notifications.notifyAdmins).not.toHaveBeenCalled();
@@ -176,7 +181,7 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileDeposits();
 
-      expect(result).toEqual({ repaired: 0, ambiguous: 1 });
+      expect(result).toEqual({ checked: 1, repaired: 0, ambiguous: 1 });
       expect(tx.payment.update).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(auditLogs.create).toHaveBeenCalledWith(
@@ -233,7 +238,12 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileReleases();
 
-      expect(result).toEqual({ repaired: 0, lockCleared: 1, ambiguous: 0 });
+      expect(result).toEqual({
+        checked: 1,
+        repaired: 0,
+        lockCleared: 1,
+        ambiguous: 0,
+      });
       expect(prisma.payment.update).toHaveBeenCalledWith({
         where: { id: "payment-2" },
         data: { escrowReleaseClaimedAt: null },
@@ -261,7 +271,12 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileReleases();
 
-      expect(result).toEqual({ repaired: 1, lockCleared: 0, ambiguous: 0 });
+      expect(result).toEqual({
+        checked: 1,
+        repaired: 1,
+        lockCleared: 0,
+        ambiguous: 0,
+      });
       expect(prisma.payment.update).toHaveBeenCalledWith({
         where: { id: "payment-2" },
         data: expect.objectContaining({ status: PaymentStatus.RELEASED }),
@@ -280,7 +295,12 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileReleases();
 
-      expect(result).toEqual({ repaired: 0, lockCleared: 0, ambiguous: 1 });
+      expect(result).toEqual({
+        checked: 1,
+        repaired: 0,
+        lockCleared: 0,
+        ambiguous: 1,
+      });
       expect(prisma.payment.update).not.toHaveBeenCalled();
       expect(auditLogs.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -301,7 +321,12 @@ describe("ReconciliationService", () => {
 
       const result = await service.reconcileReleases();
 
-      expect(result).toEqual({ repaired: 0, lockCleared: 0, ambiguous: 1 });
+      expect(result).toEqual({
+        checked: 1,
+        repaired: 0,
+        lockCleared: 0,
+        ambiguous: 1,
+      });
       expect(prisma.payment.update).not.toHaveBeenCalled();
       expect(auditLogs.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -311,4 +336,98 @@ describe("ReconciliationService", () => {
       );
     });
   });
+
+  describe("runLocked", () => {
+    it("acquires the lock, runs both sweeps, and releases the lock", async () => {
+      const result = await service.runLocked();
+
+      expect(result).toEqual({
+        status: "ok",
+        depositsChecked: 0,
+        releasesChecked: 0,
+        repaired: 0,
+        flagged: 0,
+      });
+      expect(prisma.reconciliationLock.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: "reconciliation" }),
+        }),
+      );
+      expect(prisma.reconciliationLock.update).toHaveBeenCalledWith({
+        where: { id: "reconciliation" },
+        data: { lockedUntil: null },
+      });
+    });
+
+    it("returns status 'skipped' without running any sweep when a run is already in progress (overlapping run)", async () => {
+      prisma.reconciliationLock.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await service.runLocked();
+
+      expect(result).toEqual({
+        status: "skipped",
+        depositsChecked: 0,
+        releasesChecked: 0,
+        repaired: 0,
+        flagged: 0,
+      });
+      expect(prisma.payment.findMany).not.toHaveBeenCalled();
+      expect(prisma.reconciliationLock.update).not.toHaveBeenCalled();
+    });
+
+    it("still releases the lock if a sweep throws", async () => {
+      prisma.payment.findMany.mockRejectedValueOnce(new Error("DB blip"));
+
+      await expect(service.runLocked()).rejects.toThrow("DB blip");
+
+      expect(prisma.reconciliationLock.update).toHaveBeenCalledWith({
+        where: { id: "reconciliation" },
+        data: { lockedUntil: null },
+      });
+    });
+
+    it("rolls repaired deposit/release counts and lock-cleared releases into one repaired total, and ambiguous cases into flagged", async () => {
+      prisma.payment.findMany
+        .mockResolvedValueOnce([stalePayment()])
+        .mockResolvedValueOnce([staleReleaseClaim()]);
+      escrow.getHold
+        .mockResolvedValueOnce({
+          status: HoldStatus.Held,
+          payer: "GPAYER",
+          amount: 5_000_000n,
+        })
+        .mockResolvedValueOnce({
+          status: HoldStatus.Held,
+          payer: "GPAYER",
+          amount: 5_000_000n,
+        });
+
+      const result = await service.runLocked();
+
+      expect(result.status).toBe("ok");
+      expect(result.depositsChecked).toBe(1);
+      expect(result.releasesChecked).toBe(1);
+      // 1 deposit repaired + 0 releases repaired + 1 stale lock cleared.
+      expect(result.repaired).toBe(2);
+      expect(result.flagged).toBe(0);
+    });
+  });
 });
+
+function staleReleaseClaim() {
+  return {
+    id: "payment-2",
+    status: PaymentStatus.RECEIVED,
+    escrowReleaseTxHash: null,
+    escrowReleaseClaimedAt: new Date(),
+    amount: 500,
+    stellarAsset: "XLM_TEST",
+    viewingRequestId: "request-2",
+    viewingRequest: {
+      id: "request-2",
+      listingId: "listing-2",
+      tenant: { userId: "tenant-user-2" },
+      listing: { id: "listing-2", title: "Westlands Skyline Loft" },
+    },
+  };
+}

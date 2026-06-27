@@ -77,6 +77,17 @@ export class EnvironmentVariables {
   @IsString()
   @MinLength(16)
   SUPABASE_SERVICE_ROLE_KEY!: string;
+
+  // Required in production only (see the production-only check below) -
+  // a local/dev environment with no one testing the cron endpoint doesn't
+  // need one, unlike JWT_SECRET etc. which every environment needs to
+  // function at all.
+  @IsOptional()
+  @IsString()
+  @MinLength(16, {
+    message: "CRON_SECRET must be at least 16 characters",
+  })
+  CRON_SECRET?: string;
 }
 
 /** Secrets checked for obvious placeholder values before production may boot. */
@@ -84,6 +95,13 @@ const PRODUCTION_SECRET_FIELDS: (keyof EnvironmentVariables)[] = [
   "JWT_SECRET",
   "STELLAR_PLATFORM_SECRET_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "CRON_SECRET",
+];
+
+/** Secrets required in production only - unlike the always-required ones
+ * above, these have a real, valid "unset" state outside production. */
+const PRODUCTION_ONLY_REQUIRED_FIELDS: (keyof EnvironmentVariables)[] = [
+  "CRON_SECRET",
 ];
 
 /**
@@ -133,9 +151,19 @@ export function validateEnv(
   }
 
   if (validatedConfig.NODE_ENV === NodeEnv.Production) {
-    const placeholderFields = PRODUCTION_SECRET_FIELDS.filter((field) =>
-      looksLikePlaceholderSecret(validatedConfig[field] as string),
+    const missingFields = PRODUCTION_ONLY_REQUIRED_FIELDS.filter(
+      (field) => !validatedConfig[field],
     );
+    if (missingFields.length > 0) {
+      throw new Error(
+        `Refusing to boot in production without required secret(s): ${missingFields.join(", ")}.`,
+      );
+    }
+
+    const placeholderFields = PRODUCTION_SECRET_FIELDS.filter((field) => {
+      const value = validatedConfig[field] as string | undefined;
+      return Boolean(value) && looksLikePlaceholderSecret(value as string);
+    });
     if (placeholderFields.length > 0) {
       throw new Error(
         `Refusing to boot in production with placeholder secret(s): ${placeholderFields.join(", ")}. Replace these with real values before deploying.`,

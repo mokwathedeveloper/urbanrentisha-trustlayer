@@ -590,6 +590,22 @@ model AuditLog {
   @@index([entityType, entityId])
 }
 
+/// A single-row, DB-backed mutual-exclusion lock for the reconciliation
+/// sweep - not a Postgres advisory lock, deliberately: this database is
+/// accessed through Supabase's pooler in PgBouncer transaction-pooling
+/// mode (see DATABASE_URL), where a session-scoped advisory lock's acquire
+/// and release calls are not guaranteed to land on the same underlying
+/// backend connection. A plain row with an atomic conditional updateMany
+/// (the same pattern already used for listing reservations and escrow
+/// release claims) works correctly regardless of connection pooling. The
+/// lease (lockedUntil) self-expires so a crashed run can never wedge
+/// reconciliation forever.
+model ReconciliationLock {
+  id          String    @id
+  lockedAt    DateTime?
+  lockedUntil DateTime?
+}
+
 model ApiClient {
   id            String   @id @default(cuid())
   name          String

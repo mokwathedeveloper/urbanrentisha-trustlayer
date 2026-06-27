@@ -22,6 +22,29 @@ import { HoldStatus } from "../soroban/escrow.client";
 export const DEPOSIT_RECONCILIATION_THRESHOLD_MS = 15 * 60 * 1000;
 export const RELEASE_RECONCILIATION_THRESHOLD_MS = 15 * 60 * 1000;
 
+/** Fixed id of the single row every instance/invocation contends for -
+ * seeded once by the add_reconciliation_lock migration, never created by
+ * application code. */
+const RECONCILIATION_LOCK_ID = "reconciliation";
+
+/**
+ * How long a claimed lock is honored before it's treated as abandoned and
+ * a later run may reclaim it - self-healing if a run crashes mid-sweep
+ * without reaching the `finally` release. Comfortably longer than a real
+ * run should ever take (every on-chain check inside is timeout-bounded),
+ * comfortably shorter than the 10-minute gap between scheduled runs, so a
+ * stuck lock can never survive to block the next legitimate run.
+ */
+const RECONCILIATION_LEASE_MS = 5 * 60 * 1000;
+
+export interface ReconciliationRunSummary {
+  status: "ok" | "skipped";
+  depositsChecked: number;
+  releasesChecked: number;
+  repaired: number;
+  flagged: number;
+}
+
 /**
  * Recovery for the gap between an on-chain operation and the database
  * write meant to record it - the exact window a server crash or network
@@ -49,7 +72,11 @@ export class ReconciliationService {
     private readonly escrow: EscrowService,
   ) {}
 
-  async reconcileDeposits(): Promise<{ repaired: number; ambiguous: number }> {
+  async reconcileDeposits(): Promise<{
+    checked: number;
+    repaired: number;
+    ambiguous: number;
+  }> {
     const stalePayments = await this.prisma.payment.findMany({
       where: {
         status: PaymentStatus.AWAITING_PAYMENT,
@@ -180,10 +207,11 @@ export class ReconciliationService {
       repaired += 1;
     }
 
-    return { repaired, ambiguous };
+    return { checked: stalePayments.length, repaired, ambiguous };
   }
 
   async reconcileReleases(): Promise<{
+    checked: number;
     repaired: number;
     lockCleared: number;
     ambiguous: number;
@@ -338,6 +366,77 @@ export class ReconciliationService {
       });
     }
 
-    return { repaired, lockCleared, ambiguous };
+    return { checked: staleClaims.length, repaired, lockCleared, ambiguous };
+  }
+
+  /**
+   * Single entry point for both the local/dev @Cron schedule and the
+   * production Vercel Cron HTTP endpoint - exactly one place runs
+   * reconcileDeposits/reconcileReleases, so neither path can drift from
+   * the other. Guards against overlapping runs (e.g. a slow run still in
+   * flight when the next scheduled trigger fires, or two Vercel Cron
+   * invocations landing on different serverless instances at once) with a
+   * DB-row lock, not an in-memory flag - serverless instances don't share
+   * memory, so an in-memory guard would do nothing across instances.
+   */
+  async runLocked(): Promise<ReconciliationRunSummary> {
+    const acquired = await this.tryAcquireLock();
+    if (!acquired) {
+      return {
+        status: "skipped",
+        depositsChecked: 0,
+        releasesChecked: 0,
+        repaired: 0,
+        flagged: 0,
+      };
+    }
+
+    try {
+      const deposits = await this.reconcileDeposits();
+      const releases = await this.reconcileReleases();
+
+      return {
+        status: "ok",
+        depositsChecked: deposits.checked,
+        releasesChecked: releases.checked,
+        // Clearing a stale release-claim lock is itself an automatic
+        // correction (the lock no longer matched on-chain reality), not
+        // something waiting on a human - counted as repaired, alongside
+        // the deposit/release rows actually fixed.
+        repaired: deposits.repaired + releases.repaired + releases.lockCleared,
+        flagged: deposits.ambiguous + releases.ambiguous,
+      };
+    } finally {
+      await this.releaseLock();
+    }
+  }
+
+  /** Atomic conditional claim - the same idiom as the listing-reservation
+   * and escrow-release-claim fixes elsewhere in this codebase, not a
+   * Postgres advisory lock (see the ReconciliationLock model's doc
+   * comment in schema.prisma for why). */
+  private async tryAcquireLock(): Promise<boolean> {
+    const now = new Date();
+    const result = await this.prisma.reconciliationLock.updateMany({
+      where: {
+        id: RECONCILIATION_LOCK_ID,
+        OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }],
+      },
+      data: {
+        lockedAt: now,
+        lockedUntil: new Date(now.getTime() + RECONCILIATION_LEASE_MS),
+      },
+    });
+    return result.count === 1;
+  }
+
+  /** Best-effort release - if this never runs (process killed mid-sweep),
+   * the lease's own expiry is what actually guarantees recovery, not this
+   * call succeeding. */
+  private async releaseLock(): Promise<void> {
+    await this.prisma.reconciliationLock.update({
+      where: { id: RECONCILIATION_LOCK_ID },
+      data: { lockedUntil: null },
+    });
   }
 }

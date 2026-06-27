@@ -18,6 +18,7 @@ function validConfig(overrides: Record<string, unknown> = {}) {
       "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
     SUPABASE_URL: "https://project-ref-real.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "a-real-looking-service-role-key-value",
+    CRON_SECRET: "a-real-32-character-random-cron-secret",
     ...overrides,
   };
 }
@@ -92,6 +93,37 @@ describe("validateEnv", () => {
     expect(() =>
       validateEnv(validConfig({ NODE_ENV: "production" })),
     ).not.toThrow();
+  });
+
+  it("allows CRON_SECRET to be unset outside production", () => {
+    const config = validConfig({ NODE_ENV: "development" });
+    delete (config as Record<string, unknown>).CRON_SECRET;
+
+    expect(() => validateEnv(config)).not.toThrow();
+  });
+
+  it("fails fast when CRON_SECRET is missing in production", () => {
+    const config = validConfig({ NODE_ENV: "production" });
+    delete (config as Record<string, unknown>).CRON_SECRET;
+
+    expect(() => validateEnv(config)).toThrow(/CRON_SECRET/);
+  });
+
+  it("rejects a placeholder CRON_SECRET in production", () => {
+    expect(() =>
+      validateEnv(
+        validConfig({
+          NODE_ENV: "production",
+          CRON_SECRET: "replace-with-a-real-cron-secret-value",
+        }),
+      ),
+    ).toThrow(/placeholder/);
+  });
+
+  it("rejects a too-short CRON_SECRET in any environment", () => {
+    expect(() => validateEnv(validConfig({ CRON_SECRET: "short" }))).toThrow(
+      /CRON_SECRET/,
+    );
   });
 });
 
