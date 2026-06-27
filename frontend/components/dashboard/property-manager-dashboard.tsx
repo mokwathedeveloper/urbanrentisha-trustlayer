@@ -6,6 +6,7 @@ import { ApiError, api, type AgentDashboard } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 import { VerificationProgress } from "@/components/verification/verification-progress";
 import { EscrowSummaryCards } from "@/components/escrow/escrow-summary-cards";
 
@@ -91,7 +92,9 @@ export function PropertyManagerDashboardView() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <Panel title={`My Listings (${dashboard?.stats.activeListings ?? 0} Active)`} viewAllHref="/listings/mine">
-            {!dashboard || dashboard.listings.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : !dashboard || dashboard.listings.length === 0 ? (
               <EmptyRow text="No listings yet." />
             ) : (
               dashboard.listings.slice(0, 4).map((listing) => (
@@ -115,7 +118,9 @@ export function PropertyManagerDashboardView() {
           </Panel>
 
           <Panel title="Escrow / Payment Hold Status" viewAllHref="/escrow">
-            {!dashboard || dashboard.escrowHolds.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : !dashboard || dashboard.escrowHolds.length === 0 ? (
               <EmptyRow text="No active escrow holds." />
             ) : (
               dashboard.escrowHolds.map((hold) => (
@@ -133,7 +138,9 @@ export function PropertyManagerDashboardView() {
           </Panel>
 
           <Panel title="Reports Overview" viewAllHref="/reports">
-            {!dashboard || dashboard.reports.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : !dashboard || dashboard.reports.length === 0 ? (
               <EmptyRow text="No reports filed against your listings." />
             ) : (
               dashboard.reports.slice(0, 4).map((report) => (
@@ -157,7 +164,9 @@ export function PropertyManagerDashboardView() {
 
         <div className="space-y-6">
           <Panel title="Recent Viewing Requests" viewAllHref="/listings">
-            {!dashboard || dashboard.viewingRequests.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : !dashboard || dashboard.viewingRequests.length === 0 ? (
               <EmptyRow text="No viewing requests yet." />
             ) : (
               dashboard.viewingRequests.slice(0, 4).map((request) => (
@@ -175,7 +184,9 @@ export function PropertyManagerDashboardView() {
           </Panel>
 
           <Panel title={`Verified Tenants (${dashboard?.stats.verifiedTenants ?? 0})`}>
-            {!dashboard || dashboard.verifiedTenants.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : !dashboard || dashboard.verifiedTenants.length === 0 ? (
               <EmptyRow text="No tenants have viewed your listings yet." />
             ) : (
               dashboard.verifiedTenants.map((tenant) => (
@@ -197,7 +208,9 @@ export function PropertyManagerDashboardView() {
           </Panel>
 
           <Panel title="Active Viewing Codes">
-            {!dashboard || dashboard.activeViewingCodes.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : !dashboard || dashboard.activeViewingCodes.length === 0 ? (
               <EmptyRow text="No active viewing codes." />
             ) : (
               dashboard.activeViewingCodes.map((code) => (

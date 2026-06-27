@@ -6,6 +6,7 @@ import { api, type AdminOverview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, formatDate } from "./dashboard-ui";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 const reportTypeLabels: Record<string, string> = {
   FAKE_LISTING: "Fake Listing",
@@ -66,7 +67,9 @@ export function AdminDashboardView() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Panel title={`Platform-wide Approvals (${(overview?.pendingApprovals.listings.length ?? 0) + (overview?.pendingApprovals.agents.length ?? 0)})`}>
-          {!overview || overview.pendingApprovals.listings.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : !overview || overview.pendingApprovals.listings.length === 0 ? (
             <EmptyRow text="No pending listings." />
           ) : (
             overview.pendingApprovals.listings.map((listing) => (
@@ -97,7 +100,9 @@ export function AdminDashboardView() {
         </Panel>
 
         <Panel title="Reports Overview">
-          {!overview || overview.topReportCategories.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : !overview || overview.topReportCategories.length === 0 ? (
             <EmptyRow text="No reports filed yet." />
           ) : (
             <div className="space-y-2">
@@ -120,7 +125,9 @@ export function AdminDashboardView() {
         </Panel>
 
         <Panel title="Active Agents">
-          {!overview || overview.activeAgents.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : !overview || overview.activeAgents.length === 0 ? (
             <EmptyRow text="No agents yet." />
           ) : (
             overview.activeAgents.slice(0, 5).map((agent) => (
@@ -144,7 +151,9 @@ export function AdminDashboardView() {
         </Panel>
 
         <Panel title="Proof Verification Activity">
-          {!overview || overview.recentProofVerifications.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : !overview || overview.recentProofVerifications.length === 0 ? (
             <EmptyRow text="No proof verifications yet." />
           ) : (
             overview.recentProofVerifications.map((proof) => (
@@ -166,7 +175,9 @@ export function AdminDashboardView() {
         </Panel>
 
         <Panel title="Suspicious Activity Alerts">
-          {!overview || overview.suspiciousActivity.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : !overview || overview.suspiciousActivity.length === 0 ? (
             <EmptyRow text="No suspicious activity detected." />
           ) : (
             overview.suspiciousActivity.map((alert, index) => (
@@ -188,7 +199,9 @@ export function AdminDashboardView() {
         </Panel>
 
         <Panel title="Audit Logs (Recent)" viewAllHref="/audit-logs">
-          {!overview || overview.recentAuditLogs.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : !overview || overview.recentAuditLogs.length === 0 ? (
             <EmptyRow text="No audit log entries yet." />
           ) : (
             overview.recentAuditLogs.map((log) => (

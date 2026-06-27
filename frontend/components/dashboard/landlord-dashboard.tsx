@@ -6,6 +6,7 @@ import { api, type Listing, type UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard } from "./dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 import { VerificationProgress } from "@/components/verification/verification-progress";
 import { EscrowSummaryCards } from "@/components/escrow/escrow-summary-cards";
 
@@ -84,7 +85,9 @@ export function LandlordDashboardView() {
 
       <div className="mt-6">
         <Panel title={`My Listings (${activeListings.length} Active)`} viewAllHref="/listings/mine">
-          {listings.length === 0 ? (
+          {loading ? (
+            <ListRowSkeletonGroup />
+          ) : listings.length === 0 ? (
             <EmptyRow text="No listings yet. Add your first property to get started." />
           ) : (
             listings.map((listing) => (
