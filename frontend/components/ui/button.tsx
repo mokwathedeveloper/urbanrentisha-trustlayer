@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "warning";
 type ButtonSize = "sm" | "md" | "lg";
@@ -7,6 +8,15 @@ type ButtonSize = "sm" | "md" | "lg";
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /**
+   * Optional - existing call sites that don't pass this are unaffected.
+   * When true: forces disabled (so a pending request can never be
+   * double-submitted even if the caller forgets its own disabled={...}),
+   * and shows a spinner ahead of the button's existing children. Callers
+   * keep their own text ("Processing..." etc.) - this only adds the
+   * spinner, it doesn't replace any copy.
+   */
+  loading?: boolean;
 };
 
 const variants: Record<ButtonVariant, string> = {
@@ -29,10 +39,21 @@ const sizes: Record<ButtonSize, string> = {
   lg: "h-[52px] px-8 text-base"
 };
 
-export function Button({ className, variant = "primary", size = "md", type = "button", ...props }: ButtonProps) {
+export function Button({
+  className,
+  variant = "primary",
+  size = "md",
+  type = "button",
+  loading = false,
+  disabled,
+  children,
+  ...props
+}: ButtonProps) {
   return (
     <button
       type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-ur-sm font-bold transition-colors duration-150 ur-focus disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
@@ -40,6 +61,9 @@ export function Button({ className, variant = "primary", size = "md", type = "bu
         className
       )}
       {...props}
-    />
+    >
+      {loading ? <ButtonSpinner /> : null}
+      {children}
+    </button>
   );
 }
