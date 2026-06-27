@@ -19,6 +19,7 @@ function validConfig(overrides: Record<string, unknown> = {}) {
     SUPABASE_URL: "https://project-ref-real.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "a-real-looking-service-role-key-value",
     CRON_SECRET: "a-real-32-character-random-cron-secret",
+    REDIS_URL: "rediss://default:a-real-token@some-host.upstash.io:6379",
     ...overrides,
   };
 }
@@ -124,6 +125,32 @@ describe("validateEnv", () => {
     expect(() => validateEnv(validConfig({ CRON_SECRET: "short" }))).toThrow(
       /CRON_SECRET/,
     );
+  });
+
+  it("allows REDIS_URL to be unset outside production", () => {
+    const config = validConfig({ NODE_ENV: "development" });
+    delete (config as Record<string, unknown>).REDIS_URL;
+
+    expect(() => validateEnv(config)).not.toThrow();
+  });
+
+  it("fails fast when REDIS_URL is missing in production", () => {
+    const config = validConfig({ NODE_ENV: "production" });
+    delete (config as Record<string, unknown>).REDIS_URL;
+
+    expect(() => validateEnv(config)).toThrow(/REDIS_URL/);
+  });
+
+  it("rejects a malformed REDIS_URL in any environment", () => {
+    expect(() =>
+      validateEnv(validConfig({ REDIS_URL: "http://not-a-redis-url" })),
+    ).toThrow(/REDIS_URL/);
+  });
+
+  it("accepts a plain redis:// URL as well as rediss://", () => {
+    expect(() =>
+      validateEnv(validConfig({ REDIS_URL: "redis://localhost:6379" })),
+    ).not.toThrow();
   });
 });
 
