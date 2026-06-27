@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/lib/auth";
 import { ApiError, api, type LandlordTeamSummary, type LandlordTeamSummaryMember } from "@/lib/api";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 const ALLOWED_ROLES = ["LANDLORD"] as const;
 
@@ -98,7 +99,9 @@ export default function TeamPage() {
               <p className="text-sm font-bold text-ur-navy">Agents &amp; Managers ({members.length})</p>
             </div>
             {loading ? (
-              <p className="p-6 text-sm text-ur-text-muted">Loading...</p>
+              <div className="p-2">
+                <ListRowSkeletonGroup rows={4} />
+              </div>
             ) : members.length === 0 ? (
               <p className="p-6 text-sm text-ur-text-muted">
                 You haven&apos;t invited any agents or managers yet.
@@ -140,7 +143,7 @@ export default function TeamPage() {
                         {isVerified && !isActivated ? (
                           <Button
                             size="sm"
-                            disabled={generatingId === member.id}
+                            loading={generatingId === member.id}
                             onClick={() => handleGenerateCode(member)}
                           >
                             {generatingId === member.id ? "Generating..." : "Generate Activation Code"}
@@ -208,9 +211,9 @@ export default function TeamPage() {
                 {error ? <p className="text-sm text-ur-error">{error}</p> : null}
                 {inviteMessage ? <p className="text-sm text-ur-primary">{inviteMessage}</p> : null}
 
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <Button type="submit" className="w-full" loading={submitting}>
                   {submitting ? "Submitting..." : "Submit Invite"}
-                  <Icon name="person_add" size={16} />
+                  {!submitting ? <Icon name="person_add" size={16} /> : null}
                 </Button>
               </form>
             </div>

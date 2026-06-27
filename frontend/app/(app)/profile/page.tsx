@@ -9,6 +9,8 @@ import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { VerificationProgress } from "@/components/verification/verification-progress";
 import { checkWalletStatus, connectWallet, shortenKey, FREIGHTER_INSTALL_URL } from "@/lib/freighter";
+import { PageLoader } from "@/components/ui/page-loader";
+import { Spinner } from "@/components/ui/spinner";
 
 const STELLAR_ADDRESS_RE = /^G[A-Z2-7]{55}$/;
 
@@ -132,7 +134,7 @@ export default function ProfilePage() {
   }
 
   if (loading || !profile) {
-    return <p className="px-6 py-8 text-sm text-ur-text-muted">Loading profile...</p>;
+    return <PageLoader label="Loading profile..." />;
   }
 
   return (
@@ -166,10 +168,10 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border border-ur-border bg-ur-card text-ur-text-secondary hover:text-ur-primary"
+                className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border border-ur-border bg-ur-card text-ur-text-secondary hover:text-ur-primary disabled:opacity-60"
                 aria-label="Change profile picture"
               >
-                <Icon name="add" size={12} />
+                {uploadingAvatar ? <Spinner size="xs" /> : <Icon name="add" size={12} />}
               </button>
             </div>
             <div>
@@ -233,12 +235,12 @@ export default function ProfilePage() {
               <div className="space-y-2.5 rounded-ur-sm border border-ur-warning/30 bg-ur-warning-bg p-3">
                 <p className="text-xs text-ur-warning">No Stellar wallet linked yet.</p>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" disabled={walletLoading} onClick={handleGenerateWallet}>
-                    <Icon name="verified_user" size={14} />
+                  <Button type="button" size="sm" loading={walletLoading} onClick={handleGenerateWallet}>
+                    {!walletLoading ? <Icon name="verified_user" size={14} /> : null}
                     Generate Wallet
                   </Button>
-                  <Button type="button" variant="outline" size="sm" disabled={walletLoading} onClick={handleConnectFreighter}>
-                    <Icon name="link" size={14} />
+                  <Button type="button" variant="outline" size="sm" loading={walletLoading} onClick={handleConnectFreighter}>
+                    {!walletLoading ? <Icon name="link" size={14} /> : null}
                     Connect Freighter
                   </Button>
                 </div>
@@ -336,7 +338,7 @@ export default function ProfilePage() {
           {error ? <p className="text-sm text-ur-error">{error}</p> : null}
           {success ? <p className="text-sm text-ur-primary">Profile updated successfully.</p> : null}
 
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" loading={saving}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </form>

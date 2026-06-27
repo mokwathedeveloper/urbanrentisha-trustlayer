@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { PropertyCard } from "@/components/listings/property-card";
 import { Icon } from "@/components/ui/icon";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { CardSkeleton } from "@/components/ui/skeleton";
 
 const ALLOWED_ROLES = ["LANDLORD", "AGENT", "MANAGER"] as const;
 
@@ -38,7 +39,11 @@ export default function MyPropertiesPage() {
         <p className="mt-1 text-sm text-ur-text-secondary">{subheading}</p>
 
         {loading ? (
-          <p className="mt-6 text-sm text-ur-text-muted">Loading...</p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
         ) : listings.length === 0 ? (
           <div className="ur-card mt-6 flex flex-col items-center gap-3 p-10 text-center">
             <Icon name="apartment" size={32} className="text-ur-text-muted" />

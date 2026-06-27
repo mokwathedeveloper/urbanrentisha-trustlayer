@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ApiError, api, type LandlordTeam, type LandlordTeamMember } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { PageLoader } from "@/components/ui/page-loader";
 
 const ALLOWED_ROLES = ["ADMIN", "PLATFORM"] as const;
 
@@ -67,11 +68,7 @@ export default function AdminLandlordTeamPage() {
   }
 
   if (!team) {
-    return (
-      <div className="px-6 py-8">
-        <p className="text-sm text-ur-text-muted">Loading landlord team...</p>
-      </div>
-    );
+    return <PageLoader label="Loading landlord team..." />;
   }
 
   const members: LandlordTeamMember[] = [...team.agents, ...team.managers];

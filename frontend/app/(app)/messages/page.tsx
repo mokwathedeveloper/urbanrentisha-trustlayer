@@ -10,6 +10,8 @@ import { Icon } from "@/components/ui/icon";
 import { isOnline, formatLastSeen } from "@/lib/presence";
 import { broadcastMessagesChanged } from "@/lib/messages";
 import { emitRealtimeEvent, useRealtimeEvent } from "@/lib/realtime";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const POLL_INTERVAL_MS = 5000;
 const TYPING_STOP_DELAY_MS = 2500;
@@ -187,9 +189,9 @@ export default function MessagesPage() {
         <p className="mt-1 text-sm text-ur-text-secondary">Conversations tied to your viewing requests.</p>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
+      <div className="mt-6 grid gap-4 md:grid-cols-[260px_1fr] lg:grid-cols-[320px_1fr]">
         <div className="ur-card overflow-hidden">
-          {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+          {loading ? <ListRowSkeletonGroup rows={5} /> : null}
           {!loading && threads.length === 0 ? (
             <div className="flex flex-col items-center gap-3 p-10 text-center">
               <Icon name="mail" size={32} className="text-ur-text-muted" />
@@ -316,11 +318,11 @@ export default function MessagesPage() {
                   return (
                     <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-[75%] rounded-ur-sm px-3 py-2 text-sm ${
+                        className={`min-w-0 max-w-[75%] rounded-ur-sm px-3 py-2 text-sm ${
                           isOwn ? "bg-ur-primary text-white" : "bg-ur-card-soft text-ur-navy"
                         }`}
                       >
-                        <p>{message.body}</p>
+                        <p className="break-words">{message.body}</p>
                         <p
                           className={`mt-1 flex items-center justify-end gap-1 text-xs ${
                             isOwn ? "text-white/70" : "text-ur-text-muted"
@@ -358,7 +360,7 @@ export default function MessagesPage() {
                   disabled={sending || !draft.trim()}
                   className="flex items-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Icon name="send" size={16} />
+                  {sending ? <ButtonSpinner /> : <Icon name="send" size={16} />}
                   Send
                 </button>
               </div>

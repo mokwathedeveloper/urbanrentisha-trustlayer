@@ -8,6 +8,9 @@ import { Stepper } from "@/components/requests/stepper";
 import { api, ApiError, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { PageLoader } from "@/components/ui/page-loader";
+import { VerificationProcessingState } from "@/components/ui/processing-state";
+import { Spinner } from "@/components/ui/spinner";
 
 const proofSteps = ["Payment Confirmed", "Generate Proof", "Proof Generated", "Verify Proof", "Use Code"];
 
@@ -56,7 +59,7 @@ export default function ProofGenerationPage() {
     }
   }
 
-  if (loading) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+  if (loading) return <PageLoader />;
   if (error && !request) return <p className="p-8 text-sm text-ur-error">{error}</p>;
   if (!request?.payment) return null;
 
@@ -79,7 +82,7 @@ export default function ProofGenerationPage() {
         Create a private payment proof to confirm your viewing payment without revealing sensitive details.
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Stepper currentStep={2} steps={proofSteps} />
 
@@ -101,6 +104,13 @@ export default function ProofGenerationPage() {
               </span>
             </span>
           </div>
+
+          {generating ? (
+            <VerificationProcessingState
+              title="Generating your ZK proof..."
+              subtitle="Building witness and computing the Groth16 proof. This usually takes 15-30 seconds."
+            />
+          ) : null}
 
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="ur-card p-5">
@@ -164,8 +174,14 @@ export default function ProofGenerationPage() {
                 ))}
               </div>
 
-              <Button className="mt-5 w-full" size="lg" onClick={handleGenerate} disabled={generating || generated}>
-                <Icon name="auto_awesome" size={16} />
+              <Button
+                className="mt-5 w-full"
+                size="lg"
+                onClick={handleGenerate}
+                disabled={generated}
+                loading={generating}
+              >
+                {!generating ? <Icon name="auto_awesome" size={16} /> : null}
                 {generated ? "Proof Generated" : generating ? "Generating..." : "Generate ZK Proof"}
               </Button>
               <p className="mt-2 flex items-center gap-1 text-xs text-ur-text-muted">
@@ -181,7 +197,14 @@ export default function ProofGenerationPage() {
             <h2 className="font-bold text-ur-navy">Proof Generation Status</h2>
             <div className="mt-4 flex items-center gap-5">
               <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 border-ur-border">
-                <span className="text-sm font-black text-ur-navy">{progress}%</span>
+                {generating ? (
+                  <Spinner
+                    size="lg"
+                    className="absolute inset-[-4px] h-[calc(100%+8px)] w-[calc(100%+8px)] text-ur-cyan"
+                    aria-label="Generating proof"
+                  />
+                ) : null}
+                <span className="text-sm font-black text-ur-navy transition-opacity duration-300">{progress}%</span>
               </div>
               <div>
                 <p className="text-sm font-bold text-ur-navy">

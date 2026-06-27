@@ -3,42 +3,98 @@ import { Icon } from "@/components/ui/icon";
 
 const defaultSteps = ["Review Details", "Make Payment", "Processing", "Confirmed", "Complete"];
 
+/**
+ * Below `sm` (the audit found this cramming 5 full label+status blocks
+ * into ~360-430px - readable but visually dense, since each column has
+ * barely 60-70px before its connector line) this renders a compact
+ * dots-only row plus a single "Step N of T: <label> - <status>" line for
+ * the current step, instead of 5 small text blocks side by side. `sm:`
+ * and up render the original full layout completely unchanged - step
+ * logic (currentStep / completed / active) is identical in both, only the
+ * rendering differs.
+ */
 export function Stepper({ currentStep, steps = defaultSteps }: { currentStep: number; steps?: string[] }) {
-  return (
-    <div className="ur-card flex items-center p-5">
-      {steps.map((label, index) => {
-        const stepNumber = index + 1;
-        const completed = stepNumber < currentStep;
-        const active = stepNumber === currentStep;
+  const currentLabel = steps[currentStep - 1] ?? steps[steps.length - 1];
+  const currentDone = currentStep > steps.length;
 
-        return (
-          <div key={label} className={cn("flex flex-1 items-center", index === steps.length - 1 && "flex-none")}>
-            <div className="flex flex-col items-center gap-2">
-              <div
-                className={cn(
-                  "grid h-9 w-9 place-items-center rounded-full border-2 text-sm font-bold",
-                  completed && "border-ur-primary text-ur-primary",
-                  active && "border-ur-primary bg-ur-primary text-white",
-                  !completed && !active && "border-ur-border text-ur-text-muted",
-                )}
-              >
-                {completed ? <Icon name="check" size={16} /> : stepNumber}
+  return (
+    <div className="ur-card p-4 sm:p-5">
+      {/* Compact mobile layout - dots only, current step's label called out below. */}
+      <div className="sm:hidden">
+        <div className="flex items-center">
+          {steps.map((label, index) => {
+            const stepNumber = index + 1;
+            const completed = stepNumber < currentStep;
+            const active = stepNumber === currentStep;
+            return (
+              <div key={label} className={cn("flex items-center", index < steps.length - 1 && "flex-1")}>
+                <div
+                  className={cn(
+                    "grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 text-xs font-bold",
+                    completed && "border-ur-primary text-ur-primary",
+                    active && "border-ur-primary bg-ur-primary text-white",
+                    !completed && !active && "border-ur-border text-ur-text-muted",
+                  )}
+                  aria-hidden="true"
+                >
+                  {completed ? <Icon name="check" size={12} /> : stepNumber}
+                </div>
+                {index < steps.length - 1 ? (
+                  <div className={cn("mx-1.5 h-0.5 flex-1", completed ? "bg-ur-primary" : "bg-ur-border")} />
+                ) : null}
               </div>
-              <div className="text-center">
-                <p className={cn("text-xs font-bold", completed || active ? "text-ur-text" : "text-ur-text-muted")}>
-                  {stepNumber}. {label}
-                </p>
-                <p className={cn("text-xs", completed ? "text-ur-primary" : active ? "text-ur-warning" : "text-ur-text-muted")}>
-                  {completed ? "Completed" : active ? "In Progress" : "Pending"}
-                </p>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-center text-xs font-bold text-ur-text">
+          Step {Math.min(currentStep, steps.length)} of {steps.length}: {currentLabel}
+        </p>
+        <p
+          className={cn(
+            "text-center text-xs",
+            currentDone ? "text-ur-primary" : "text-ur-warning",
+          )}
+        >
+          {currentDone ? "Completed" : "In Progress"}
+        </p>
+      </div>
+
+      {/* Original full layout, unchanged, sm and up. */}
+      <div className="hidden items-center sm:flex">
+        {steps.map((label, index) => {
+          const stepNumber = index + 1;
+          const completed = stepNumber < currentStep;
+          const active = stepNumber === currentStep;
+
+          return (
+            <div key={label} className={cn("flex flex-1 items-center", index === steps.length - 1 && "flex-none")}>
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={cn(
+                    "grid h-9 w-9 place-items-center rounded-full border-2 text-sm font-bold",
+                    completed && "border-ur-primary text-ur-primary",
+                    active && "border-ur-primary bg-ur-primary text-white",
+                    !completed && !active && "border-ur-border text-ur-text-muted",
+                  )}
+                >
+                  {completed ? <Icon name="check" size={16} /> : stepNumber}
+                </div>
+                <div className="text-center">
+                  <p className={cn("text-xs font-bold", completed || active ? "text-ur-text" : "text-ur-text-muted")}>
+                    {stepNumber}. {label}
+                  </p>
+                  <p className={cn("text-xs", completed ? "text-ur-primary" : active ? "text-ur-warning" : "text-ur-text-muted")}>
+                    {completed ? "Completed" : active ? "In Progress" : "Pending"}
+                  </p>
+                </div>
               </div>
+              {index < steps.length - 1 ? (
+                <div className={cn("mx-3 h-0.5 flex-1", completed ? "bg-ur-primary" : "bg-ur-border")} />
+              ) : null}
             </div>
-            {index < steps.length - 1 ? (
-              <div className={cn("mx-3 h-0.5 flex-1", completed ? "bg-ur-primary" : "bg-ur-border")} />
-            ) : null}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { PageLoader } from "@/components/ui/page-loader";
 
 const whatYouCanDo = [
   "Use the viewing code to meet the agent",
@@ -49,7 +50,8 @@ export default function ViewingCodePage() {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  if (loading || generating) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+  if (loading) return <PageLoader />;
+  if (generating) return <PageLoader label="Finalizing your request..." />;
   if (error) return <p className="p-8 text-sm text-ur-error">{error}</p>;
   if (!request?.viewingCode || !request.payment) {
     return <p className="p-8 text-sm text-ur-error">Proof must be verified before a viewing code can be unlocked.</p>;
@@ -85,7 +87,7 @@ export default function ViewingCodePage() {
         </span>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="ur-card p-5">
             <h2 className="font-bold text-ur-navy">Your Viewing Code</h2>

@@ -116,10 +116,10 @@ export default function OnboardingPage() {
                   variant="secondary"
                   size="sm"
                   className="mt-2"
-                  disabled={uploadingAvatar}
+                  loading={uploadingAvatar}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Icon name="add" size={14} />
+                  {!uploadingAvatar ? <Icon name="add" size={14} /> : null}
                   {uploadingAvatar ? "Uploading..." : avatarUploaded ? "Replace photo" : "Upload photo"}
                 </Button>
                 {avatarError ? <p className="mt-1 text-xs text-ur-error">{avatarError}</p> : null}
@@ -216,10 +216,10 @@ function DocumentUploadRow({
           type="button"
           variant="secondary"
           size="sm"
-          disabled={uploading}
+          loading={uploading}
           onClick={() => inputRef.current?.click()}
         >
-          <Icon name="description" size={14} />
+          {!uploading ? <Icon name="description" size={14} /> : null}
           {uploading ? "Uploading..." : uploaded ? "Replace" : "Upload"}
         </Button>
       </div>

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { StatusBadge, formatDate, nextStepHref, nextStepLabel } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { RoleGuard, useHasRole } from "@/components/auth/role-guard";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 const ALLOWED_ROLES = ["TENANT"] as const;
 
@@ -31,7 +32,7 @@ export default function MyBookingsPage() {
       <p className="mt-1 text-sm text-ur-text-secondary">Full history of every viewing request you have made.</p>
 
       <div className="mt-6 ur-card">
-        {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+        {loading ? <ListRowSkeletonGroup rows={5} /> : null}
         {!loading && requests.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
             <Icon name="description" size={32} className="text-ur-text-muted" />

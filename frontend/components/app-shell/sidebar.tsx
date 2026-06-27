@@ -99,7 +99,15 @@ const supportItems: NavItem[] = [{ label: "Help & Support", href: "/help", icon:
 
 const CAN_LIST_PROPERTY: UserRole[] = ["LANDLORD", "AGENT", "MANAGER", "ADMIN", "PLATFORM"];
 
-export function Sidebar() {
+/**
+ * The actual nav markup, shared between the desktop `<aside>` sidebar
+ * below and the mobile drawer (components/app-shell/mobile-nav-drawer.tsx)
+ * - one source of truth for ROLE_NAV_ITEMS and its rendering, so the two
+ * surfaces can never drift out of sync. `onNavigate` is called after every
+ * link/logout click; the desktop sidebar passes nothing (it's never
+ * dismissed), the mobile drawer passes its close handler.
+ */
+export function SidebarNavContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user, token, logout } = useAuth();
 
@@ -110,7 +118,7 @@ export function Sidebar() {
   const unreadMessages = useUnreadMessagesCount(token);
 
   return (
-    <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
+    <>
       <div className="flex items-center px-5 py-6">
         <LogoMark className="h-14 w-auto" />
       </div>
@@ -118,6 +126,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 px-3">
         <Link
           href="/dashboard"
+          onClick={onNavigate}
           className={cn(
             "flex items-center gap-3 rounded-ur-sm px-3 py-2.5 text-sm font-medium transition-colors",
             pathname === "/dashboard"
@@ -141,6 +150,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-ur-sm px-3 py-2.5 text-sm font-medium transition-colors",
                 active
@@ -167,6 +177,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-ur-sm px-3 py-2.5 text-sm font-medium transition-colors",
                 active
@@ -182,7 +193,10 @@ export function Sidebar() {
 
         <button
           type="button"
-          onClick={logout}
+          onClick={() => {
+            onNavigate?.();
+            logout();
+          }}
           className="flex w-full items-center gap-3 rounded-ur-sm px-3 py-2.5 text-sm font-medium text-ur-text-secondary transition-colors hover:bg-ur-card-hover hover:text-ur-navy"
         >
           <Icon name="logout" size={16} />
@@ -198,6 +212,7 @@ export function Sidebar() {
           </p>
           <Link
             href="/listings/new"
+            onClick={onNavigate}
             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-2 text-sm font-bold text-white hover:bg-ur-primary-hover"
           >
             List a Property
@@ -205,6 +220,14 @@ export function Sidebar() {
           </Link>
         </div>
       ) : null}
+    </>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-ur-border bg-ur-sidebar lg:flex">
+      <SidebarNavContent />
     </aside>
   );
 }

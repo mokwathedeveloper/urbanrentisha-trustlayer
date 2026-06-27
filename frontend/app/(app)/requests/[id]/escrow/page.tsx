@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { api, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export default function EscrowStatusPage() {
   const params = useParams<{ id: string }>();
@@ -25,7 +26,7 @@ export default function EscrowStatusPage() {
       .finally(() => setLoading(false));
   }, [token, params.id]);
 
-  if (loading) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+  if (loading) return <PageLoader />;
   if (error || !request?.payment) return <p className="p-8 text-sm text-ur-error">{error ?? "No payment found."}</p>;
 
   const payment = request.payment;
@@ -69,7 +70,7 @@ export default function EscrowStatusPage() {
         </span>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="ur-card p-5">
             <h2 className="font-bold text-ur-navy">Current Hold Status</h2>

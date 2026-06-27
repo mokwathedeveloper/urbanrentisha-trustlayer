@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { isOnline, formatLastSeen } from "@/lib/presence";
 import { Button } from "@/components/ui/button";
+import { PageLoader } from "@/components/ui/page-loader";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -68,7 +69,7 @@ export default function AgentVerificationProfilePage() {
   }
 
   if (!agent) {
-    return <p className="p-8 text-sm text-ur-text-muted">Loading agent profile...</p>;
+    return <PageLoader label="Loading agent profile..." />;
   }
 
   const isVerified = agent.verificationStatus === "VERIFIED";
@@ -320,7 +321,7 @@ export default function AgentVerificationProfilePage() {
                 className="mt-2 h-16 w-full rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
               />
               {reviewSubmitError ? <p className="mt-1 text-xs text-ur-error">{reviewSubmitError}</p> : null}
-              <Button className="mt-2 w-full" disabled={submittingReview || myRating === 0} onClick={handleSubmitReview}>
+              <Button className="mt-2 w-full" disabled={myRating === 0} loading={submittingReview} onClick={handleSubmitReview}>
                 {submittingReview ? "Submitting..." : "Submit Review"}
               </Button>
             </div>

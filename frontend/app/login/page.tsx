@@ -198,9 +198,9 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                <Button type="submit" className="w-full" size="lg" loading={submitting}>
                   {submitting ? "Signing in..." : "Sign In"}
-                  <Icon name="arrow_forward" size={16} />
+                  {!submitting ? <Icon name="arrow_forward" size={16} /> : null}
                 </Button>
 
                 <Divider />
@@ -312,9 +312,9 @@ export default function LoginPage() {
                   </a>
                 </label>
 
-                <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                <Button type="submit" className="w-full" size="lg" loading={submitting}>
                   {submitting ? "Creating account..." : "Create Account"}
-                  <Icon name="arrow_forward" size={16} />
+                  {!submitting ? <Icon name="arrow_forward" size={16} /> : null}
                 </Button>
 
                 <Divider />
@@ -329,9 +329,9 @@ export default function LoginPage() {
                   Explore the full UrbanRentisha TrustLayer flow with a seeded demo tenant account &mdash;
                   no signup required.
                 </p>
-                <Button className="w-full" size="lg" onClick={handleTryDemo} disabled={submitting}>
+                <Button className="w-full" size="lg" onClick={handleTryDemo} loading={submitting}>
                   {submitting ? "Logging in..." : "Try Demo"}
-                  <Icon name="arrow_forward" size={16} />
+                  {!submitting ? <Icon name="arrow_forward" size={16} /> : null}
                 </Button>
               </div>
             ) : null}

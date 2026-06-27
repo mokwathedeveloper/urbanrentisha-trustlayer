@@ -95,7 +95,7 @@ export default function SettingsPage() {
           {error ? <p className="text-sm text-ur-error">{error}</p> : null}
           {success ? <p className="text-sm text-ur-primary">Password changed successfully.</p> : null}
 
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" loading={saving}>
             {saving ? "Updating..." : "Update Password"}
           </Button>
         </form>

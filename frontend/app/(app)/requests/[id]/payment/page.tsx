@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/requests/stepper";
 import { Icon } from "@/components/ui/icon";
+import { PageLoader } from "@/components/ui/page-loader";
+import { PaymentProcessingState } from "@/components/ui/processing-state";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -129,7 +131,7 @@ export default function PaymentPage() {
     }
   }
 
-  if (loading) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+  if (loading) return <PageLoader />;
   if (error && !payment && !isQueued) return <p className="p-8 text-sm text-ur-error">{error}</p>;
   if (!request) return null;
 
@@ -194,7 +196,7 @@ export default function PaymentPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Stepper currentStep={2} />
 
@@ -215,9 +217,15 @@ export default function PaymentPage() {
                     Pay within {turnCountdown} or your turn passes to the next tenant.
                   </p>
                 ) : null}
-                <Button className="mt-4 w-full" size="lg" disabled={paying} onClick={handlePay}>
-                  {paying ? "Processing..." : "Pay Viewing Fee"}
-                </Button>
+                {paying ? (
+                  <div className="mt-4">
+                    <PaymentProcessingState />
+                  </div>
+                ) : (
+                  <Button className="mt-4 w-full" size="lg" onClick={handlePay}>
+                    Pay Viewing Fee
+                  </Button>
+                )}
               </>
             ) : (
               <div className="mt-4 flex items-center gap-3 rounded-ur border border-ur-primary/30 bg-ur-success-bg p-4">
@@ -292,7 +300,7 @@ export default function PaymentPage() {
             <p className="mt-2 text-sm text-ur-text-secondary">
               If you have any issues with payment, our support team is here to help.
             </p>
-            <Button variant="outline" className="mt-3 w-full" disabled={startingChat} onClick={handleContactSupport}>
+            <Button variant="outline" className="mt-3 w-full" loading={startingChat} onClick={handleContactSupport}>
               {startingChat ? "Starting chat..." : "Contact Support"}
             </Button>
           </div>

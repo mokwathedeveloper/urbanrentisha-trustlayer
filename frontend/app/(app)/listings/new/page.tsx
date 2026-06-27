@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { Badge } from "@/components/ui/badge";
+import { InlineSpinner } from "@/components/ui/spinner";
 
 const MAX_IMAGES = 6;
 
@@ -227,7 +228,7 @@ export default function NewListingPage() {
                 </div>
 
                 {img.uploading ? (
-                  <p className="text-xs text-ur-text-muted">Checking location data...</p>
+                  <InlineSpinner label="Checking location data..." />
                 ) : img.error ? (
                   <p className="text-xs text-ur-error">{img.error}</p>
                 ) : img.exif?.gpsPresent ? (
@@ -322,7 +323,11 @@ export default function NewListingPage() {
 
         {error ? <p className="text-sm text-ur-error">{error}</p> : null}
 
-        <Button type="submit" disabled={submitting || isUploading || uploadedImages.length === 0}>
+        <Button
+          type="submit"
+          disabled={isUploading || uploadedImages.length === 0}
+          loading={submitting}
+        >
           {submitting ? "Submitting..." : "Submit for Verification"}
         </Button>
       </form>

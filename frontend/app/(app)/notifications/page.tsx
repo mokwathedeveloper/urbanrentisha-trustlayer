@@ -7,6 +7,7 @@ import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { broadcastNotificationsChanged, getNotificationLink } from "@/lib/notifications";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 type FilterType = "ALL" | "PAYMENT" | "PROOF" | "VIEWING_CODE" | "REPORT" | "SYSTEM";
 
@@ -149,7 +150,7 @@ export default function NotificationsPage() {
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_400px]">
         <div className="ur-card">
-          {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+          {loading ? <ListRowSkeletonGroup rows={5} /> : null}
           {!loading && filtered.length === 0 ? (
             <p className="p-5 text-sm text-ur-text-muted">No notifications yet.</p>
           ) : null}

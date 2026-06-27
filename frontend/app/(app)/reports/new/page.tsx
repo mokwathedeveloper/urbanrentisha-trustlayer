@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 type Category = "LISTING" | "AGENT";
 type Severity = "HIGH" | "MEDIUM" | "LOW";
@@ -289,8 +290,9 @@ function ReportFormContent() {
             disabled={submitting}
             className="flex w-full items-center justify-center gap-2 rounded-ur-sm bg-ur-primary px-4 py-3 text-sm font-bold text-white hover:bg-ur-primary-hover disabled:opacity-60"
           >
+            {submitting ? <ButtonSpinner /> : null}
             {submitting ? "Submitting..." : "Submit Report"}
-            <Icon name="chevron_right" size={16} />
+            {!submitting ? <Icon name="chevron_right" size={16} /> : null}
           </button>
         </div>
 

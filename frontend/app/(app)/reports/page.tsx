@@ -6,6 +6,8 @@ import { api, type ReportItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const reportTypeLabels: Record<string, string> = {
   FAKE_LISTING: "Fake Listing",
@@ -124,7 +126,7 @@ export default function ReportsListPage() {
       </div>
 
       <div className="mt-6 ur-card">
-        {loading ? <p className="p-5 text-sm text-ur-text-muted">Loading...</p> : null}
+        {loading ? <ListRowSkeletonGroup rows={5} /> : null}
         {!loading && reports.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
             <Icon name="flag" size={32} className="text-ur-text-muted" />
@@ -186,8 +188,9 @@ export default function ReportsListPage() {
                           type="button"
                           disabled={submitting}
                           onClick={() => handleRespond(report.id, status)}
-                          className="rounded-ur-sm border border-ur-border px-3 py-1.5 text-xs font-semibold text-ur-navy hover:bg-ur-card-hover disabled:opacity-50"
+                          className="flex items-center gap-1.5 rounded-ur-sm border border-ur-border px-3 py-1.5 text-xs font-semibold text-ur-navy hover:bg-ur-card-hover disabled:opacity-50"
                         >
+                          {submitting ? <ButtonSpinner /> : null}
                           {status.replace(/_/g, " ")}
                         </button>
                       ))}

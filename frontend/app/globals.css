@@ -143,4 +143,66 @@ pre,
       linear-gradient(90deg, rgba(22, 163, 74, 0.05) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+
+  /* Shared shimmer for every Skeleton (components/ui/skeleton.tsx) - one
+     keyframe so every skeleton in the app pulses in sync. Reduced to a
+     static, slightly-lighter block under prefers-reduced-motion instead of
+     removing the placeholder entirely, since it's still load-bearing for
+     preventing layout shift. */
+  .ur-shimmer {
+    animation: ur-shimmer 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ur-shimmer {
+      animation: none;
+      opacity: 0.7;
+    }
+  }
+
+  /* Mobile nav drawer (components/app-shell/mobile-nav-drawer.tsx) - panel
+     slides in from the left, overlay fades in. Reduced-motion users get
+     both in their final state instantly instead of an animated entrance. */
+  .ur-drawer-overlay {
+    animation: ur-drawer-overlay-in 0.18s ease-out;
+  }
+
+  .ur-drawer-panel {
+    animation: ur-drawer-panel-in 0.18s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ur-drawer-overlay,
+    .ur-drawer-panel {
+      animation: none;
+    }
+  }
+}
+
+@keyframes ur-shimmer {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ur-drawer-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ur-drawer-panel-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, type NotificationItem, type ReportItem, type UserProfile, type ViewingRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EmptyRow, Panel, Row, StatCard, StatusBadge, formatDate } from "./dashboard-ui";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { VerificationProgress } from "@/components/verification/verification-progress";
 import { EscrowSummaryCards } from "@/components/escrow/escrow-summary-cards";
@@ -79,7 +80,7 @@ export function TenantDashboardView() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-7">
         {stats.map((stat) => (
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
@@ -96,10 +97,12 @@ export function TenantDashboardView() {
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="space-y-6">
           <Panel title="My Requests" viewAllHref="/listings">
-            {requests.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : requests.length === 0 ? (
               <EmptyRow text="No viewing requests yet." />
             ) : (
               requests.slice(0, 4).map((r) => (
@@ -117,7 +120,9 @@ export function TenantDashboardView() {
           </Panel>
 
           <Panel title="Escrow / Payment Hold Status" viewAllHref="/escrow">
-            {escrowHolds.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : escrowHolds.length === 0 ? (
               <EmptyRow text="No active escrow holds." />
             ) : (
               escrowHolds.slice(0, 4).map((r) => (
@@ -135,7 +140,9 @@ export function TenantDashboardView() {
           </Panel>
 
           <Panel title="Recent Viewing History">
-            {requests.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : requests.length === 0 ? (
               <EmptyRow text="No viewing history yet." />
             ) : (
               requests.slice(0, 4).map((r) => (
@@ -155,7 +162,9 @@ export function TenantDashboardView() {
 
         <div className="space-y-6">
           <Panel title="Payment Status" viewAllHref="/payments">
-            {payments.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : payments.length === 0 ? (
               <EmptyRow text="No payments yet." />
             ) : (
               payments.slice(0, 4).map((r) => (
@@ -171,7 +180,9 @@ export function TenantDashboardView() {
           </Panel>
 
           <Panel title="Proof Status" viewAllHref="/verifications">
-            {proofs.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : proofs.length === 0 ? (
               <EmptyRow text="No proofs generated yet." />
             ) : (
               proofs.slice(0, 4).map((r) => (
@@ -187,7 +198,9 @@ export function TenantDashboardView() {
           </Panel>
 
           <Panel title="Viewing Codes" viewAllHref="/viewing-code">
-            {viewingCodes.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : viewingCodes.length === 0 ? (
               <EmptyRow text="No viewing codes yet." />
             ) : (
               viewingCodes.slice(0, 4).map((r) => (
@@ -205,7 +218,9 @@ export function TenantDashboardView() {
           </Panel>
 
           <Panel title={`Notifications (${unreadNotifications.length} Unread)`} viewAllHref="/notifications">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : notifications.length === 0 ? (
               <EmptyRow text="No notifications yet." />
             ) : (
               notifications.slice(0, 4).map((n) => (
@@ -221,7 +236,9 @@ export function TenantDashboardView() {
           </Panel>
 
           <Panel title="Reports Overview" viewAllHref="/reports">
-            {reports.length === 0 ? (
+            {loading ? (
+              <ListRowSkeletonGroup />
+            ) : reports.length === 0 ? (
               <EmptyRow text="You haven't filed any reports." />
             ) : (
               reports.slice(0, 4).map((r) => (

@@ -11,6 +11,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { api, ApiError, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
+import { PageLoader } from "@/components/ui/page-loader";
 
 const whyChargeReasons = [
   "Ensures genuine and serious enquiries",
@@ -64,7 +65,7 @@ export default function RequestViewingPage() {
     }
   }
 
-  if (loading) return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+  if (loading) return <PageLoader />;
   if (error && !listing) return <p className="p-8 text-sm text-ur-error">{error}</p>;
   if (!listing) return null;
 
@@ -203,9 +204,9 @@ export default function RequestViewingPage() {
               </div>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Button type="submit" size="lg" disabled={submitting}>
+              <Button type="submit" size="lg" loading={submitting}>
                 {submitting ? "Submitting..." : "Proceed to Payment"}
-                <Icon name="arrow_forward" size={16} />
+                {!submitting ? <Icon name="arrow_forward" size={16} /> : null}
               </Button>
               <p className="flex items-center gap-1 text-xs text-ur-text-secondary">
                 <Icon name="lock" size={12} />

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, type AuditLogEntry, type AuditLogStats } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const entityIcons: Record<string, IconName> = {
   listing: "description",
@@ -151,9 +152,9 @@ export default function AuditLogsPage() {
         </select>
       </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="ur-card overflow-hidden">
-          <table className="w-full text-left text-sm">
+      <div className="mt-5 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_380px]">
+        <div className="ur-card overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-ur-border text-xs uppercase text-ur-text-muted">
               <tr>
                 <th className="px-4 py-3">Time</th>
@@ -164,13 +165,17 @@ export default function AuditLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ur-border">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-ur-text-muted">
-                    Loading...
-                  </td>
-                </tr>
-              ) : null}
+              {loading
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 5 }).map((__, j) => (
+                        <td key={j} className="px-4 py-3">
+                          <Skeleton className="h-4 w-full max-w-32" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : null}
               {!loading && filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-ur-text-muted">
