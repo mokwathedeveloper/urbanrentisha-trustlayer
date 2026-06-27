@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { Icon } from "@/components/ui/icon";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 const FILTER_TITLES: Record<string, string> = {
   held: "Active Escrow Holds",
@@ -172,7 +173,9 @@ export function EscrowManagementView({ role }: { role: "LANDLORD" | "AGENT" | "M
         </Link>
         <h1 className="mt-4 text-2xl font-black tracking-[-0.02em] text-ur-navy">{FILTER_TITLES[filter]}</h1>
         {loading ? (
-          <p className="mt-6 text-sm text-ur-text-muted">Loading...</p>
+          <div className="mt-6 ur-card p-2">
+            <ListRowSkeletonGroup rows={4} />
+          </div>
         ) : (
           <Section title={FILTER_TITLES[filter]} items={filteredItems} emptyLabel="Nothing here yet." />
         )}
@@ -187,7 +190,11 @@ export function EscrowManagementView({ role }: { role: "LANDLORD" | "AGENT" | "M
         Every payment and escrow transaction tied to your properties - status, amounts, tenants, and full activity history.
       </p>
 
-      {loading ? <p className="mt-6 text-sm text-ur-text-muted">Loading...</p> : null}
+      {loading ? (
+        <div className="mt-6 ur-card p-2">
+          <ListRowSkeletonGroup rows={5} />
+        </div>
+      ) : null}
 
       {!loading && items.length === 0 ? (
         <div className="ur-card mt-6 flex flex-col items-center gap-3 p-10 text-center">
