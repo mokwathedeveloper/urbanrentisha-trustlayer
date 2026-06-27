@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e:local": "dotenv -e .env.e2e -- playwright test --project=desktop --project=mobile",
+    "e2e:staging": "dotenv -e .env.e2e.staging -- playwright test --project=desktop --project=mobile",
+    "e2e:production-smoke": "dotenv -e .env.e2e.production -- playwright test --project=production-smoke",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",
@@ -22,10 +26,12 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "subset-font": "^2.5.0",
