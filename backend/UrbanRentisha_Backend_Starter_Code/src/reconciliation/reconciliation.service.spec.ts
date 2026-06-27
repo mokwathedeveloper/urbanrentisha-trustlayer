@@ -192,6 +192,39 @@ describe("ReconciliationService", () => {
       );
       expect(notifications.notifyAdmins).toHaveBeenCalledTimes(1);
     });
+
+    it("one payment's on-chain check throwing does not abort the sweep for the other candidates", async () => {
+      prisma.payment.findMany.mockResolvedValue([
+        stalePayment({ id: "payment-bad" }),
+        stalePayment({ id: "payment-good" }),
+      ]);
+      escrow.getHold.mockImplementation((paymentId: string) => {
+        if (paymentId === "payment-bad") {
+          return Promise.reject(new Error("RPC sequence-number conflict"));
+        }
+        return Promise.resolve({
+          status: HoldStatus.Held,
+          payer: "GPAYER",
+          amount: 5_000_000n,
+        });
+      });
+
+      const result = await service.reconcileDeposits();
+
+      expect(result).toEqual({ checked: 2, repaired: 1, ambiguous: 0 });
+      expect(auditLogs.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "payment.reconciliation_check_failed",
+          entityId: "payment-bad",
+        }),
+      );
+      expect(auditLogs.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "payment.reconciliation_deposit_repaired",
+        }),
+        tx,
+      );
+    });
   });
 
   describe("reconcileReleases", () => {
