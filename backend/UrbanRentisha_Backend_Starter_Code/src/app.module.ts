@@ -1,8 +1,9 @@
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { buildThrottlerStorage } from "./common/throttler/throttler-storage.factory";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -40,8 +41,19 @@ import { validateEnv } from "./config/env.validation";
     ScheduleModule.forRoot(),
     // Generous global default (60 req/min) - tighter per-route limits (e.g.
     // login/register) are applied with @Throttle() where brute-forcing is
-    // an actual risk, per src/auth/auth.controller.ts.
-    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 60 }]),
+    // an actual risk, per src/auth/auth.controller.ts. Storage is shared
+    // across Vercel function instances via Redis when REDIS_URL is set
+    // (required in production - see env.validation.ts); see
+    // common/throttler/throttler-storage.factory.ts for the fallback
+    // behavior when it isn't.
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [{ name: "default", ttl: 60_000, limit: 60 }],
+        storage: buildThrottlerStorage(config),
+      }),
+    }),
     RealtimeModule,
     PrismaModule,
     AuthModule,
