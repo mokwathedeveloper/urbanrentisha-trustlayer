@@ -58,14 +58,14 @@ export function AdminDashboardView() {
         </Link>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
         {stats.map((stat) => (
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
         <StatCard icon="verified_user" label="Trust Score (Platform)" value={`${s?.platformTrustScore ?? 0} / 100`} color="text-ur-primary" loading={loading} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Panel title={`Platform-wide Approvals (${(overview?.pendingApprovals.listings.length ?? 0) + (overview?.pendingApprovals.agents.length ?? 0)})`}>
           {loading ? (
             <ListRowSkeletonGroup />
@@ -216,7 +216,7 @@ export function AdminDashboardView() {
         </Panel>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="ur-card p-4">
           <p className="text-sm font-bold text-ur-navy">Platform Analytics</p>
           <div className="mt-3 grid grid-cols-2 gap-3">

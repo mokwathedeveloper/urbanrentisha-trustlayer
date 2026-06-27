@@ -93,7 +93,7 @@ export default function VerifyProofPage() {
       <h1 className="mt-4 text-2xl font-black tracking-[-0.02em] text-ur-navy">Proof Verification</h1>
       <p className="mt-1 text-sm text-ur-text-secondary">Submit your zero-knowledge proof for verification on Stellar/Soroban.</p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Stepper currentStep={2} steps={verifySteps} />
 

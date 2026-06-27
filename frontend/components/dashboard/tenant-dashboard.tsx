@@ -80,7 +80,7 @@ export function TenantDashboardView() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-7">
         {stats.map((stat) => (
           <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} loading={loading} />
         ))}
@@ -97,7 +97,7 @@ export function TenantDashboardView() {
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="space-y-6">
           <Panel title="My Requests" viewAllHref="/listings">
             {loading ? (

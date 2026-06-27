@@ -87,7 +87,7 @@ export default function ViewingCodePage() {
         </span>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="ur-card p-5">
             <h2 className="font-bold text-ur-navy">Your Viewing Code</h2>

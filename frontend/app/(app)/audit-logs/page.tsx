@@ -152,9 +152,9 @@ export default function AuditLogsPage() {
         </select>
       </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="ur-card overflow-hidden">
-          <table className="w-full text-left text-sm">
+      <div className="mt-5 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_380px]">
+        <div className="ur-card overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-ur-border text-xs uppercase text-ur-text-muted">
               <tr>
                 <th className="px-4 py-3">Time</th>
