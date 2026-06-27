@@ -123,9 +123,9 @@ export default function ActivatePage() {
 
               {error ? <p className="text-sm text-ur-error">{error}</p> : null}
 
-              <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+              <Button type="submit" className="w-full" size="lg" loading={submitting}>
                 {submitting ? "Activating..." : "Activate Account"}
-                <Icon name="arrow_forward" size={16} />
+                {!submitting ? <Icon name="arrow_forward" size={16} /> : null}
               </Button>
             </form>
           )}
