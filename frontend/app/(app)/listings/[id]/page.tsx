@@ -11,6 +11,8 @@ import { Icon } from "@/components/ui/icon";
 import { formatDate } from "@/components/dashboard/dashboard-ui";
 import { isOnline, formatLastSeen } from "@/lib/presence";
 import { useListingRealtime, useRealtimeEvent } from "@/lib/realtime";
+import { PageLoader } from "@/components/ui/page-loader";
+import { ButtonSpinner } from "@/components/ui/spinner";
 
 const CHAT_POLL_INTERVAL_MS = 5000;
 
@@ -207,7 +209,7 @@ export default function PropertyDetailPage() {
   }
 
   if (loading) {
-    return <p className="p-8 text-sm text-ur-text-muted">Loading...</p>;
+    return <PageLoader label="Loading property details..." />;
   }
 
   if (error || !listing) {
@@ -465,16 +467,17 @@ export default function PropertyDetailPage() {
                 className="mt-3 h-20 w-full rounded-ur-sm border border-ur-border bg-ur-input px-3 py-2 text-sm text-ur-text outline-none focus:border-ur-primary"
               />
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button disabled={reviewing || verified} onClick={() => handleReview("verify")}>
-                  <Icon name="check_circle" size={16} />
+                <Button disabled={verified} loading={reviewing} onClick={() => handleReview("verify")}>
+                  {!reviewing ? <Icon name="check_circle" size={16} /> : null}
                   Approve Listing
                 </Button>
                 <Button
                   variant="danger"
-                  disabled={reviewing || listing.verificationStatus === "REJECTED"}
+                  disabled={listing.verificationStatus === "REJECTED"}
+                  loading={reviewing}
                   onClick={() => handleReview("reject")}
                 >
-                  <Icon name="close" size={16} />
+                  {!reviewing ? <Icon name="close" size={16} /> : null}
                   Reject Listing
                 </Button>
               </div>
@@ -527,7 +530,7 @@ export default function PropertyDetailPage() {
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
-                      disabled={availabilityActing}
+                      loading={availabilityActing}
                       onClick={handleMarkRented}
                     >
                       Mark as Rented
@@ -535,7 +538,7 @@ export default function PropertyDetailPage() {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      disabled={availabilityActing}
+                      loading={availabilityActing}
                       onClick={handleReleaseReservation}
                     >
                       Release Reservation
@@ -675,8 +678,8 @@ export default function PropertyDetailPage() {
 
             {canMessage ? (
               <>
-                <Button className="mt-4 w-full" disabled={chatLoading} onClick={handleOpenChat}>
-                  <Icon name="chat_bubble" size={16} />
+                <Button className="mt-4 w-full" loading={chatLoading} onClick={handleOpenChat}>
+                  {!chatLoading ? <Icon name="chat_bubble" size={16} /> : null}
                   {chatLoading ? "Loading..." : chatOpen ? "Hide Chat" : "Message"}
                 </Button>
                 {chatOpen ? (
@@ -726,7 +729,7 @@ export default function PropertyDetailPage() {
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-ur-sm bg-ur-primary text-white disabled:opacity-50"
                         aria-label="Send message"
                       >
-                        <Icon name="send" size={16} />
+                        {chatSending ? <ButtonSpinner /> : <Icon name="send" size={16} />}
                       </button>
                     </div>
                   </div>
@@ -796,7 +799,8 @@ export default function PropertyDetailPage() {
                   {reviewSubmitError ? <p className="mt-1 text-xs text-ur-error">{reviewSubmitError}</p> : null}
                   <Button
                     className="mt-2 w-full"
-                    disabled={submittingReview || myRating === 0}
+                    disabled={myRating === 0}
+                    loading={submittingReview}
                     onClick={handleSubmitReview}
                   >
                     {submittingReview ? "Submitting..." : "Submit Review"}
