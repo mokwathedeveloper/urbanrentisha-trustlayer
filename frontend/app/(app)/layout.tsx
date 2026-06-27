@@ -6,6 +6,25 @@ import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
 import { SoundEffects } from "@/components/app-shell/sound-effects";
 import { useAuth } from "@/lib/auth";
+import { LogoMark } from "@/components/landing/logo-mark";
+import { Spinner } from "@/components/ui/spinner";
+
+/**
+ * The first thing every authenticated page renders, while useAuth()
+ * resolves the session (and again briefly during the mustChangePassword/
+ * onboarding redirect checks) - previously a bare "Loading..." on a black
+ * screen with no branding at all.
+ */
+function AppShellLoader() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-ur-bg">
+      <div className="flex flex-col items-center gap-4">
+        <LogoMark className="h-12 w-auto" />
+        <Spinner size="lg" className="text-ur-primary" aria-label="Loading" />
+      </div>
+    </main>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -30,11 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [loading, user, isOnboarding, isChangePassword, router]);
 
   if (loading || !user) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-ur-bg text-ur-muted">
-        <p>Loading...</p>
-      </main>
-    );
+    return <AppShellLoader />;
   }
 
   if (isChangePassword) {
@@ -42,11 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (user.mustChangePassword) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-ur-bg text-ur-muted">
-        <p>Loading...</p>
-      </main>
-    );
+    return <AppShellLoader />;
   }
 
   if (isOnboarding) {
@@ -54,11 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user.avatarUrl) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-ur-bg text-ur-muted">
-        <p>Loading...</p>
-      </main>
-    );
+    return <AppShellLoader />;
   }
 
   return (
