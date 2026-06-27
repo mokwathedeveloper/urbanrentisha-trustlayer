@@ -32,8 +32,10 @@ const RECONCILIATION_LOCK_ID = "reconciliation";
  * a later run may reclaim it - self-healing if a run crashes mid-sweep
  * without reaching the `finally` release. Comfortably longer than a real
  * run should ever take (every on-chain check inside is timeout-bounded),
- * comfortably shorter than the 10-minute gap between scheduled runs, so a
- * stuck lock can never survive to block the next legitimate run.
+ * comfortably shorter than the gap between scheduled runs (10 minutes in
+ * local/dev's @Cron; once daily in production's Vercel Cron trigger, see
+ * vercel.json - Vercel's Hobby plan caps cron frequency at once per day),
+ * so a stuck lock can never survive to block the next legitimate run.
  */
 const RECONCILIATION_LEASE_MS = 5 * 60 * 1000;
 
