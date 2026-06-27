@@ -1,4 +1,7 @@
 import type { contract, Keypair, rpc } from "@stellar/stellar-sdk";
+import { importEsm } from "../common/utils/dynamic-import.util";
+
+type StellarSdk = typeof import("@stellar/stellar-sdk");
 
 // Contract spec (XDR) extracted via `stellar contract bindings typescript`
 // for the deployed UrbanRentishaEscrow contract - see contracts/escrow/.
@@ -83,14 +86,18 @@ export class EscrowClient {
   /**
    * The Stellar SDK's CJS build requires ESM-only @noble/* crypto packages
    * internally, which Vercel's serverless runtime can't require()
-   * synchronously - so the SDK is loaded lazily via dynamic import() on
-   * first use instead of at module/constructor time, which works in every
-   * environment.
+   * synchronously - so the SDK is loaded lazily on first use via importEsm,
+   * a real runtime import() that resolves the SDK's proper ESM build
+   * instead of tsc's downleveled `await import()` (which compiles to a
+   * plain require() under module: "commonjs" and would still hit the
+   * broken CJS build - see dynamic-import.util.ts).
    */
   private ensureReady(): Promise<void> {
     if (!this.ready) {
       this.ready = (async () => {
-        const { Keypair, contract, rpc } = await import("@stellar/stellar-sdk");
+        const { Keypair, contract, rpc } = await importEsm<StellarSdk>(
+          "@stellar/stellar-sdk",
+        );
         this.adminKeypair = Keypair.fromSecret(this.config.adminSecretKey);
         this.server = new rpc.Server(this.config.rpcUrl);
         this.spec = new contract.Spec(CONTRACT_SPEC);
@@ -125,7 +132,7 @@ export class EscrowClient {
     amountStroops: bigint,
   ): Promise<string> {
     await this.ensureReady();
-    const { contract } = await import("@stellar/stellar-sdk");
+    const { contract } = await importEsm<StellarSdk>("@stellar/stellar-sdk");
     const payerClient = new contract.Client(this.spec, {
       contractId: this.config.contractId,
       rpcUrl: this.config.rpcUrl,
@@ -150,7 +157,9 @@ export class EscrowClient {
    */
   async submitSignedDeposit(signedXdr: string): Promise<string> {
     await this.ensureReady();
-    const { TransactionBuilder, rpc } = await import("@stellar/stellar-sdk");
+    const { TransactionBuilder, rpc } = await importEsm<StellarSdk>(
+      "@stellar/stellar-sdk",
+    );
     const transaction = TransactionBuilder.fromXDR(
       signedXdr,
       this.config.networkPassphrase,
