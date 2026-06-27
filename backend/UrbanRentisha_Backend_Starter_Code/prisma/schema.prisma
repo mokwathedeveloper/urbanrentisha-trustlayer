@@ -160,24 +160,24 @@ model User {
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
-  tenantProfile     TenantProfile?
-  landlordProfile   LandlordProfile?
-  agentProfile      AgentProfile?
-  managerProfile    ManagerProfile?
-  listings          Listing[]        @relation("ListingOwner")
-  reports           Report[]         @relation("ReportReporter")
-  reportsResponded  Report[]         @relation("ReportResponder")
-  notifications     Notification[]
-  auditLogs         AuditLog[]       @relation("AuditActor")
-  savedListings     SavedListing[]
-  messages          Message[]
-  documents         Document[]       @relation("DocumentUploader")
-  reviewedDocuments Document[]       @relation("DocumentReviewer")
-  listingThreads    ListingThread[]
-  reviewsReceived   Review[]         @relation("ReviewTarget")
-  reviewsWritten    Review[]         @relation("ReviewAuthor")
-  supportThreadsAsUser  SupportThread[] @relation("SupportThreadUser")
-  supportThreadsAsAdmin SupportThread[] @relation("SupportThreadAdmin")
+  tenantProfile         TenantProfile?
+  landlordProfile       LandlordProfile?
+  agentProfile          AgentProfile?
+  managerProfile        ManagerProfile?
+  listings              Listing[]        @relation("ListingOwner")
+  reports               Report[]         @relation("ReportReporter")
+  reportsResponded      Report[]         @relation("ReportResponder")
+  notifications         Notification[]
+  auditLogs             AuditLog[]       @relation("AuditActor")
+  savedListings         SavedListing[]
+  messages              Message[]
+  documents             Document[]       @relation("DocumentUploader")
+  reviewedDocuments     Document[]       @relation("DocumentReviewer")
+  listingThreads        ListingThread[]
+  reviewsReceived       Review[]         @relation("ReviewTarget")
+  reviewsWritten        Review[]         @relation("ReviewAuthor")
+  supportThreadsAsUser  SupportThread[]  @relation("SupportThreadUser")
+  supportThreadsAsAdmin SupportThread[]  @relation("SupportThreadAdmin")
 
   @@index([role])
 }
@@ -212,24 +212,24 @@ model LandlordProfile {
 }
 
 model AgentProfile {
-  id                      String                   @id @default(cuid())
-  userId                  String                   @unique
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                      String                  @id @default(cuid())
+  userId                  String                  @unique
+  user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   agencyName              String?
   licenseNumber           String?
-  verificationStatus      AgentVerificationStatus  @default(PENDING)
-  verificationStage       VerificationStage        @default(PROFILE_CREATED)
-  trustScore              Int                      @default(70)
-  reportCount             Int                      @default(0)
+  verificationStatus      AgentVerificationStatus @default(PENDING)
+  verificationStage       VerificationStage       @default(PROFILE_CREATED)
+  trustScore              Int                     @default(70)
+  reportCount             Int                     @default(0)
   landlordId              String?
-  landlord                LandlordProfile?         @relation(fields: [landlordId], references: [id])
+  landlord                LandlordProfile?        @relation(fields: [landlordId], references: [id])
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   activatedAt             DateTime?
   attestationTxHash       String?
   attestedAt              DateTime?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
   listings  Listing[]
   documents Document[]
@@ -239,24 +239,24 @@ model AgentProfile {
 }
 
 model ManagerProfile {
-  id                      String                   @id @default(cuid())
-  userId                  String                   @unique
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                      String                  @id @default(cuid())
+  userId                  String                  @unique
+  user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   agencyName              String?
   licenseNumber           String?
-  verificationStatus      AgentVerificationStatus  @default(PENDING)
-  verificationStage       VerificationStage        @default(PROFILE_CREATED)
-  trustScore              Int                      @default(70)
-  reportCount             Int                      @default(0)
+  verificationStatus      AgentVerificationStatus @default(PENDING)
+  verificationStage       VerificationStage       @default(PROFILE_CREATED)
+  trustScore              Int                     @default(70)
+  reportCount             Int                     @default(0)
   landlordId              String?
-  landlord                LandlordProfile?         @relation(fields: [landlordId], references: [id])
+  landlord                LandlordProfile?        @relation(fields: [landlordId], references: [id])
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   activatedAt             DateTime?
   attestationTxHash       String?
   attestedAt              DateTime?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
   listings  Listing[]
   documents Document[]
@@ -465,23 +465,24 @@ model Review {
 }
 
 model Payment {
-  id                  String         @id @default(cuid())
-  viewingRequestId    String         @unique
-  viewingRequest      ViewingRequest @relation(fields: [viewingRequestId], references: [id])
-  amount              Int
-  currency            String         @default("KES")
-  stellarAsset        String         @default("XLM_TEST")
-  destinationWallet   String
-  payerWallet         String?
-  stellarMemo         String
-  txHash              String?
-  status              PaymentStatus  @default(CREATED)
-  paidAt              DateTime?
-  escrowDepositTxHash String?
-  escrowReleaseTxHash String?
-  escrowReleasedAt    DateTime?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  id                     String         @id @default(cuid())
+  viewingRequestId       String         @unique
+  viewingRequest         ViewingRequest @relation(fields: [viewingRequestId], references: [id])
+  amount                 Int
+  currency               String         @default("KES")
+  stellarAsset           String         @default("XLM_TEST")
+  destinationWallet      String
+  payerWallet            String?
+  stellarMemo            String
+  txHash                 String?
+  status                 PaymentStatus  @default(CREATED)
+  paidAt                 DateTime?
+  escrowDepositTxHash    String?
+  escrowReleaseTxHash    String?
+  escrowReleasedAt       DateTime?
+  escrowReleaseClaimedAt DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
   @@index([status])
 }

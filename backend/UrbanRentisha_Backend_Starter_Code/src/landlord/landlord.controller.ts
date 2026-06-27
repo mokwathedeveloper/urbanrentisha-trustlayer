@@ -10,12 +10,14 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { Throttle } from "@nestjs/throttler";
 import { UserRole } from "@prisma/client";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { UPLOAD_THROTTLE } from "../common/constants/throttle-limits";
 import { LandlordService } from "./landlord.service";
 
 const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
@@ -44,6 +46,7 @@ export class LandlordController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.LANDLORD, UserRole.ADMIN, UserRole.PLATFORM)
+  @Throttle(UPLOAD_THROTTLE)
   @Post("agents")
   @UseInterceptors(documentFileInterceptor)
   inviteAgent(
@@ -107,6 +110,7 @@ export class LandlordController {
     );
   }
 
+  @Throttle(UPLOAD_THROTTLE)
   @Post("agents/activate")
   @UseInterceptors(documentFileInterceptor)
   activate(

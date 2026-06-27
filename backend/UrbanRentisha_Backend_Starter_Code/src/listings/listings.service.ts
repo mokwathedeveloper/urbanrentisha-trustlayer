@@ -415,46 +415,36 @@ export class ListingsService {
    * (the money already moved, it cannot be undone here) but the conflict is
    * surfaced loudly for manual admin resolution rather than silently lost.
    */
+  /**
+   * Accepts an optional Prisma transaction client so a caller that needs
+   * this write to be atomic with other writes (payments.service.ts's
+   * confirmEscrowDeposit) can pass its `tx` through. Only database writes
+   * made via that client happen here - the waitlist/admin notification
+   * fan-out and the realtime emit are bundled into the returned
+   * `runPostCommitEffects` closure instead of firing inline, so a caller
+   * inside a transaction can defer them until after COMMIT. A
+   * non-transactional caller can just await the closure immediately.
+   */
   async reserveForRequest(
     listingId: string,
     requestId: string,
     actorId: string,
-  ) {
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-    });
-    if (!listing) return { conflict: false as const };
-
-    if (
-      listing.availabilityStatus === ListingAvailability.RESERVED &&
-      listing.reservedByRequestId !== requestId
-    ) {
-      await this.auditLogs.create({
-        actorId,
-        action: "listing.reservation_conflict",
-        entityType: "listing",
-        entityId: listingId,
-        severity: "CRITICAL",
-        metadata: {
-          requestId,
-          alreadyReservedByRequestId: listing.reservedByRequestId,
-        },
-      });
-      await this.notifications.notifyAdmins({
-        type: NotificationType.SYSTEM,
-        title: "Listing Reservation Conflict",
-        message: `Two tenants both paid for "${listing.title}" around the same time. Manual review and possible refund needed.`,
-        listingId,
-      });
-      return { conflict: true as const };
-    }
-
-    if (listing.availabilityStatus !== ListingAvailability.AVAILABLE) {
-      return { conflict: false as const };
-    }
-
-    await this.prisma.listing.update({
-      where: { id: listingId },
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<{
+    conflict: boolean;
+    runPostCommitEffects: () => Promise<void>;
+  }> {
+    // Atomic conditional write: the WHERE clause's availabilityStatus check
+    // and the write itself happen as a single database operation, so two
+    // concurrent calls can never both observe AVAILABLE and both succeed -
+    // only one update can ever match the row and flip it to RESERVED. This
+    // replaces the previous findUnique-then-update pattern, which had a
+    // real race window between the read and the write.
+    const result = await client.listing.updateMany({
+      where: {
+        id: listingId,
+        availabilityStatus: ListingAvailability.AVAILABLE,
+      },
       data: {
         availabilityStatus: ListingAvailability.RESERVED,
         reservedByRequestId: requestId,
@@ -462,28 +452,89 @@ export class ListingsService {
       },
     });
 
-    await this.auditLogs.create({
-      actorId,
-      action: "listing.reserved",
-      entityType: "listing",
-      entityId: listingId,
-      severity: "INFO",
-      metadata: { requestId },
+    if (result.count === 1) {
+      // This call won the race and just transitioned the row itself.
+      const listing = await client.listing.findUnique({
+        where: { id: listingId },
+        select: { title: true },
+      });
+
+      await this.auditLogs.create(
+        {
+          actorId,
+          action: "listing.reserved",
+          entityType: "listing",
+          entityId: listingId,
+          severity: "INFO",
+          metadata: { requestId },
+        },
+        client,
+      );
+
+      return {
+        conflict: false,
+        runPostCommitEffects: async () => {
+          await this.notifyWaitlist(
+            listingId,
+            actorId,
+            "Property Reserved by Another Tenant",
+            `"${listing?.title}" now has another tenant ahead of you in the process.`,
+          );
+
+          this.realtime.emitToListing(listingId, "listing:reserved", {
+            listingId,
+            availabilityStatus: ListingAvailability.RESERVED,
+          });
+        },
+      };
+    }
+
+    // count === 0: the conditional update did not match, because the
+    // listing doesn't exist, is already reserved (by us or someone else),
+    // or is in some other non-AVAILABLE state (e.g. RENTED). Re-read to
+    // disambiguate which case this is - this read no longer makes any
+    // write decision, it only decides which response/notification to send.
+    const listing = await client.listing.findUnique({
+      where: { id: listingId },
     });
+    if (!listing) {
+      return { conflict: false, runPostCommitEffects: async () => {} };
+    }
 
-    await this.notifyWaitlist(
-      listingId,
-      actorId,
-      "Property Reserved by Another Tenant",
-      `"${listing.title}" now has another tenant ahead of you in the process.`,
-    );
+    if (
+      listing.availabilityStatus === ListingAvailability.RESERVED &&
+      listing.reservedByRequestId !== requestId
+    ) {
+      await this.auditLogs.create(
+        {
+          actorId,
+          action: "listing.reservation_conflict",
+          entityType: "listing",
+          entityId: listingId,
+          severity: "CRITICAL",
+          metadata: {
+            requestId,
+            alreadyReservedByRequestId: listing.reservedByRequestId,
+          },
+        },
+        client,
+      );
+      return {
+        conflict: true,
+        runPostCommitEffects: async () => {
+          await this.notifications.notifyAdmins({
+            type: NotificationType.SYSTEM,
+            title: "Listing Reservation Conflict",
+            message: `Two tenants both paid for "${listing.title}" around the same time. Manual review and possible refund needed.`,
+            listingId,
+          });
+        },
+      };
+    }
 
-    this.realtime.emitToListing(listingId, "listing:reserved", {
-      listingId,
-      availabilityStatus: ListingAvailability.RESERVED,
-    });
-
-    return { conflict: false as const };
+    // Already reserved by this exact request (idempotent retry) or in a
+    // terminal state like RENTED - not a conflict, nothing to do.
+    return { conflict: false, runPostCommitEffects: async () => {} };
   }
 
   /**

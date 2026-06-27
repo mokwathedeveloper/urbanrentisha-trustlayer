@@ -8,10 +8,12 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { Throttle } from "@nestjs/throttler";
 import { DocumentType } from "@prisma/client";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { UPLOAD_THROTTLE } from "../common/constants/throttle-limits";
 import { UploadsService } from "./uploads.service";
 
 const DOCUMENT_TYPES = new Set<string>(Object.values(DocumentType));
@@ -36,6 +38,7 @@ const DOCUMENT_MIME_TYPES = new Set([
 export class UploadsController {
   constructor(private readonly uploads: UploadsService) {}
 
+  @Throttle(UPLOAD_THROTTLE)
   @Post("avatar")
   @UseInterceptors(
     FileInterceptor("file", {
@@ -61,6 +64,7 @@ export class UploadsController {
     return this.uploads.uploadAvatar(user.sub, file);
   }
 
+  @Throttle(UPLOAD_THROTTLE)
   @Post("listing-image")
   @UseInterceptors(
     FileInterceptor("file", {
@@ -86,6 +90,7 @@ export class UploadsController {
     return this.uploads.uploadListingImage(user.sub, file);
   }
 
+  @Throttle(UPLOAD_THROTTLE)
   @Post("documents")
   @UseInterceptors(
     FileInterceptor("file", {

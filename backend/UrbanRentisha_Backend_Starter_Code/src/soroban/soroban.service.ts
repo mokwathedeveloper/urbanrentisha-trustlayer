@@ -4,6 +4,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { TrustVerifierClient } from "./trust-verifier.client";
 import { g1Point, g2Point } from "./bls-points.util";
+import { withRetry } from "../common/utils/resilience.util";
+
+// verify_proof has no host-function calls that write contract ledger state
+// (see TrustVerifierClient.verifyProof) - the forced submission only exists
+// to obtain a real, auditable tx hash, not because the call mutates
+// anything. Same proof + same public inputs always yields the same
+// verification result, so retrying on a transient RPC failure is safe.
+// Limited to a single retry (not the shared default of two) since, unlike
+// a true read, each attempt still spends a real submission fee.
+const VERIFY_TIMEOUT_MS = 15_000;
 
 interface SnarkjsG16Proof {
   pi_a: [string, string, string];
@@ -57,40 +67,48 @@ export class SorobanService {
   ): Promise<{ verified: boolean; txHash: string }> {
     const vk = this.verificationKey;
 
-    return this.client.verifyProof(
+    return withRetry(
+      () =>
+        this.client.verifyProof(
+          {
+            alpha: g1Point(vk.vk_alpha_1[0], vk.vk_alpha_1[1]),
+            beta: g2Point(
+              vk.vk_beta_2[0][0],
+              vk.vk_beta_2[0][1],
+              vk.vk_beta_2[1][0],
+              vk.vk_beta_2[1][1],
+            ),
+            gamma: g2Point(
+              vk.vk_gamma_2[0][0],
+              vk.vk_gamma_2[0][1],
+              vk.vk_gamma_2[1][0],
+              vk.vk_gamma_2[1][1],
+            ),
+            delta: g2Point(
+              vk.vk_delta_2[0][0],
+              vk.vk_delta_2[0][1],
+              vk.vk_delta_2[1][0],
+              vk.vk_delta_2[1][1],
+            ),
+            ic: vk.IC.map((point) => g1Point(point[0], point[1])),
+          },
+          {
+            a: g1Point(proof.pi_a[0], proof.pi_a[1]),
+            b: g2Point(
+              proof.pi_b[0][0],
+              proof.pi_b[0][1],
+              proof.pi_b[1][0],
+              proof.pi_b[1][1],
+            ),
+            c: g1Point(proof.pi_c[0], proof.pi_c[1]),
+          },
+          publicSignals,
+        ),
       {
-        alpha: g1Point(vk.vk_alpha_1[0], vk.vk_alpha_1[1]),
-        beta: g2Point(
-          vk.vk_beta_2[0][0],
-          vk.vk_beta_2[0][1],
-          vk.vk_beta_2[1][0],
-          vk.vk_beta_2[1][1],
-        ),
-        gamma: g2Point(
-          vk.vk_gamma_2[0][0],
-          vk.vk_gamma_2[0][1],
-          vk.vk_gamma_2[1][0],
-          vk.vk_gamma_2[1][1],
-        ),
-        delta: g2Point(
-          vk.vk_delta_2[0][0],
-          vk.vk_delta_2[0][1],
-          vk.vk_delta_2[1][0],
-          vk.vk_delta_2[1][1],
-        ),
-        ic: vk.IC.map((point) => g1Point(point[0], point[1])),
+        timeoutMs: VERIFY_TIMEOUT_MS,
+        retries: 1,
+        label: "soroban.verifyProof",
       },
-      {
-        a: g1Point(proof.pi_a[0], proof.pi_a[1]),
-        b: g2Point(
-          proof.pi_b[0][0],
-          proof.pi_b[0][1],
-          proof.pi_b[1][0],
-          proof.pi_b[1][1],
-        ),
-        c: g1Point(proof.pi_c[0], proof.pi_c[1]),
-      },
-      publicSignals,
     );
   }
 }

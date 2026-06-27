@@ -2,8 +2,19 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash } from "crypto";
 import { EscrowClient, Hold } from "./escrow.client";
+import { withRetry, withTimeout } from "../common/utils/resilience.util";
 
 const STROOPS_PER_XLM = 10_000_000n;
+
+// Pure reads (and the unsigned-tx build below, which submits nothing) -
+// safe to retry on a transient RPC failure.
+const READ_TIMEOUT_MS = 8_000;
+// Anything that submits a transaction and mutates on-chain escrow state -
+// timeout-bounded only, never blindly retried (see submitSignedDeposit,
+// release, refund below). 30s is generous relative to typical testnet
+// submit+confirm latency so a genuinely slow-but-succeeding call isn't cut
+// off prematurely.
+const SUBMIT_TIMEOUT_MS = 30_000;
 
 @Injectable()
 export class EscrowService {
@@ -43,35 +54,74 @@ export class EscrowService {
     return BigInt(amount) * STROOPS_PER_XLM;
   }
 
+  /** Builds an unsigned deposit tx - never submitted here, so safe to retry. */
   async prepareDeposit(
     payerPublicKey: string,
     paymentId: string,
     amount: number,
   ): Promise<string> {
-    return this.client.prepareDeposit(
-      payerPublicKey,
-      this.nativeAssetContractId,
-      this.paymentIdBytes(paymentId),
-      this.toStroops(amount),
+    return withRetry(
+      () =>
+        this.client.prepareDeposit(
+          payerPublicKey,
+          this.nativeAssetContractId,
+          this.paymentIdBytes(paymentId),
+          this.toStroops(amount),
+        ),
+      { timeoutMs: READ_TIMEOUT_MS, label: "escrow.prepareDeposit" },
     );
   }
 
+  /**
+   * Submits the tenant-signed deposit transaction - mutates on-chain
+   * escrow state. Timeout-bounded only: never blindly retried, since a
+   * retry here could double-submit a deposit. A failure (including a
+   * timeout) must surface to the caller's own audit-logged failure path
+   * (see PaymentsService.confirmEscrowDeposit) and is recoverable via the
+   * reconciliation sweep, not an automatic resubmission.
+   */
   async submitSignedDeposit(signedXdr: string): Promise<string> {
-    return this.client.submitSignedDeposit(signedXdr);
-  }
-
-  async getHold(paymentId: string): Promise<Hold | null> {
-    return this.client.getHold(this.paymentIdBytes(paymentId));
-  }
-
-  async release(paymentId: string, landlordPublicKey: string): Promise<string> {
-    return this.client.release(
-      this.paymentIdBytes(paymentId),
-      landlordPublicKey,
+    return withTimeout(
+      () => this.client.submitSignedDeposit(signedXdr),
+      SUBMIT_TIMEOUT_MS,
+      "escrow.submitSignedDeposit",
     );
   }
 
+  /** Read-only on-chain status check - safe to retry. */
+  async getHold(paymentId: string): Promise<Hold | null> {
+    return withRetry(
+      () => this.client.getHold(this.paymentIdBytes(paymentId)),
+      {
+        timeoutMs: READ_TIMEOUT_MS,
+        label: "escrow.getHold",
+      },
+    );
+  }
+
+  /**
+   * Releases held funds on-chain - mutates state. Timeout-bounded only,
+   * never blindly retried (see submitSignedDeposit above; the same
+   * reasoning applies - this is exactly the call
+   * ProofVerificationService.releaseEscrowIfHeld's atomic claim exists to
+   * ensure only ever runs once per payment).
+   */
+  async release(paymentId: string, landlordPublicKey: string): Promise<string> {
+    return withTimeout(
+      () =>
+        this.client.release(this.paymentIdBytes(paymentId), landlordPublicKey),
+      SUBMIT_TIMEOUT_MS,
+      "escrow.release",
+    );
+  }
+
+  /** Refunds held funds on-chain - mutates state; timeout-bounded only,
+   * never blindly retried, for the same reason as release above. */
   async refund(paymentId: string): Promise<string> {
-    return this.client.refund(this.paymentIdBytes(paymentId));
+    return withTimeout(
+      () => this.client.refund(this.paymentIdBytes(paymentId)),
+      SUBMIT_TIMEOUT_MS,
+      "escrow.refund",
+    );
   }
 }

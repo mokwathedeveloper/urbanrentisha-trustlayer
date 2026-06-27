@@ -15,8 +15,17 @@ type AuditInput = {
 export class AuditLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(input: AuditInput) {
-    return this.prisma.auditLog.create({
+  /**
+   * Accepts an optional Prisma transaction client so callers that need this
+   * write to be atomic with other writes (e.g. payments.service.ts's
+   * confirmEscrowDeposit) can pass their `tx` through instead of always
+   * writing via a separate, independent connection.
+   */
+  create(
+    input: AuditInput,
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ) {
+    return client.auditLog.create({
       data: {
         actorId: input.actorId,
         action: input.action,

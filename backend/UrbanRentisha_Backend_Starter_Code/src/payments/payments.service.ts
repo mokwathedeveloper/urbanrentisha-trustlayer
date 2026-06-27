@@ -194,11 +194,12 @@ export class PaymentsService {
 
     // Payment is the earliest real commitment signal - reserve the listing
     // for this tenant now, before proof/verification even runs.
-    await this.listings.reserveForRequest(
+    const reservation = await this.listings.reserveForRequest(
       updatedRequest.listingId,
       payment.viewingRequestId,
       actorId,
     );
+    await reservation.runPostCommitEffects();
 
     await this.notifications.create({
       userId: actorId,
@@ -261,6 +262,28 @@ export class PaymentsService {
    * Submits the tenant-signed deposit transaction, then confirms a real
    * `Held` record now exists on-chain (rather than trusting the submitted
    * tx hash alone) before marking the Payment as received.
+   *
+   * Idempotency: re-entering with a payment that's no longer
+   * AWAITING_PAYMENT returns the existing row immediately - no second call
+   * to escrow.submitSignedDeposit, no re-running of any of the writes
+   * below. This covers RECEIVED, RELEASED, and any other non-AWAITING_PAYMENT
+   * status identically: once a payment has left AWAITING_PAYMENT, this
+   * method becomes a no-op read.
+   *
+   * Atomicity: the on-chain calls happen first, outside any DB transaction -
+   * a transaction must never hold open across a network call. Everything
+   * that records that on-chain fact - payment.update, viewingRequest.update,
+   * the listing reservation, the audit log, and the tenant notification row -
+   * then happens inside a single prisma.$transaction, so a mid-sequence
+   * failure can no longer leave these rows disagreeing about whether the
+   * deposit was received.
+   *
+   * Transaction purity: nothing inside the $transaction callback may emit,
+   * call an external service, or write via the default (non-tx) Prisma
+   * client - a side effect that fires before COMMIT could announce a fact
+   * that a later rollback then undoes. Realtime emits, the waitlist/admin
+   * notification fan-out, and the escrow-contact fan-out are therefore all
+   * deferred and only run once the transaction has actually committed.
    */
   async confirmEscrowDeposit(
     actorId: string,
@@ -273,6 +296,10 @@ export class PaymentsService {
     });
     if (!payment) throw new NotFoundException("Payment not found.");
     await this.access.assertAccess(payment.viewingRequestId, actorId, role);
+
+    if (payment.status !== PaymentStatus.AWAITING_PAYMENT) {
+      return payment;
+    }
 
     let txHash: string;
     let hold: Awaited<ReturnType<EscrowService["getHold"]>>;
@@ -299,54 +326,80 @@ export class PaymentsService {
       );
     }
 
-    const updated = await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        txHash,
-        escrowDepositTxHash: txHash,
-        payerWallet: hold.payer,
-        status: PaymentStatus.RECEIVED,
-        paidAt: new Date(),
-      },
-    });
+    const { updated, updatedRequest, reservation, notification } =
+      await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            txHash,
+            escrowDepositTxHash: txHash,
+            payerWallet: hold.payer,
+            status: PaymentStatus.RECEIVED,
+            paidAt: new Date(),
+          },
+        });
 
-    const updatedRequest = await this.prisma.viewingRequest.update({
-      where: { id: payment.viewingRequestId },
-      data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
-    });
+        const updatedRequest = await tx.viewingRequest.update({
+          where: { id: payment.viewingRequestId },
+          data: { status: ViewingRequestStatus.PAYMENT_RECEIVED },
+        });
 
-    // Payment is the earliest real commitment signal - reserve the listing
-    // for this tenant now, before proof/verification even runs.
-    await this.listings.reserveForRequest(
-      updatedRequest.listingId,
-      payment.viewingRequestId,
-      actorId,
-    );
+        // Payment is the earliest real commitment signal - reserve the
+        // listing for this tenant now, before proof/verification even
+        // runs. Passed the same tx so a reservation conflict (or success)
+        // is recorded atomically with the payment fact itself. Its
+        // notification/realtime side effects are deferred - see
+        // `reservation.runPostCommitEffects()` below.
+        const reservation = await this.listings.reserveForRequest(
+          updatedRequest.listingId,
+          payment.viewingRequestId,
+          actorId,
+          tx,
+        );
 
-    await this.auditLogs.create({
-      actorId,
-      action: "payment.escrow_deposit_confirmed",
-      entityType: "payment",
-      entityId: payment.id,
-      severity: "SUCCESS",
-      metadata: {
-        txHash,
-        viewingRequestId: payment.viewingRequestId,
-        amountStroops: hold.amount.toString(),
-      },
-    });
+        await this.auditLogs.create(
+          {
+            actorId,
+            action: "payment.escrow_deposit_confirmed",
+            entityType: "payment",
+            entityId: payment.id,
+            severity: "SUCCESS",
+            metadata: {
+              txHash,
+              viewingRequestId: payment.viewingRequestId,
+              amountStroops: hold.amount.toString(),
+            },
+          },
+          tx,
+        );
 
-    await this.notifications.create({
-      userId: actorId,
-      type: NotificationType.PAYMENT,
-      title: "Payment Held in Escrow",
-      message: `Your payment of ${updated.amount} ${updated.stellarAsset} is now held in escrow and will be released once your viewing proof is verified.`,
-      viewingRequestId: payment.viewingRequestId,
-    });
+        // Row only - the realtime emit is deferred until after COMMIT
+        // (see `this.notifications.emitCreated` below).
+        const notification = await this.notifications.createRecord(
+          {
+            userId: actorId,
+            type: NotificationType.PAYMENT,
+            title: "Payment Held in Escrow",
+            message: `Your payment of ${updated.amount} ${updated.stellarAsset} is now held in escrow and will be released once your viewing proof is verified.`,
+            viewingRequestId: payment.viewingRequestId,
+          },
+          tx,
+        );
+
+        return { updated, updatedRequest, reservation, notification };
+      });
+
+    // Everything below only runs once the transaction above has actually
+    // committed - none of it is a database write that needs to be atomic
+    // with the payment fact, so none of it belongs inside $transaction.
+    await reservation.runPostCommitEffects();
+    this.notifications.emitCreated(notification);
 
     // Escrow funding is a real, stake-holding event for whoever owns or
     // manages this property - they should not have to discover it by
-    // refreshing a dashboard.
+    // refreshing a dashboard. A secondary, multi-recipient, best-effort
+    // fan-out to other stakeholders, not part of the financial fact the
+    // transaction above exists to protect.
     await this.notifyEscrowContacts(
       updatedRequest.listingId,
       actorId,

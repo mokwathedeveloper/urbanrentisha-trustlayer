@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { AuthUser } from "../common/types/auth-user.type";
+import { FINANCIAL_MUTATION_THROTTLE } from "../common/constants/throttle-limits";
 import { CreateViewingRequestDto } from "./dto/create-viewing-request.dto";
 import { ViewingRequestsService } from "./viewing-requests.service";
 
@@ -10,6 +12,9 @@ import { ViewingRequestsService } from "./viewing-requests.service";
 export class ViewingRequestsController {
   constructor(private readonly viewingRequests: ViewingRequestsService) {}
 
+  // Claims a queue slot / triggers reservation-adjacent state transitions -
+  // same mutation tier as the payment/escrow endpoints it feeds into.
+  @Throttle(FINANCIAL_MUTATION_THROTTLE)
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateViewingRequestDto) {
     return this.viewingRequests.create(user.sub, dto);

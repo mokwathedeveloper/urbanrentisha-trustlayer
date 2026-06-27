@@ -30,10 +30,13 @@ import { ListingThreadsModule } from "./listing-threads/listing-threads.module";
 import { RealtimeModule } from "./realtime/realtime.module";
 import { SupportModule } from "./support/support.module";
 import { EscrowReportingModule } from "./escrow-reporting/escrow-reporting.module";
+import { ReconciliationModule } from "./reconciliation/reconciliation.module";
+import { HealthModule } from "./health/health.module";
+import { validateEnv } from "./config/env.validation";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     ScheduleModule.forRoot(),
     // Generous global default (60 req/min) - tighter per-route limits (e.g.
     // login/register) are applied with @Throttle() where brute-forcing is
@@ -66,6 +69,8 @@ import { EscrowReportingModule } from "./escrow-reporting/escrow-reporting.modul
     ListingThreadsModule,
     SupportModule,
     EscrowReportingModule,
+    ReconciliationModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

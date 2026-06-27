@@ -188,8 +188,21 @@ export class ProofVerificationService {
    * Releases the held escrow payment to the landlord now that the proof is
    * verified. This is intentionally non-blocking: a release failure (no
    * landlord wallet yet, RPC hiccup, etc.) must not undo or fail proof
-   * verification - they are separate concerns. Failures are audit-logged
-   * as WARNING so an admin can release manually later.
+   * verification - they are separate concerns.
+   *
+   * Concurrency: two near-simultaneous proof submissions for the same
+   * request must never both call `escrow.release` - that on-chain call may
+   * only ever happen once per payment. The atomic `updateMany` below claims
+   * the right to release using a dedicated `escrowReleaseClaimedAt` lock
+   * field, NOT the payment's status - `status` must only ever become
+   * RELEASED once `escrow.release` has actually returned a tx hash, so that
+   * no notification, admin view, or reconciliation job can ever observe
+   * "RELEASED" for a payment whose funds are still sitting in escrow. Only
+   * the caller whose conditional update actually matches a row
+   * (`count === 1`) proceeds to call `escrow.release`; a second, concurrent
+   * or retried call finds the lock already held (or the row no longer
+   * RECEIVED) and returns immediately - a safe no-op, not a duplicate
+   * release.
    */
   private async releaseEscrowIfHeld(
     actorId: string,
@@ -231,11 +244,33 @@ export class ProofVerificationService {
       return;
     }
 
+    // Atomic claim: id must match, status must still be RECEIVED, and no
+    // other caller may already hold the release lock. This only reserves
+    // the *right* to call escrow.release - it deliberately does not touch
+    // `status`, so the payment still correctly reads as RECEIVED (funds
+    // genuinely still held) for the entire duration of the on-chain call.
+    const claim = await this.prisma.payment.updateMany({
+      where: {
+        id: payment.id,
+        status: PaymentStatus.RECEIVED,
+        escrowReleaseClaimedAt: null,
+      },
+      data: { escrowReleaseClaimedAt: new Date() },
+    });
+    if (claim.count === 0) {
+      return;
+    }
+
     try {
+      // escrow.release runs outside any transaction - this is a network
+      // call to Soroban, not a database operation, and must never happen
+      // while holding a DB transaction open.
       const releaseTxHash = await this.escrow.release(
         payment.id,
         landlordWallet,
       );
+      // status only becomes RELEASED here, after the on-chain call has
+      // actually returned a tx hash - never before.
       await this.prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -273,6 +308,15 @@ export class ProofVerificationService {
         viewingRequestId: request.id,
       });
     } catch (error) {
+      // The on-chain call did not succeed, so status was never touched and
+      // is still correctly RECEIVED. Clear the lock so a later, separate
+      // attempt (a subsequent proof submission, or manual reconciliation)
+      // can legitimately claim and retry - this is not an automatic retry,
+      // just removing a stale lock.
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { escrowReleaseClaimedAt: null },
+      });
       await this.auditLogs.create({
         actorId,
         action: "payment.escrow_release_failed",

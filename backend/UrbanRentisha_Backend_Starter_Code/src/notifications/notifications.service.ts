@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
-import { NotificationType, UserRole } from "@prisma/client";
+import { NotificationType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 
@@ -10,17 +10,55 @@ export class NotificationsService {
     private readonly realtime: RealtimeGateway,
   ) {}
 
-  async create(input: {
-    userId: string;
-    type: NotificationType;
-    title: string;
-    message: string;
-    viewingRequestId?: string;
-    listingId?: string;
-  }) {
-    const notification = await this.prisma.notification.create({ data: input });
-    this.realtime.emitToUser(input.userId, "notification:new", notification);
+  /**
+   * Pure database write, no realtime emit - for callers running inside a
+   * Prisma transaction, where no side effect may execute before COMMIT.
+   * Pass the returned row to `emitCreated` once the transaction has
+   * actually committed.
+   */
+  createRecord(
+    input: {
+      userId: string;
+      type: NotificationType;
+      title: string;
+      message: string;
+      viewingRequestId?: string;
+      listingId?: string;
+    },
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ) {
+    return client.notification.create({ data: input });
+  }
+
+  /**
+   * Default, non-transactional path: write the row, then emit immediately.
+   * Safe for any caller not wrapping this in a transaction.
+   */
+  async create(
+    input: {
+      userId: string;
+      type: NotificationType;
+      title: string;
+      message: string;
+      viewingRequestId?: string;
+      listingId?: string;
+    },
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ) {
+    const notification = await this.createRecord(input, client);
+    this.emitCreated(notification);
     return notification;
+  }
+
+  /** Fires the realtime emit for a notification row that was already
+   * written (typically via `createRecord` inside a now-committed
+   * transaction). */
+  emitCreated(notification: { userId: string }) {
+    this.realtime.emitToUser(
+      notification.userId,
+      "notification:new",
+      notification,
+    );
   }
 
   async notifyAdmins(input: {
