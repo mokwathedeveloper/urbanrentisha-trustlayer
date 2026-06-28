@@ -12,6 +12,8 @@ import { api, ApiError, type Listing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
 import { PageLoader } from "@/components/ui/page-loader";
+import { useFlowLock } from "@/lib/tab-lock";
+import { FlowLockGuard, isFlowLockReadOnly } from "@/components/flow-lock/flow-lock-guard";
 
 const whyChargeReasons = [
   "Ensures genuine and serious enquiries",
@@ -38,6 +40,9 @@ export default function RequestViewingPage() {
   const [message, setMessage] = useState("");
   const [contactPreference, setContactPreference] = useState<"WHATSAPP" | "PHONE" | "EMAIL">("WHATSAPP");
 
+  const { status: lockStatus, takeOver, continueReadOnly } = useFlowLock(`booking-create:${params.id}`);
+  const readOnly = isFlowLockReadOnly(lockStatus);
+
   useEffect(() => {
     api.listings
       .findOne(params.id)
@@ -48,7 +53,7 @@ export default function RequestViewingPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!token) return;
+    if (!token || submitting || readOnly) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -74,6 +79,12 @@ export default function RequestViewingPage() {
 
   return (
     <div className="px-6 py-8">
+      <FlowLockGuard
+        status={lockStatus}
+        flowLabel="This booking"
+        onTakeOver={takeOver}
+        onContinueReadOnly={continueReadOnly}
+      />
       <Link
         href={`/listings/${listing.id}`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
@@ -204,7 +215,7 @@ export default function RequestViewingPage() {
               </div>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Button type="submit" size="lg" loading={submitting}>
+              <Button type="submit" size="lg" loading={submitting} disabled={readOnly}>
                 {submitting ? "Submitting..." : "Proceed to Payment"}
                 {!submitting ? <Icon name="arrow_forward" size={16} /> : null}
               </Button>

@@ -10,6 +10,8 @@ import { Stepper } from "@/components/requests/stepper";
 import { Icon } from "@/components/ui/icon";
 import { PageLoader } from "@/components/ui/page-loader";
 import { PaymentProcessingState } from "@/components/ui/processing-state";
+import { useFlowLock } from "@/lib/tab-lock";
+import { FlowLockGuard, isFlowLockReadOnly } from "@/components/flow-lock/flow-lock-guard";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -56,6 +58,9 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [startingChat, setStartingChat] = useState(false);
+
+  const { status: lockStatus, takeOver, continueReadOnly } = useFlowLock(`payment:${params.id}`);
+  const readOnly = isFlowLockReadOnly(lockStatus);
 
   const isQueued = request?.status === "QUEUED";
   const received = payment?.status === "RECEIVED";
@@ -115,7 +120,7 @@ export default function PaymentPage() {
   }, [token, payment, params.id, router]);
 
   async function handlePay() {
-    if (!token || !payment) return;
+    if (!token || !payment || paying || readOnly) return;
     setError(null);
     setPaying(true);
     try {
@@ -181,6 +186,12 @@ export default function PaymentPage() {
 
   return (
     <div className="px-6 py-8">
+      <FlowLockGuard
+        status={lockStatus}
+        flowLabel="This payment"
+        onTakeOver={takeOver}
+        onContinueReadOnly={continueReadOnly}
+      />
       <Link
         href={`/listings/${request.listingId}/request`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
@@ -222,7 +233,7 @@ export default function PaymentPage() {
                     <PaymentProcessingState />
                   </div>
                 ) : (
-                  <Button className="mt-4 w-full" size="lg" onClick={handlePay}>
+                  <Button className="mt-4 w-full" size="lg" onClick={handlePay} disabled={readOnly}>
                     Pay Viewing Fee
                   </Button>
                 )}

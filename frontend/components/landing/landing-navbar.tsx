@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { landingNavItems } from "@/lib/landing-data";
 import { Icon } from "@/components/ui/icon";
+import { HomepageCta } from "@/components/landing/homepage-cta";
 
 export function LandingNavbar() {
   return (
@@ -25,9 +26,7 @@ export function LandingNavbar() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Link href="/login">
-            <Button>Get Started</Button>
-          </Link>
+          <HomepageCta size="md" />
           <a href="https://stellar.org" target="_blank" rel="noopener noreferrer">
             <Button variant="outline">
               Explore on Stellar

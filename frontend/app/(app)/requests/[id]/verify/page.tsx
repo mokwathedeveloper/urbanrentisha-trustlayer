@@ -11,6 +11,8 @@ import { Icon } from "@/components/ui/icon";
 import { PageLoader } from "@/components/ui/page-loader";
 import { VerificationProcessingState } from "@/components/ui/processing-state";
 import { Spinner } from "@/components/ui/spinner";
+import { useFlowLock } from "@/lib/tab-lock";
+import { FlowLockGuard, isFlowLockReadOnly } from "@/components/flow-lock/flow-lock-guard";
 
 const verifySteps = ["Proof Submitted", "Verifying Proof", "Verification Result", "Access Granted", "Complete"];
 
@@ -34,6 +36,9 @@ export default function VerifyProofPage() {
     null,
   );
 
+  const { status: lockStatus, takeOver, continueReadOnly } = useFlowLock(`verify:${params.id}`);
+  const readOnly = isFlowLockReadOnly(lockStatus);
+
   useEffect(() => {
     if (!token) return;
     api.viewingRequests
@@ -53,7 +58,7 @@ export default function VerifyProofPage() {
   }, [token, params.id]);
 
   async function handleVerify() {
-    if (!token) return;
+    if (!token || verifying || readOnly) return;
     setError(null);
     setVerifying(true);
     try {
@@ -82,6 +87,12 @@ export default function VerifyProofPage() {
 
   return (
     <div className="px-6 py-8">
+      <FlowLockGuard
+        status={lockStatus}
+        flowLabel="This verification"
+        onTakeOver={takeOver}
+        onContinueReadOnly={continueReadOnly}
+      />
       <Link
         href={`/requests/${params.id}/proof`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
@@ -156,7 +167,7 @@ export default function VerifyProofPage() {
               <Button
                 className="mt-4 w-full"
                 onClick={handleVerify}
-                disabled={verified}
+                disabled={verified || readOnly}
                 loading={verifying}
               >
                 {verified ? "Proof Verified" : verifying ? "Verifying Proof..." : "Verify Proof"}

@@ -11,6 +11,8 @@ import { Icon } from "@/components/ui/icon";
 import { PageLoader } from "@/components/ui/page-loader";
 import { VerificationProcessingState } from "@/components/ui/processing-state";
 import { Spinner } from "@/components/ui/spinner";
+import { useFlowLock } from "@/lib/tab-lock";
+import { FlowLockGuard, isFlowLockReadOnly } from "@/components/flow-lock/flow-lock-guard";
 
 const proofSteps = ["Payment Confirmed", "Generate Proof", "Proof Generated", "Verify Proof", "Use Code"];
 
@@ -33,6 +35,9 @@ export default function ProofGenerationPage() {
   const [generating, setGenerating] = useState(false);
   const [proofHash, setProofHash] = useState<string | null>(null);
 
+  const { status: lockStatus, takeOver, continueReadOnly } = useFlowLock(`proof:${params.id}`);
+  const readOnly = isFlowLockReadOnly(lockStatus);
+
   useEffect(() => {
     if (!token) return;
     api.viewingRequests
@@ -46,7 +51,7 @@ export default function ProofGenerationPage() {
   }, [token, params.id]);
 
   async function handleGenerate() {
-    if (!token) return;
+    if (!token || generating || readOnly) return;
     setError(null);
     setGenerating(true);
     try {
@@ -69,6 +74,12 @@ export default function ProofGenerationPage() {
 
   return (
     <div className="px-6 py-8">
+      <FlowLockGuard
+        status={lockStatus}
+        flowLabel="This proof generation"
+        onTakeOver={takeOver}
+        onContinueReadOnly={continueReadOnly}
+      />
       <Link
         href={`/requests/${params.id}/payment`}
         className="flex items-center gap-1 text-sm font-semibold text-ur-mint hover:underline"
@@ -178,7 +189,7 @@ export default function ProofGenerationPage() {
                 className="mt-5 w-full"
                 size="lg"
                 onClick={handleGenerate}
-                disabled={generated}
+                disabled={generated || readOnly}
                 loading={generating}
               >
                 {!generating ? <Icon name="auto_awesome" size={16} /> : null}

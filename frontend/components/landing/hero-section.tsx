@@ -1,8 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { heroStats } from "@/lib/landing-data";
 import { Icon } from "@/components/ui/icon";
+import { HomepageCta } from "@/components/landing/homepage-cta";
 
 export function HeroSection() {
   return (
@@ -43,12 +43,7 @@ export function HeroSection() {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link href="/login">
-              <Button size="lg">
-                Get Started
-                <Icon name="arrow_forward" size={16} />
-              </Button>
-            </Link>
+            <HomepageCta size="lg" />
             <a href="#trust-flow">
               <Button size="lg" variant="outline">
                 <Icon name="play_arrow" size={16} />
