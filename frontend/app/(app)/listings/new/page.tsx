@@ -290,7 +290,7 @@ export default function NewListingPage() {
             helperText="Auto-filled from your first photo's GPS data - edit if needed."
             required
           />
-          <Input label="Address (optional)" name="address" value={form.address} onChange={(e) => update("address", e.target.value)} />
+          <Input label="Address" name="address" value={form.address} onChange={(e) => update("address", e.target.value)} required />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -317,8 +317,8 @@ export default function NewListingPage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Input label="Property Type" name="propertyType" value={form.propertyType} onChange={(e) => update("propertyType", e.target.value)} required />
-          <Input label="Bedrooms" name="bedrooms" type="number" min={0} value={form.bedrooms} onChange={(e) => update("bedrooms", e.target.value)} />
-          <Input label="Bathrooms" name="bathrooms" type="number" min={0} value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} />
+          <Input label="Bedrooms" name="bedrooms" type="number" min={0} value={form.bedrooms} onChange={(e) => update("bedrooms", e.target.value)} required />
+          <Input label="Bathrooms" name="bathrooms" type="number" min={0} value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} required />
         </div>
 
         {error ? <p className="text-sm text-ur-error">{error}</p> : null}

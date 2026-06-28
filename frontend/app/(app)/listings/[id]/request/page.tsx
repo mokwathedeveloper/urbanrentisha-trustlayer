@@ -54,6 +54,10 @@ export default function RequestViewingPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!token || submitting || readOnly) return;
+    if (!preferredDate || !preferredTime || !message.trim()) {
+      setError("Please select a preferred date and time, and tell the agent how/where to meet you.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -155,19 +159,20 @@ export default function RequestViewingPage() {
 
             <h3 className="mt-5 text-sm font-bold text-ur-navy">Preferred Viewing Schedule</h3>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <Calendar label="Select Date" value={preferredDate} onChange={setPreferredDate} />
-              <TimePicker label="Select Time" value={preferredTime} onChange={setPreferredTime} />
+              <Calendar label="Select Date *" value={preferredDate} onChange={setPreferredDate} />
+              <TimePicker label="Select Time *" value={preferredTime} onChange={setPreferredTime} />
             </div>
 
             <label className="mt-4 block text-xs font-semibold tracking-[0.04em] text-white/78" htmlFor="message">
-              Additional Message (Optional)
+              How/Where to Meet You <span className="text-ur-error">*</span>
             </label>
             <textarea
               id="message"
               maxLength={200}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Tell the agent anything about your preferred visit..."
+              placeholder="Tell the agent how and where to meet you for this viewing..."
+              required
               className="mt-2 h-20 w-full rounded-ur-sm border border-white/12 bg-ur-input px-3 py-2 text-sm text-white outline-none focus:border-ur-primary"
             />
             <p className="text-right text-xs text-ur-text-muted">{message.length}/200</p>

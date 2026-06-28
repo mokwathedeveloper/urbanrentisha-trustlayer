@@ -10,9 +10,8 @@ export class CreateListingDto {
   @IsString()
   location!: string;
 
-  @IsOptional()
   @IsString()
-  address?: string;
+  address!: string;
 
   @IsInt()
   @Min(1)
@@ -29,13 +28,13 @@ export class CreateListingDto {
   @IsString()
   propertyType!: string;
 
-  @IsOptional()
   @IsInt()
-  bedrooms?: number;
+  @Min(0)
+  bedrooms!: number;
 
-  @IsOptional()
   @IsInt()
-  bathrooms?: number;
+  @Min(0)
+  bathrooms!: number;
 
   @IsOptional()
   @IsString()
