@@ -29,7 +29,7 @@ export function Topbar() {
   }, []);
 
   return (
-    <header className="flex h-16 items-center justify-between gap-4 border-b border-ur-border bg-ur-bg px-4 sm:px-6">
+    <header className="flex h-16 items-center gap-4 border-b border-ur-border bg-ur-bg px-4 sm:px-6">
       <div className="flex items-center gap-3 lg:hidden">
         <button
           type="button"
@@ -45,7 +45,7 @@ export function Topbar() {
 
       <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} />
 
-      <div className="flex items-center gap-4">
+      <div className="ml-auto flex items-center gap-4">
         <button
           type="button"
           onClick={() => router.push("/notifications")}
