@@ -42,9 +42,43 @@ export default function NewListingPage() {
   const [images, setImages] = useState<ListingImageDraft[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locatingDevice, setLocatingDevice] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const uploadedImages = images.filter((img) => img.uploadedUrl);
   const isUploading = images.some((img) => img.uploading);
+
+  // Separate from the photo-EXIF GPS check below, which is the actual
+  // fraud-prevention proof that a photo was taken at the property and is
+  // never substituted by this - this only fills in the Location text
+  // field as a convenience for an agent standing at the property without
+  // a GPS-tagged photo handy yet.
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationError("Location access isn't available in this browser.");
+      return;
+    }
+    setLocationError(null);
+    setLocatingDevice(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const place = await reverseGeocode(latitude, longitude);
+        setForm((current) => ({ ...current, location: place ?? current.location }));
+        if (!place) setLocationError("Could not resolve an address for your current location.");
+        setLocatingDevice(false);
+      },
+      (geoError) => {
+        setLocationError(
+          geoError.code === geoError.PERMISSION_DENIED
+            ? "Location permission was denied. Enable it in your browser settings to use this."
+            : "Could not get your current location.",
+        );
+        setLocatingDevice(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   async function handleFilesSelected(files: FileList) {
     if (!token) return;
@@ -203,6 +237,11 @@ export default function NewListingPage() {
             ref={fileInputRef}
             type="file"
             accept="image/png,image/jpeg,image/webp"
+            // Opens the device's rear camera directly on mobile, instead of
+            // a generic gallery/file picker - desktop browsers without a
+            // camera just ignore this and fall back to a normal file
+            // picker, so it's safe everywhere.
+            capture="environment"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -282,14 +321,26 @@ export default function NewListingPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Location"
-            name="location"
-            value={form.location}
-            onChange={(e) => update("location", e.target.value)}
-            helperText="Auto-filled from your first photo's GPS data - edit if needed."
-            required
-          />
+          <div>
+            <Input
+              label="Location"
+              name="location"
+              value={form.location}
+              onChange={(e) => update("location", e.target.value)}
+              helperText="Auto-filled from your first photo's GPS data - edit if needed."
+              required
+            />
+            <button
+              type="button"
+              onClick={useCurrentLocation}
+              disabled={locatingDevice}
+              className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-ur-mint hover:underline disabled:opacity-60"
+            >
+              <Icon name="location_on" size={14} />
+              {locatingDevice ? "Getting your location..." : "Use My Current Location"}
+            </button>
+            {locationError ? <p className="mt-1 text-xs text-ur-error">{locationError}</p> : null}
+          </div>
           <Input label="Address" name="address" value={form.address} onChange={(e) => update("address", e.target.value)} required />
         </div>
 
