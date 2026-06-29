@@ -9,7 +9,7 @@ export function StellarBannerSection() {
   return (
     <section
       id="stellar"
-      className="relative h-[420px] w-full overflow-hidden border-b border-ur-border bg-ur-bg"
+      className="relative h-auto min-h-[420px] w-full overflow-hidden border-b border-ur-border bg-ur-bg sm:h-[420px]"
     >
       <Image
         src="/images/banner.png"
@@ -22,8 +22,8 @@ export function StellarBannerSection() {
 
       <div className="absolute inset-0 z-10 bg-ur-bg/10" />
 
-      <div className="ur-container relative z-20 flex h-full items-center justify-between gap-8">
-        <div className="max-w-xs text-left">
+      <div className="ur-container relative z-20 flex h-full flex-col items-start justify-center gap-8 py-10 sm:flex-row sm:items-center sm:justify-between sm:py-0">
+        <div className="w-full max-w-xs text-left">
           <h3 className="text-lg font-bold text-white sm:text-xl">
             Built on Stellar. Powered by Privacy.
           </h3>
