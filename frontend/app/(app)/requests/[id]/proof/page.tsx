@@ -71,6 +71,9 @@ export default function ProofGenerationPage() {
   const payment = request.payment;
   const generated = Boolean(proofHash);
   const progress = generating ? 60 : generated ? 100 : 0;
+  // Payment Confirmed is already done by the time this page loads; Generate
+  // Proof is current while waiting/generating, Proof Generated once done.
+  const currentStep = generated ? 3 : 2;
 
   return (
     <div className="px-6 py-8">
@@ -95,7 +98,7 @@ export default function ProofGenerationPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <Stepper currentStep={2} steps={proofSteps} />
+          <Stepper currentStep={currentStep} steps={proofSteps} />
 
           <div className="flex items-center justify-between rounded-ur border border-ur-primary/25 bg-ur-success-bg p-4">
             <div className="flex items-center gap-3">

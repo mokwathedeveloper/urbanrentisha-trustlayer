@@ -84,6 +84,9 @@ export default function VerifyProofPage() {
   const verified = result?.status === "VERIFIED";
   const failed = result?.status === "FAILED";
   const completedStages = verifying ? 1 : verified ? resultStages.length : 0;
+  // Verifying Proof is current while waiting/verifying; Verification
+  // Result is done once a result (success or failure) comes back.
+  const currentStep = verified || failed ? 3 : 2;
 
   return (
     <div className="px-6 py-8">
@@ -106,7 +109,7 @@ export default function VerifyProofPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <Stepper currentStep={2} steps={verifySteps} />
+          <Stepper currentStep={currentStep} steps={verifySteps} />
 
           {verifying ? (
             <VerificationProcessingState

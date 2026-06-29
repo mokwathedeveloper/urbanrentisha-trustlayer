@@ -65,6 +65,12 @@ export default function PaymentPage() {
   const isQueued = request?.status === "QUEUED";
   const received = payment?.status === "RECEIVED";
   const turnCountdown = useCountdown(received ? null : request?.turnExpiresAt ?? null);
+  // Review Details is already done by the time this page loads (the tenant
+  // reviewed the listing/request before creating it); Make Payment is
+  // current while waiting/paying, Processing while the pay-now call is in
+  // flight, Confirmed once received - this page redirects to /proof
+  // immediately on RECEIVED, so step 5 is never actually seen here.
+  const currentStep = received ? 4 : paying ? 3 : 2;
 
   useEffect(() => {
     if (!token) return;
@@ -209,7 +215,7 @@ export default function PaymentPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <Stepper currentStep={2} />
+          <Stepper currentStep={currentStep} />
 
           <div className="ur-card p-5">
             <h2 className="font-bold text-ur-navy">Viewing Fee</h2>
