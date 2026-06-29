@@ -5,19 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, type NotificationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Icon, type IconName } from "@/components/ui/icon";
-import { broadcastNotificationsChanged, getNotificationLink } from "@/lib/notifications";
+import { Icon } from "@/components/ui/icon";
+import { NOTIFICATION_TYPE_META, broadcastNotificationsChanged, getNotificationLink, sortNotifications } from "@/lib/notifications";
 import { ListRowSkeletonGroup } from "@/components/ui/skeleton";
 
 type FilterType = "ALL" | "PAYMENT" | "PROOF" | "VIEWING_CODE" | "REPORT" | "SYSTEM";
 
-const typeMeta: Record<string, { label: string; icon: IconName; color: string }> = {
-  PAYMENT: { label: "Payment", icon: "account_balance_wallet", color: "text-ur-primary" },
-  PROOF: { label: "Proof", icon: "verified_user", color: "text-ur-cyan" },
-  VIEWING_CODE: { label: "Viewing Code", icon: "key", color: "text-ur-mint" },
-  REPORT: { label: "Report", icon: "flag", color: "text-ur-warning" },
-  SYSTEM: { label: "System", icon: "settings", color: "text-ur-muted" },
-};
+const typeMeta = NOTIFICATION_TYPE_META;
 
 const filters: FilterType[] = ["ALL", "PAYMENT", "PROOF", "VIEWING_CODE", "REPORT", "SYSTEM"];
 
@@ -69,14 +63,17 @@ export default function NotificationsPage() {
 
   const filtered = filter === "ALL" ? notifications : notifications.filter((n) => n.type === filter);
 
-  const grouped = useMemo(() => {
-    const groups = new Map<string, NotificationItem[]>();
-    for (const n of filtered) {
-      const label = dayLabel(n.createdAt);
-      if (!groups.has(label)) groups.set(label, []);
-      groups.get(label)!.push(n);
-    }
-    return Array.from(groups.entries());
+  // Unread always first (newest first within it), read below (also newest
+  // first) - sortNotifications is the single shared definition of this
+  // ordering, also used by the Topbar bell's dropdown preview.
+  const sections = useMemo(() => {
+    const sorted = sortNotifications(filtered);
+    const unread = sorted.filter((n) => !n.readAt);
+    const read = sorted.filter((n) => n.readAt);
+    return [
+      { label: "Unread", items: unread },
+      { label: "Read", items: read },
+    ].filter((section) => section.items.length > 0);
   }, [filtered]);
 
   const selected = notifications.find((n) => n.id === selectedId) ?? null;
@@ -154,10 +151,11 @@ export default function NotificationsPage() {
           {!loading && filtered.length === 0 ? (
             <p className="p-5 text-sm text-ur-text-muted">No notifications yet.</p>
           ) : null}
-          {grouped.map(([label, items]) => (
+          {sections.map(({ label, items }) => (
             <div key={label}>
-              <p className="border-b border-ur-border px-4 py-2 text-xs font-bold uppercase tracking-wide text-ur-text-muted">
+              <p className="flex items-center gap-2 border-b border-ur-border px-4 py-2 text-xs font-bold uppercase tracking-wide text-ur-text-muted">
                 {label}
+                <span className="rounded-full bg-ur-card-soft px-2 text-[10px] normal-case">{items.length}</span>
               </p>
               <div className="divide-y divide-ur-border">
                 {items.map((notification) => {
@@ -169,17 +167,21 @@ export default function NotificationsPage() {
                       type="button"
                       onClick={() => handleSelect(notification)}
                       className={`flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-ur-card-hover ${
-                        selectedId === notification.id ? "bg-ur-card-hover" : ""
+                        selectedId === notification.id ? "bg-ur-card-hover" : unread ? "bg-ur-success-bg/30" : ""
                       }`}
                     >
                       <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${unread ? "bg-ur-cyan" : "bg-transparent"}`} />
                       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ur-card-soft ${meta.color}`}>
                         <Icon name={meta.icon} size={16} />
                       </span>
-                      <span className="flex-1">
-                        <span className="text-sm font-bold text-ur-text">{notification.title}</span>
-                        <p className="mt-0.5 text-sm text-ur-text-secondary">{notification.message}</p>
-                        <p className="mt-1 font-mono text-xs text-ur-text-muted">{formatTime(notification.createdAt)}</p>
+                      <span className="min-w-0 flex-1">
+                        <span className={`block break-words text-sm ${unread ? "font-bold text-ur-text" : "font-semibold text-ur-text-secondary"}`}>
+                          {notification.title}
+                        </span>
+                        <p className="mt-0.5 break-words text-sm text-ur-text-secondary">{notification.message}</p>
+                        <p className="mt-1 font-mono text-xs text-ur-text-muted">
+                          {dayLabel(notification.createdAt)}, {formatTime(notification.createdAt)}
+                        </p>
                       </span>
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.color} border-current`}>
                         {meta.label}
