@@ -4,25 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api, type ViewingRequest } from "@/lib/api";
+import { REQUEST_STATUS_TO_HREF } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/ui/icon";
 
-// Statuses where the tenant still has something actionable to finish -
-// mirrors ViewingRequestStatus in prisma/schema.prisma minus the terminal
-// ones (ACCESS_UNLOCKED/EXPIRED/REVOKED/CANCELLED) and QUEUED, which has no
-// single next step page since the tenant doesn't hold the turn yet.
-const CONTINUABLE_STATUS_TO_HREF: Record<string, (id: string) => string> = {
-  CREATED: (id) => `/requests/${id}/payment`,
-  AWAITING_PAYMENT: (id) => `/requests/${id}/payment`,
-  PAYMENT_RECEIVED: (id) => `/requests/${id}/proof`,
-  PROOF_GENERATING: (id) => `/requests/${id}/proof`,
-  PROOF_READY: (id) => `/requests/${id}/verify`,
-  PROOF_VERIFIED: (id) => `/requests/${id}/code`,
-};
-
 function findContinuableRequest(requests: ViewingRequest[]): ViewingRequest | null {
-  return requests.find((r) => r.status in CONTINUABLE_STATUS_TO_HREF) ?? null;
+  return requests.find((r) => r.status in REQUEST_STATUS_TO_HREF) ?? null;
 }
 
 /**
@@ -83,7 +71,7 @@ export function HomepageCta({ size = "lg" }: { size?: "sm" | "md" | "lg" }) {
 
   if (continuable) {
     return (
-      <Link href={CONTINUABLE_STATUS_TO_HREF[continuable.status](continuable.id)}>
+      <Link href={REQUEST_STATUS_TO_HREF[continuable.status](continuable.id)}>
         <Button size={size}>
           Continue Booking
           <Icon name="arrow_forward" size={16} />

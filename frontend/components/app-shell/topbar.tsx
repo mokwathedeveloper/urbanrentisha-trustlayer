@@ -1,31 +1,46 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/ui/icon";
-import { useUnreadNotificationsCount } from "@/lib/notifications";
+import { useNotifications } from "@/lib/notifications";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { MobileNavDrawer } from "@/components/app-shell/mobile-nav-drawer";
+import { NotificationsDropdown } from "@/components/app-shell/notifications-dropdown";
 
 export function Topbar() {
   const { user, token, logout } = useAuth();
-  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = useUnreadNotificationsCount(token);
+  const { notifications, setNotifications } = useNotifications(token);
+  const unreadCount = notifications.filter((n) => !n.readAt).length;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setNotifOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   return (
@@ -46,19 +61,30 @@ export function Topbar() {
       <MobileNavDrawer open={navOpen} onClose={() => setNavOpen(false)} />
 
       <div className="ml-auto flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => router.push("/notifications")}
-          className="relative text-ur-text-secondary hover:text-ur-navy"
-          aria-label="Notifications"
-        >
-          <Icon name="notifications" size={20} />
-          {unreadCount > 0 ? (
-            <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-ur-mint px-1 text-[10px] font-bold text-ur-bg">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
+        <div className="relative" ref={notifRef}>
+          <button
+            type="button"
+            onClick={() => setNotifOpen((open) => !open)}
+            className="relative text-ur-text-secondary hover:text-ur-navy"
+            aria-label="Notifications"
+            aria-expanded={notifOpen}
+          >
+            <Icon name="notifications" size={20} />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-ur-mint px-1 text-[10px] font-bold text-ur-bg">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
+          </button>
+
+          {notifOpen ? (
+            <NotificationsDropdown
+              notifications={notifications}
+              onNotificationsChange={setNotifications}
+              onClose={() => setNotifOpen(false)}
+            />
           ) : null}
-        </button>
+        </div>
 
         <div className="relative" ref={menuRef}>
           <button
