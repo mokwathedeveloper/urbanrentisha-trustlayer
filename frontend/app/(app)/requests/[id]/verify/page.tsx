@@ -109,7 +109,7 @@ export default function VerifyProofPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <Stepper currentStep={currentStep} steps={verifySteps} />
+          <Stepper currentStep={currentStep} steps={verifySteps} activeLoading={verifying} />
 
           {verifying ? (
             <VerificationProcessingState

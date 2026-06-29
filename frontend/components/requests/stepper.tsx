@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
+import { Spinner } from "@/components/ui/spinner";
 
 const defaultSteps = ["Review Details", "Make Payment", "Processing", "Confirmed", "Complete"];
 
@@ -12,8 +13,23 @@ const defaultSteps = ["Review Details", "Make Payment", "Processing", "Confirmed
  * and up render the original full layout completely unchanged - step
  * logic (currentStep / completed / active) is identical in both, only the
  * rendering differs.
+ *
+ * `activeLoading` lets a caller show a rotating ring around the active
+ * step's circle while the real action behind that step (paying,
+ * generating, verifying) is actually in flight - e.g.
+ * `<Stepper currentStep={currentStep} activeLoading={verifying} />` -
+ * instead of the circle just sitting there as a static number the whole
+ * time. Has no effect on a step that isn't currently active.
  */
-export function Stepper({ currentStep, steps = defaultSteps }: { currentStep: number; steps?: string[] }) {
+export function Stepper({
+  currentStep,
+  steps = defaultSteps,
+  activeLoading = false,
+}: {
+  currentStep: number;
+  steps?: string[];
+  activeLoading?: boolean;
+}) {
   const currentLabel = steps[currentStep - 1] ?? steps[steps.length - 1];
   const currentDone = currentStep > steps.length;
 
@@ -30,13 +46,16 @@ export function Stepper({ currentStep, steps = defaultSteps }: { currentStep: nu
               <div key={label} className={cn("flex items-center", index < steps.length - 1 && "flex-1")}>
                 <div
                   className={cn(
-                    "grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 text-xs font-bold",
+                    "relative grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 text-xs font-bold",
                     completed && "border-ur-primary text-ur-primary",
                     active && "border-ur-primary bg-ur-primary text-white",
                     !completed && !active && "border-ur-border text-ur-text-muted",
                   )}
                   aria-hidden="true"
                 >
+                  {active && activeLoading ? (
+                    <Spinner size="xs" className="absolute inset-[-3px] h-[calc(100%+6px)] w-[calc(100%+6px)] text-white" />
+                  ) : null}
                   {completed ? <Icon name="check" size={12} /> : stepNumber}
                 </div>
                 {index < steps.length - 1 ? (
@@ -71,12 +90,15 @@ export function Stepper({ currentStep, steps = defaultSteps }: { currentStep: nu
               <div className="flex flex-col items-center gap-2">
                 <div
                   className={cn(
-                    "grid h-9 w-9 place-items-center rounded-full border-2 text-sm font-bold",
+                    "relative grid h-9 w-9 place-items-center rounded-full border-2 text-sm font-bold",
                     completed && "border-ur-primary text-ur-primary",
                     active && "border-ur-primary bg-ur-primary text-white",
                     !completed && !active && "border-ur-border text-ur-text-muted",
                   )}
                 >
+                  {active && activeLoading ? (
+                    <Spinner size="sm" className="absolute inset-[-3px] h-[calc(100%+6px)] w-[calc(100%+6px)] text-white" />
+                  ) : null}
                   {completed ? <Icon name="check" size={16} /> : stepNumber}
                 </div>
                 <div className="text-center">

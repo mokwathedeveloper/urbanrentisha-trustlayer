@@ -98,7 +98,7 @@ export default function ProofGenerationPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <Stepper currentStep={currentStep} steps={proofSteps} />
+          <Stepper currentStep={currentStep} steps={proofSteps} activeLoading={generating} />
 
           <div className="flex items-center justify-between rounded-ur border border-ur-primary/25 bg-ur-success-bg p-4">
             <div className="flex items-center gap-3">
